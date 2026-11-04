@@ -1,0 +1,58 @@
+{
+  "_lire": "MODÈLE de structure (tailles, positions, marges Instagram). Remplacer polices et couleurs par celles de l'élève.",
+  "nom": "Modèle",
+  "polices": {
+    "texte": {
+      "fichier": "Montserrat-800.woff2",
+      "famille": "Montserrat",
+      "poids": 800
+    },
+    "fort": {
+      "fichier": "Caveat-700.woff2",
+      "famille": "Caveat",
+      "poids": 700
+    },
+    "titre": {
+      "fichier": "Montserrat-800.woff2",
+      "famille": "Montserrat",
+      "poids": 800
+    }
+  },
+  "sousTitres": {
+    "taille": 34,
+    "couleur": "#ffffff",
+    "majuscules": true,
+    "espacement": "-0.3px",
+    "ombre": "0 2px 8px rgba(0,0,0,.55), 0 0 2px rgba(0,0,0,.7)",
+    "y": 0.52,
+    "yHook": 0.75,
+    "marge": 70
+  },
+  "motFort": {
+    "taille": 58,
+    "couleur": "#e3202a",
+    "contour": "#ffffff",
+    "contourEpaisseur": 7,
+    "fond": "",
+    "texteFond": "",
+    "rotation": -3,
+    "espacement": "0",
+    "majuscules": false
+  },
+  "titre": {
+    "x": 70,
+    "y": 630,
+    "taille": 42,
+    "couleur": "#ffffff",
+    "majuscules": true,
+    "tailleFort": 38
+  },
+  "etiquette": {
+    "fond": "#3a3a3a",
+    "couleur": "#ffffff",
+    "taille": 22,
+    "tailleApres": 17,
+    "xApres": 70,
+    "yApres": 128
+  }
+}
