@@ -18,6 +18,7 @@ import { join, dirname, basename } from 'node:path'
 import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { habillage } from './habillages.mjs'
+import { liste as listeAnimee, POLICES_LISTES } from './listes.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
 const PROJETS = join(ICI, 'projets')
@@ -360,7 +361,7 @@ async function monter(nom) {
   const page = await nav.newPage(); await page.setViewport({ width: 720, height: 1280 })
   const face = (p) => `@font-face{font-family:'${p.famille}';font-weight:${p.poids};src:url(data:font/${p.fichier.split('.').pop().toLowerCase()};base64,${readFileSync(join(ICI, 'polices', p.fichier)).toString('base64')})}`
   const S = C.sousTitres, F = C.motFort, T = C.titre, E = C.etiquette
-  const css = `${face(C.polices.texte)}${face(C.polices.fort)}${face(C.polices.titre)}${face({ fichier: 'Caveat-700.woff2', famille: 'Main', poids: 700 })}${face({ fichier: 'DMSerifDisplay-400.woff2', famille: 'Serif', poids: 400 })}
+  const css = `${face(C.polices.texte)}${face(C.polices.fort)}${face(C.polices.titre)}${face({ fichier: 'Caveat-700.woff2', famille: 'Main', poids: 700 })}${face({ fichier: 'DMSerifDisplay-400.woff2', famille: 'Serif', poids: 400 })}${POLICES_LISTES.map(([fichier, famille, poids]) => face({ fichier, famille, poids })).join('')}
 html,body{margin:0;width:720px;height:1280px;background:transparent}
 .fort{font-family:'${C.polices.fort.famille}',cursive;font-weight:${C.polices.fort.poids};color:${F.couleur};letter-spacing:${F.espacement};text-transform:${F.majuscules ? 'uppercase' : 'none'};${F.contour ? `-webkit-text-stroke:${F.contourEpaisseur}px ${F.contour};paint-order:stroke fill;` : ''}${F.fond ? `background:${F.fond};padding:0 14px 2px;border-radius:3px;` : ''}display:inline-block;transform:rotate(${F.rotation}deg);text-shadow:none;line-height:1}
 .st{position:absolute;left:${Math.max(S.marge, 48)}px;right:${Math.max(S.marge, 96)}px;transform:translateY(-50%);text-align:center;font-family:'${C.polices.texte.famille}',sans-serif;font-weight:${C.polices.texte.poids};font-size:${S.taille}px;line-height:1.22;color:${S.couleur};letter-spacing:${S.espacement};text-transform:${S.majuscules ? 'uppercase' : 'none'};text-shadow:${S.ombre}${S.couleur && /^#f|^#e|^#d|white|#fff/i.test(S.couleur) ? ', 0 0 1px rgba(0,0,0,.9), 1px 1px 0 rgba(0,0,0,.35), -1px -1px 0 rgba(0,0,0,.35)' : ''}}
@@ -409,9 +410,12 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
   const sansAcc = t => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
   let jm = 0
   let yPrecedent = null
+  // pendant une liste animée, les sous-titres se taisent : la liste dit déjà ses mots
+  const fenetresListes = (P.listes || []).map(L => { const n = Math.min(5, (L.items || []).length), pas = L.type === 'ticket' ? 0.45 : 0.6; return [nt(L.t), nt(L.t) + (L.duree ?? Math.max(3.5, 1.2 + n * pas + 1.6))] })
   for (let i = 0; i < subs.length; i++) {
     const s = subs[i]
     if (P.titre && s.b <= HOOK + 0.3) continue // le titre du hook = ses mots : il remplace le sous-titre
+    if (fenetresListes.some(([a, b]) => s.a < b && s.b > a + 0.05)) continue
     // une phrase à cheval sur la fin du hook n'apparaît qu'une fois le titre parti : sinon les deux se superposent
     if (P.titre && !P.titreFixe && s.a < HOOK) s.a = HOOK
     // En cartons, on ne voit jamais que quelques mots à la fois : c'est le plus long paquet qui compte, pas la phrase
@@ -678,6 +682,22 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
       plus.push({ a, b: n === s.items.length ? fin : a + pas, fichier, son: 'clic', leger: true })
     }
   }
+  // Les listes animées (listes.mjs) quand elle énumère : posées là où il y a de la place, jamais sur son visage ;
+  // dessinées à 15 images par seconde le temps de l'animation, puis la dernière image reste.
+  const sonsListes = []
+  for (const [k, L] of (P.listes || []).entries()) {
+    const borne = (x, a, b) => Math.max(a, Math.min(b, x)), dx = x => 1 - Math.pow(1 - borne(x, 0, 1), 3)
+    const rb = x => { x = borne(x, 0, 1); const c = 1.4; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2) }
+    const Lm = listeAnimee(L, { clamp: borne, doux: dx, rebond: rb, esc: x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;'), couleurs: { accent, etiquette: '#D62B2B', tampon: accent, ...(P.couleursListe || {}) } })
+    if (!Lm) continue
+    const t0 = nt(L.t), fin = Math.min(TOT, t0 + Lm.duree), y = Math.round(placer('liste', 760, Lm.hauteur, t0, fin) - Lm.hauteur / 2)
+    const IPS = 15, nImg = Math.ceil(Lm.anim * IPS)
+    for (let j = 0; j <= nImg; j++) {
+      const fichier = join(st, `liste-${k}-${j}.png`); await png(Lm.dessin(j / IPS, y), fichier)
+      plus.push({ a: t0 + j / IPS, b: j < nImg ? t0 + (j + 1) / IPS : fin, fichier })
+    }
+    for (const x of Lm.sons(t0)) if (x.fam === 'clavier') for (let u = 0; u < x.duree; u += 0.16) sonsListes.push(['clic', x.t + u]); else sonsListes.push([x.fam, x.t])
+  }
   if (P.carteFin) {
     const fichier = join(st, 'carte-fin.png')
     // « léger » : juste du texte avec une ombre douce et deux étincelles, pas de gros bandeau (« disgracieux »)
@@ -787,6 +807,7 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
   P.clavier.forEach(t => ev.push(['clavier-court', nt(t), VOL_CLAVIER]))
   // chaque arrivée d'une carte a son son (photo, cloche, magie…), pile à l'image où elle apparaît (et pas de pop en même temps)
   plus.filter(p => p.son).forEach(p => ev.push([son(p.son), p.son === (P.carteFin?.son || 'magie') && p.a > TOT - 4 ? Math.max(p.a, TOT - 0.8) : p.a, 0.35])) // la carte de fin sonne APRÈS le dernier mot
+  sonsListes.forEach(([fam, t]) => ev.push([son(fam), t, P.volLegers ?? 0.12]))
   if (P.compteur) ev.push([son('kaching'), HOOK + 0.05, VOL_SON]) // le « ka-ching » APRÈS la question du hook, jamais dessus
   // Placement choisi à la main (avec jugeote) : il remplace tout le placement automatique.
   if (P.sonsChoisis) {
