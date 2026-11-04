@@ -201,7 +201,7 @@ async function monter(nom) {
   const lignesFortes = lignesST.map(l => [+l.split('|')[0], /\*[^*]+\*/.test(l)])
   const lignesGrosPlan = lignesST.filter(l => /#grosplan\b/.test(l)).map(l => +l.split('|')[0])
   const finHook = P.hookFin ?? (lignesST[1] ? +lignesST[1].split('|')[0] : 0)
-  const style = ({ confidence: 'doux', energie: 'energique', serie: 'rythme', classique: 'rythme', pop: 'energique', editorial: 'doux', collage: 'doux', aurelie: 'rythme', typo: 'rythme', witchy: 'doux', chic: 'doux' })[P.style] || P.style || 'doux'
+  const style = ({ confidence: 'doux', energie: 'energique', serie: 'rythme', classique: 'rythme', pop: 'energique', editorial: 'doux', collage: 'doux', aurelie: 'rythme', typo: 'rythme', witchy: 'doux', chic: 'doux', automne: 'rythme', cosy: 'rythme', studio: 'rythme' })[P.style] || P.style || 'doux'
   const rapproche = (a, b, i) => {
     if (lignesGrosPlan.some(t => t >= a - 0.05 && t < b)) return GROS_PLAN
     if ((P.rapprocher || []).some(([x, y]) => b > x && a < y)) return RAPPROCHE
@@ -363,7 +363,7 @@ async function monter(nom) {
 
   // Style « collage » : un autre moteur (collage.mjs) habille la vidéo. On lui passe la vidéo coupée et cadrée
   // (avec sa voix), les phrases relues, chaque mot entendu avec son temps, le visage, et la table des temps.
-  if (['collage', 'pop', 'editorial', 'doux', 'confidence', 'aurelie', 'typo', 'witchy', 'chic'].includes(P.style)) {
+  if (['collage', 'pop', 'editorial', 'doux', 'confidence', 'aurelie', 'typo', 'witchy', 'chic', 'automne', 'cosy', 'studio'].includes(P.style)) {
     const st = join(dir, 'rendu'); mkdirSync(st, { recursive: true })
     lancer('ffmpeg', ['-y', '-v', 'error', '-i', source, '-filter_complex', fSegments.replace(/;$/, ''), '-map', '[cv]', '-map', '[voix]', '-c:v', 'libx264', '-crf', '16', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', join(st, 'base-av.mp4')])
     const visages = []; for (let T = 0; T < TOT; T += 0.1) visages.push(visageFinal(T)?.map(Math.round) ?? null)

@@ -57,7 +57,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   mots.forEach((m, k) => { m.fin = Math.min(mots[k + 1]?.t ?? TOT, m.t + 0.9) })
 
   // ── Les éléments : chacun a sa fenêtre, son calque (derrière elle ou devant), son dessin à l'instant t ──
-  const el = [], sons = []
+  const el = [], sons = [], GEANTS_POP = [] // pop : les fenêtres des mots géants (le sous-titre s'y tait)
   const MED = (K.medaillon || []).map(([a, b]) => [tf(a), tf(b)])
   const dansMed = t => MED.some(([a, b]) => t >= a && t < b)
 
@@ -66,7 +66,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   //  « pop »       : couleurs franches, gros mots ronds qui claquent, étoiles, carte inclinée sur fond bleu, arc, noir et blanc ;
   //  « editorial » : magazine, une seule famille serrée en minuscules + un mot en italique, titres rose poudré derrière
   //                  la tête, entrées en flou vers net, étalonnage chaud, presque aucun son.
-  const THEME = ({ pop: 'pop', editorial: 'editorial', doux: 'doux', confidence: 'doux', aurelie: 'aurelie', typo: 'typo', witchy: 'witchy', chic: 'chic' })[P.style] || 'collage'
+  const THEME = ({ pop: 'pop', editorial: 'editorial', doux: 'doux', confidence: 'doux', aurelie: 'aurelie', typo: 'typo', witchy: 'witchy', chic: 'chic', automne: 'automne', cosy: 'automne', studio: 'studio' })[P.style] || 'collage'
   const PALETTE = { pop: { fond: '#7DB3E8', mot: '#6FA3DE', marine: '#2B3F6B', etoile: '#F2C94C', rose: '#F4A6C4' }, editorial: { rose: '#F2B8AE', bordeaux: '#6B1E24', peche: '#F6C7A8', nuit: '#2A0306' } }[THEME] || {}
   // typo : sa couleur signature + quatre couleurs vives qui tournent d'un mot fort à l'autre (surchargeables)
   if (THEME === 'typo') Object.assign(PALETTE, { mot: coul.mot || C?.motFort?.couleur || '#F4E04D', jaune: '#F4E04D', lilas: '#C9B8FF', cyan: '#8FE3EA', rose: '#FFB8D6' }, K.couleurs || {})
@@ -75,6 +75,9 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     Object.assign(PALETTE, { or: '#E9C77B', prune: mix(0.32, 4), nuit: mix(0.5, 8), creme: '#F6E7C8' }, K.couleurs || {}) } // witchy : la nuit prend SA couleur signature, assombrie ; tout se surcharge avec collage.couleurs
   if (THEME === 'chic') Object.assign(PALETTE, { sable: '#EFE6DA', cacao: '#3B2A22', accent: coul.mot || C?.motFort?.couleur || '#B98B6E' }, K.couleurs || {}) // chic : SA couleur signature pour le mot fort
   const OMBRE = 'text-shadow:0 1px 2px rgba(0,0,0,.6),0 2px 18px rgba(0,0,0,.5)' // chic : ombre douce, lisible sur un mur clair
+  if (THEME === 'automne') Object.assign(PALETTE, { creme: '#FFF3DF', brun: '#4A2412', rouille: '#B4481C', ocre: '#E3A03A' }, K.couleurs || {}) // automne : crème, brun, rouille, ocre
+  if (THEME === 'studio') { const sig = coul.mot || C?.motFort?.couleur || '#5A0E1A', v = parseInt(sig.replace('#', '').slice(0, 6), 16) || 0x5A0E1A, mix = f => '#' + [v >> 16, (v >> 8) & 255, v & 255].map(c => Math.round(c * f).toString(16).padStart(2, '0')).join('')
+    Object.assign(PALETTE, { fond: mix(0.45), trait: mix(1.0) + '55', creme: '#F7EAD9', soleil: '#F3D58C' }, K.couleurs || {}) } // studio : le fond prend SA couleur, assombrie
   if (THEME === 'pop') Object.assign(PALETTE, K.couleurs || {}) // pop : ses couleurs à elle si sa charte le demande
   if (THEME === 'editorial') {
     // les couleurs viennent de la vidéo : la teinte moyenne du décor, déclinée en pâle (titres), soutenu et nuit (fond)
@@ -143,7 +146,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   // affichée jusqu'à la suivante : on la lit en entier. Le *mot fort* en bleu, plus gros, entre deux étoiles jaunes.
   const OUTILS = /^(le|la|les|l'|un|une|des|de|du|d'|et|ou|à|au|aux|en|dans|sur|pour|par|que|qui|qu'|ce|c'|ça|je|j'|tu|il|elle|on|nous|vous|ils|elles|me|m'|te|t'|se|s'|ne|n'|pas|mon|ma|mes|ton|ta|tes|son|sa|ses|est|a|y)$/i
   el.push({ a: 0, b: TOT, calque: 'devant', dessin: t => {
-    if (t < HOOK || dansMed(t)) return ''
+    if (t < HOOK || dansMed(t) || GEANTS_POP.some(([a, b]) => t >= a && t < b)) return ''
     const p = phrases.find(p => t >= p.a && t < p.b); if (!p) return ''
     const ici = mots.filter(m => m.ip === phrases.indexOf(p)), dits = ici.filter(m => t >= m.t)
     if (!dits.length) return ''
@@ -155,7 +158,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       return `<span style="${style};font:900 54px/1.05 Rond,sans-serif;color:${m === dernierPlein ? '#fff' : '#E4E7EC'}">${w}</span>`
     }).join(' ')
     const enBas = basVisage(p.a, p.b) < 830
-    return `<div style="position:absolute;left:56px;right:100px;${enBas ? 'bottom:300px' : 'top:180px'};text-align:center;text-transform:lowercase;letter-spacing:-0.02em;text-shadow:0 3px 10px rgba(0,0,0,.35)">${html}</div>`
+    return `<div style="position:absolute;left:56px;right:100px;${enBas ? 'bottom:300px' : 'top:180px'};text-align:center;text-transform:lowercase;letter-spacing:-0.02em;filter:drop-shadow(0 0 1.5px #2B3F6B) drop-shadow(0 0 1.5px #2B3F6B) drop-shadow(0 3px 8px rgba(0,0,0,.3));">${html}</div>`
   } })
   }
   if (THEME === 'editorial') {
@@ -219,6 +222,71 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     return '<div style="position:absolute;left:70px;right:110px;top:' + y + 'px;text-align:center;text-wrap:balance;font:500 31px/1.35 ChicS,sans-serif;color:#fff;opacity:' + q + ';transform:translateY(' + ((1 - q) * 6).toFixed(1) + 'px);' + OMBRE + '">' + html + '</div>'
   } })
   if (K.entete) el.push({ a: HOOK, b: TOT, calque: 'devant', dessin: t => '<div style="position:absolute;left:46px;right:110px;top:84px;display:flex;justify-content:space-between;font:500 17px/1 ChicS,sans-serif;letter-spacing:0.28em;color:#fff;opacity:' + (0.85 * doux((t - HOOK) / 0.6)) + ';' + OMBRE + '"><span>' + esc(K.entete.gauche || '') + '</span><span>' + esc(K.entete.droite || '') + '</span></div>' })
+  }
+
+  // la feuille d'automne (érable), dessinée une fois ; teinte au choix
+  const feuille = (x, y, z, rot, couleur, o = 1) => '<svg style="position:absolute;left:' + x + 'px;top:' + y + 'px;opacity:' + o + ';transform:rotate(' + rot + 'deg);filter:drop-shadow(0 3px 6px rgba(60,20,0,.35))" width="' + z + '" height="' + z + '" viewBox="0 0 100 100"><path d="M50 4 L58 26 L74 16 L70 38 L92 34 L80 50 L96 60 L72 64 L78 84 L58 72 L52 96 L48 96 L42 72 L22 84 L28 64 L4 60 L20 50 L8 34 L30 38 L26 16 L42 26 Z" fill="' + couleur + '"/><path d="M50 30 L50 96" stroke="rgba(0,0,0,.25)" stroke-width="2"/></svg>'
+  // automne : les polices changent d'une vidéo à l'autre (tirées de son nom de projet), ou celles qu'elle choisit (collage.polices)
+  const POLICES_AUTOMNE = { titre: { fraunces: [900, 'Gros,serif', 1], dmserif: [400, 'Display,serif', 0.95], anton: [400, 'Anton,sans-serif', 1.25], bricolage: [800, 'DidotG,sans-serif', 1], montserrat: [900, 'Rond,sans-serif', 0.95] }, mots: { caveat: [700, 'Annot,cursive', 1], gloria: [400, 'Carnet,cursive', 0.8], fredoka: [700, 'Fred,sans-serif', 0.85], reenie: [500, 'Main,cursive', 1.15] }, script: { satisfy: [400, 'Script,cursive', 1], caveat: [700, 'Annot,cursive', 1.1], instrument: [400, 'Didot,serif', 1.05, 'italic'] } }
+  const hNom = [...String(nom || P.titre || '')].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7)
+  const choixA = (g, i) => { const l = Object.keys(POLICES_AUTOMNE[g]), v = String(K.polices?.[g] || '').toLowerCase(); return POLICES_AUTOMNE[g][l.includes(v) ? v : l[(hNom >>> (i * 4)) % l.length]] }
+  const PT = choixA('titre', 0), PM = choixA('mots', 1), PS = choixA('script', 2)
+  const fA = (p, z) => (p[3] || 'normal') + ' ' + p[0] + ' ' + Math.round(z * p[2]) + 'px/1 ' + p[1]
+  if (THEME === 'automne') console.log('Polices automne : titre ' + Object.keys(POLICES_AUTOMNE.titre).find(k => POLICES_AUTOMNE.titre[k] === PT) + ', mots ' + Object.keys(POLICES_AUTOMNE.mots).find(k => POLICES_AUTOMNE.mots[k] === PM) + ', manuscrite ' + Object.keys(POLICES_AUTOMNE.script).find(k => POLICES_AUTOMNE.script[k] === PS))
+  if (THEME === 'automne') {
+    // SOUS-TITRES MOT À MOT : un mot à la fois sur sa poitrine, écriture ronde crème au contour brun
+    const finA = K.fin?.motCle ? tf(K.fin.t ?? TOT - 3.5) : TOT
+    el.push({ a: HOOK, b: finA, calque: 'devant', dessin: t => {
+      const k = mots.findIndex((m, i) => t >= m.t && t < (mots[i + 1]?.t ?? m.fin)); if (k < 0) return ''
+      const w = mots[k]; if (t > w.fin + 0.25) return ''
+      const p = phrases[w.ip], y = clamp(basVisage(p.a, p.b) + 110, 640, 960), r = clamp(rebond((t - w.t) / 0.18), 0, 1.15)
+      const z = w.fort ? 108 : 84, txt = esc(w.w.replace(/[,.;:!?»]+$/, ''))
+      return '<div style="position:absolute;left:40px;right:80px;top:' + (y - z / 2) + 'px;text-align:center;white-space:nowrap;font:' + fA(PM, z) + ';color:' + (w.fort ? PALETTE.rouille : PALETTE.creme) + ';-webkit-text-stroke:' + (w.fort ? 10 : 8) + 'px ' + (w.fort ? PALETTE.creme : PALETTE.brun) + ';paint-order:stroke fill;transform:scale(' + r.toFixed(3) + ');text-shadow:0 4px 12px rgba(60,20,0,.35)">' + txt + '</div>'
+    } })
+    // une ou deux feuilles qui tombent près du mot fort
+    for (const w of mots.filter(m => m.fort && m.t > HOOK && m.t < finA)) {
+      const a = w.t, y0 = clamp(basVisage(a, a + 1) + 60, 600, 900)
+      el.push({ a, b: Math.min(TOT, a + 1.6), calque: 'devant', dessin: t => { const q = (t - a) / 1.6
+        return feuille(Math.round(150 + 40 * Math.sin(q * 5)), Math.round(y0 - 80 + 140 * q), 46, Math.round(-30 + 160 * q), PALETTE.ocre, Math.sin(q * Math.PI).toFixed(2))
+          + feuille(Math.round(520 + 30 * Math.sin(q * 4 + 1)), Math.round(y0 - 110 + 120 * q), 36, Math.round(20 - 140 * q), PALETTE.rouille, Math.sin(q * Math.PI).toFixed(2)) } })
+    }
+  }
+
+  if (THEME === 'studio') {
+    const finS = K.fin?.motCle ? tf(K.fin.t ?? TOT - 3.5) : TOT
+    // les scènes studio : le hook, puis une phrase forte sur deux (au moins 6 s d'écart), ou celles qu'elle choisit
+    let scenes = (K.studio || []).map(([a, b]) => [tf(a), tf(b)])
+    if (!K.studio) { scenes = [[0, HOOK]]; let d = HOOK, k = 0
+      for (const [ip, p] of phrases.entries()) { if (p.a < HOOK + 1 || p.b > finS - 0.3 || p.a - d < 6 || p.b - p.a < 1.2 || !mots.some(m => m.ip === ip && m.fort)) continue
+        if (k++ % 2 === 0) { scenes.push([p.a - 0.05, p.b + 0.1]); d = p.b } } }
+    const dansScene = t => scenes.some(([a, b]) => t >= a && t < b)
+    const hasard = k => { const x = Math.sin(k * 5.17 + 1.3) * 43758.5453; return x - Math.floor(x) }
+    // le fond : sa couleur, un quadrillage tracé à la main (lignes un peu tremblées), ou uni
+    const grille = K.fond === 'uni' ? '' : '<svg style="position:absolute;inset:0" width="720" height="1280">' + Array.from({ length: 13 }, (_, k) => '<path d="M' + (k * 60 + 10) + ' 0 Q ' + (k * 60 + 10 + (hasard(k) - 0.5) * 10) + ' 640 ' + (k * 60 + 10 + (hasard(k + 40) - 0.5) * 8) + ' 1280" stroke="' + PALETTE.trait + '" stroke-width="2" fill="none"/>').join('') + Array.from({ length: 22 }, (_, k) => '<path d="M0 ' + (k * 60 + 20) + ' Q 360 ' + (k * 60 + 20 + (hasard(k + 80) - 0.5) * 10) + ' 720 ' + (k * 60 + 20 + (hasard(k + 120) - 0.5) * 8) + '" stroke="' + PALETTE.trait + '" stroke-width="2" fill="none"/>').join('') + '</svg>'
+    const soleil = (cx, cy, r, rot) => '<svg style="position:absolute;left:' + (cx - r) + 'px;top:' + (cy - r) + 'px;transform:rotate(' + rot + 'deg)" width="' + 2 * r + '" height="' + 2 * r + '" viewBox="-100 -100 200 200"><path d="' + Array.from({ length: 24 }, (_, k) => { const a = k / 24 * Math.PI * 2, rr = k % 2 ? 62 : 100; return (k ? 'L' : 'M') + (Math.cos(a) * rr).toFixed(1) + ' ' + (Math.sin(a) * rr).toFixed(1) }).join(' ') + 'Z" fill="' + PALETTE.soleil + '"/></svg>'
+    for (const [a, b] of scenes) {
+      el.push({ a, b, calque: 'derriere', dessin: t => { const v = vis(t), q = doux((t - a) / 0.2)
+        return '<div style="position:absolute;inset:0;background:' + PALETTE.fond + '"></div>' + grille + (v ? soleil(Math.round((v[0] + v[2]) / 2), Math.round((v[1] + v[3]) / 2), Math.round((v[2] - v[0]) * 1.15 * (0.85 + 0.15 * q)), Math.round(t * 12)) : '') } })
+      sons.push({ t: a, fam: 'whoosh', vol: 0.07 })
+    }
+    // les mots en escalier, pendant les scènes (hors hook) : chaque mot à sa ligne, gauche puis droite ; le mot fort en manuscrite
+    for (const [a, b] of scenes.slice(1)) {
+      const ici = mots.filter(m => m.t >= a - 0.02 && m.t < b).slice(0, 9); if (!ici.length) continue
+      const v0 = vis((a + b) / 2), haut = v0 ? v0[1] : 300, bas = v0 ? v0[3] : 700
+      const gx = v0 ? v0[0] : 220, dx = v0 ? v0[2] : 500, largeur = m => m.w.length * (m.fort ? 34 : 23) + 10
+      const cotes = ici.map((m, k) => { const L = gx - 40 - largeur(m), Rr = 690 - (dx + 40) - largeur(m); return k % 2 ? (Rr >= 0 ? dx + 40 : L >= 24 ? L : null) : (L >= 24 ? L : Rr >= 0 ? dx + 40 : null) })
+      const surCote = cotes.every(x => x != null), yDeb = surCote ? clamp(haut + 30, 260, 1050 - ici.length * 58) : clamp(bas + 30, 420, 1050 - ici.length * 58)
+      el.push({ a, b, calque: 'devant', dessin: t => '<div style="position:absolute;inset:0">' + ici.map((m, k) => { const q = doux((t - m.t + 0.03) / 0.2); if (q <= 0) return ''
+        const x = surCote ? Math.round(cotes[k]) : (k % 2 ? 380 : 90), w = esc(m.w.replace(/[*]/g, ''))
+        return m.fort ? '<div style="position:absolute;left:' + (x - 40) + 'px;top:' + (yDeb + k * 58 - 14) + 'px;font:400 70px/1 Script,cursive;color:' + PALETTE.creme + ';opacity:' + q + ';transform:translateY(' + ((1 - q) * 10).toFixed(1) + 'px);text-shadow:0 0 3px rgba(0,0,0,.7),0 2px 12px rgba(0,0,0,.45)">' + w + '</div>'
+          : '<div style="position:absolute;left:' + x + 'px;top:' + (yDeb + k * 58) + 'px;font:400 44px/1 Display,serif;color:' + PALETTE.creme + ';opacity:' + q + ';transform:translateY(' + ((1 - q) * 10).toFixed(1) + 'px);text-shadow:0 0 3px rgba(0,0,0,.7),0 2px 10px rgba(0,0,0,.45)">' + w + '</div>' }).join('') + '</div>' })
+    }
+    // hors scènes : sa phrase en serif fin crème, sous son visage
+    el.push({ a: HOOK, b: finS, calque: 'devant', dessin: t => { if (dansScene(t)) return ''
+      const p = phrases.find(p => t >= p.a && t < p.b); if (!p) return ''
+      const q = Math.min(doux((t - p.a) / 0.25), 1 - clamp((t - (p.b - 0.12)) / 0.12, 0, 1)), y = clamp(basVisage(p.a, p.b) + 110, 640, 960)
+      const html = esc(p.txt).replace(/\*([^*]+)\*/g, (_, w) => '<span style="font:400 54px/1 Script,cursive">' + w + '</span>')
+      return '<div style="position:absolute;left:70px;right:110px;top:' + y + 'px;text-align:center;text-wrap:balance;font:400 40px/1.2 Display,serif;color:' + PALETTE.creme + ';opacity:' + q + ';text-shadow:0 0 3px rgba(0,0,0,.75),0 1px 3px rgba(0,0,0,.6),0 2px 16px rgba(0,0,0,.5)">' + html + '</div>' } })
   }
 
   // un texte qui suit son visage : il reste où on l'a mis tant qu'elle n'y vient pas, sinon il glisse au-dessus ou en dessous
@@ -384,6 +452,49 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     }
   }
 
+  if (T.grand && THEME === 'automne') {
+    // hook sur la poitrine : petite manuscrite crème, grand serif très gras crème au contour brun, fin en manuscrite rouille
+    const { aD, aG, aQ } = H, petite = T.dessus || T.petit || ''
+    const tG = Math.round(clamp(600 / (0.62 * Math.max(5, T.grand.length)), 64, 104)), hBloc = (petite ? 54 : 0) + tG + (T.queue ? 70 : 0)
+    const yB = clamp(basVisage(0, HOOK) + 40, 560, 980 - hBloc), suivi = suiveur(hBloc)
+    const hasard = k => { const x = Math.sin(k * 9.7 + 3.3) * 43758.5453; return x - Math.floor(x) }
+    const chute = Array.from({ length: 9 }, (_, k) => ({ x: hasard(k) * 660, y0: -80 - hasard(k + 30) * 500, v: 160 + hasard(k + 60) * 120, z: 54 + hasard(k + 90) * 40, c: [PALETTE.rouille, PALETTE.ocre, '#C96A2B'][k % 3], ph: hasard(k + 7) * 6 }))
+    el.push({ a: 0, b: HOOK + 0.6, calque: 'derriere', dessin: t => chute.map(f => feuille(Math.round(f.x + 30 * Math.sin(t * 1.3 + f.ph)), Math.round(f.y0 + f.v * t), Math.round(f.z), Math.round(f.ph * 40 + t * 70), f.c, (1 - clamp((t - HOOK) / 0.6, 0, 1)).toFixed(2))).join('') })
+    el.push({ a: 0, b: HOOK, calque: 'devant', dessin: t => { const y0 = suivi(t, yB + hBloc / 2) - hBloc / 2
+      const sortie = 1 - clamp((t - (HOOK - 0.3)) / 0.3, 0, 1), pD = doux((t - aD) / 0.4), pG = clamp(rebond((t - aG) / 0.3), 0, 1.12), pQ = doux((t - aQ) / 0.45)
+      const etoile = (x, y, n) => '<svg style="position:absolute;left:' + x + 'px;top:' + y + 'px;opacity:' + Math.min(1, pG) + '" width="' + n + '" height="' + n + '" viewBox="0 0 24 24"><path d="M12 1.5l3 7.2 7.6.6-5.8 5 1.8 7.4L12 17.8 5.4 21.7l1.8-7.4-5.8-5 7.6-.6z" fill="#fff"/></svg>'
+      return '<div style="position:absolute;left:0;right:0;top:' + y0 + 'px;text-align:center;opacity:' + sortie + '">'
+        + (petite ? '<div style="font:' + fA(PS, 44) + ';line-height:54px;color:' + PALETTE.creme + ';opacity:' + pD + ';text-shadow:0 2px 10px rgba(60,20,0,.6)">' + esc(petite) + '</div>' : '')
+        + '<div style="white-space:nowrap;font:' + fA(PT, tG) + ';text-transform:uppercase;letter-spacing:-0.01em;color:' + PALETTE.creme + ';-webkit-text-stroke:9px ' + PALETTE.brun + ';paint-order:stroke fill;transform:scale(' + pG.toFixed(3) + ');text-shadow:0 6px 16px rgba(60,20,0,.4)">' + esc(T.grand) + '</div>'
+        + (T.queue ? '<div style="font:' + fA(PS, 58) + ';line-height:70px;color:' + PALETTE.rouille + ';-webkit-text-stroke:6px ' + PALETTE.creme + ';paint-order:stroke fill;opacity:' + pQ + '">' + esc(T.queue) + '</div>' : '')
+        + etoile(90, petite ? 30 : -10, 26) + etoile(600, (petite ? 54 : 0) + tG * 0.7, 20) + etoile(120, hBloc - 20, 16) + '</div>'
+    } })
+    sons.push({ t: Math.max(0.05, aG), fam: 'pop', vol: 0.08 })
+  }
+  if (K.fin?.motCle && THEME === 'automne') {
+    const t0 = tf(K.fin.t ?? TOT - 3.5), mot = K.fin.motCle, y = clamp(basVisage(t0, TOT) + 40, 600, 860)
+    el.push({ a: t0, b: TOT, calque: 'devant', zone: 'poitrine', dessin: t => { const p = doux((t - t0) / 0.5), r = clamp(rebond((t - t0 - 0.2) / 0.3), 0, 1.1)
+      return '<div style="position:absolute;left:60px;right:104px;top:' + y + 'px;text-align:center;opacity:' + p + '"><div style="font:' + fA(PS, 50) + ';color:' + PALETTE.creme + ';text-shadow:0 2px 10px rgba(60,20,0,.6)">écris-moi</div>'
+        + '<div style="display:inline-block;margin-top:10px;background:' + PALETTE.rouille + ';color:' + PALETTE.creme + ';font:' + fA(PT, Math.round(Math.min(84, 520 / (mot.length * 0.62)))) + ';line-height:1.1;text-transform:uppercase;padding:12px 30px 16px;border-radius:14px;transform:rotate(-2deg) scale(' + r.toFixed(3) + ');box-shadow:0 10px 24px rgba(60,20,0,.35)">' + esc(mot) + '</div></div>' } })
+    sons.push({ t: t0 + 0.2, fam: 'pop', vol: 0.08 })
+  }
+
+  if (T.grand && THEME === 'studio') {
+    // hook : petite phrase en serif, le grand mot en manuscrite, au-dessus de sa tête, sur le fond studio
+    const { haut, aD, aG, aQ } = H, petite = T.dessus || T.petit || ''
+    const tG = Math.round(clamp(600 / (0.42 * Math.max(4, T.grand.length)), 70, 130)), yB = clamp(haut - tG - 110, 90, 420)
+    el.push({ a: 0, b: HOOK, calque: 'devant', dessin: t => { const sortie = 1 - clamp((t - (HOOK - 0.3)) / 0.3, 0, 1), pD = doux((t - aD) / 0.35), pG = doux((t - aG) / 0.45), pQ = doux((t - aQ) / 0.4)
+      return '<div style="position:absolute;left:0;right:0;top:' + yB + 'px;text-align:center;opacity:' + sortie + ';text-shadow:0 2px 12px rgba(0,0,0,.35)">'
+        + (petite ? '<div style="font:400 44px/1.1 Display,serif;color:' + PALETTE.creme + ';opacity:' + pD + '">' + esc(petite) + '</div>' : '')
+        + '<div style="white-space:nowrap;font:400 ' + tG + 'px/1.1 Script,cursive;color:' + PALETTE.creme + ';opacity:' + pG + ';transform:translateY(' + ((1 - pG) * 12).toFixed(1) + 'px)">' + esc(T.grand) + '</div>'
+        + (T.queue ? '<div style="font:400 40px/1.1 Display,serif;color:' + PALETTE.creme + ';opacity:' + pQ + '">' + esc(T.queue) + '</div>' : '') + '</div>' } })
+  }
+  if (K.fin?.motCle && THEME === 'studio') {
+    const t0 = tf(K.fin.t ?? TOT - 3.5), mot = K.fin.motCle, y = clamp(basVisage(t0, TOT) + 40, 600, 880)
+    el.push({ a: t0, b: TOT, calque: 'devant', zone: 'poitrine', dessin: t => { const p = doux((t - t0) / 0.4)
+      return '<div style="position:absolute;left:60px;right:104px;top:' + y + 'px;text-align:center;opacity:' + p + ';color:' + PALETTE.creme + ';text-shadow:0 2px 12px rgba(0,0,0,.45)"><div style="font:400 40px/1 Display,serif">Écris-moi</div><div style="font:400 84px/1.2 Script,cursive">« ' + esc(mot) + ' »</div></div>' } })
+  }
+
   if (T.grand && THEME === 'doux') {
     const { haut, aD, aG, aQ } = H, accent = coul.mot || C?.motFort?.couleur || '#E8B4A0'
     const tG = Math.round(clamp(560 / (0.42 * Math.max(4, T.grand.length)), 90, 170)), y0B = clamp(haut - tG * 0.9 - 70, 150, 420), suiviC = suiveur(tG + 60)
@@ -399,7 +510,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       return `<div style="position:absolute;left:0;right:0;top:${clamp(basVisage(0, HOOK) + 150, 640, 930)}px;text-align:center;font:400 66px/1 Script,cursive;color:${accent};-webkit-text-stroke:5px #fff;paint-order:stroke fill;opacity:${pQ * sortie};text-shadow:0 2px 14px rgba(0,0,0,.3)">${esc(T.queue)}</div>` } })
   }
 
-  if (T.grand && THEME !== 'aurelie' && THEME !== 'doux' && THEME !== 'witchy' && THEME !== 'chic') {
+  if (T.grand && THEME !== 'aurelie' && THEME !== 'doux' && THEME !== 'witchy' && THEME !== 'chic' && THEME !== 'automne' && THEME !== 'studio') {
     const fin = HOOK, { tG, tD, yG, yD, aD, aG } = H
     // chaque style a sa grosse lettre : serif beurre qui rebondit (collage), rond très gras qui claque (pop),
     // minuscules serrées rose poudré qui sortent du flou (éditorial)
@@ -411,18 +522,18 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       : THEME === 'typo' // typo : chaque lettre saute à son tour
       ? `<div style="position:absolute;left:0;right:0;top:${y}px;transform:translateY(-50%);text-align:center;white-space:nowrap;font:900 ${Math.round(Math.min(taille, 590 / (Math.max(1, [...txt].length) * 0.8)))}px/0.9 Rond,sans-serif;letter-spacing:-0.02em;text-transform:uppercase;color:${couleur};-webkit-text-stroke:6px #1d1a24;paint-order:stroke fill;text-shadow:0 6px 24px rgba(0,0,0,.25)">${[...txt].map((l, k) => `<span style="display:inline-block;transform:scale(${clamp(rebond(p * 2.2 - k * 0.12), 0, 1.2)})">${l === ' ' ? '&nbsp;' : esc(l)}</span>`).join('')}</div>`
       : THEME === 'pop'
-      ? `<div style="position:absolute;left:0;right:0;top:${y}px;transform:translateY(-50%) scale(${1.18 - 0.18 * rebond(p / 0.6)});opacity:${p > 0 ? 1 : 0};text-align:center;font:900 ${taille}px/0.9 Rond,sans-serif;letter-spacing:-0.03em;text-transform:lowercase;color:${couleur};text-shadow:0 6px 24px rgba(0,0,0,.2)">${esc(txt)}</div>`
+      ? `<div style="position:absolute;left:0;right:0;top:${y}px;transform:translateY(-50%) scale(${1.18 - 0.18 * rebond(p / 0.6)});opacity:${p > 0 ? 1 : 0};text-align:center;font:900 ${taille}px/0.9 Rond,sans-serif;letter-spacing:-0.03em;text-transform:lowercase;color:${couleur};filter:drop-shadow(0 0 1.5px #2B3F6B) drop-shadow(0 0 1.5px #2B3F6B) drop-shadow(0 3px 8px rgba(0,0,0,.3));">${esc(txt)}</div>`
       : `<div style="position:absolute;left:0;right:0;top:${y}px;transform:translateY(-50%) scale(${0.82 + 0.18 * rebond(p)});opacity:${p > 0 ? 1 : 0};text-align:center;font:900 ${taille}px/0.9 Gros,serif;letter-spacing:-0.03em;color:${couleur};text-shadow:0 4px 18px rgba(0,0,0,.2)">${esc(txt)}</div>`
     const couleurGrand = T.couleur || ({ typo: PALETTE.jaune, pop: '#fff', doux: '#fff', editorial: THEME === 'editorial' ? PALETTE.sous((aG + fin) / 2, yG - tG * 0.45, yG + tG * 0.45) : '' })[THEME] || coul.beurre
     const couleurDessus = T.couleurDessus || ({ pop: PALETTE.mot })[THEME] || '#fff'
     const suiviD = suiveur(tD * 1.1), suiviG = suiveur(tG * 1.1)
-    el.push({ a: 0, b: fin, calque: THEME === 'typo' ? 'devant' : 'derriere', dessin: t => {
+    el.push({ a: 0, b: fin, calque: THEME === 'typo' || THEME === 'pop' ? 'devant' : 'derriere', dessin: t => {
       const sortie = 1 - clamp((t - (fin - 0.2)) / 0.2, 0, 1)
       return `<div style="position:absolute;inset:0;opacity:${sortie}">${T.dessus && t < aG ? ligne(T.dessus, tD, suiviD(t, yD), couleurDessus, (t - aD) / 0.22) : ''}${t >= aG ? ligne(T.grand, tG, suiviG(t, yG), couleurGrand, (t - aG) / (THEME === 'editorial' ? 0.3 : 0.22)) : ''}</div>`
     } })
   }
 
-  if (T.grand && T.queue && THEME !== 'aurelie' && THEME !== 'doux' && THEME !== 'witchy' && THEME !== 'chic') {
+  if (T.grand && T.queue && THEME !== 'aurelie' && THEME !== 'doux' && THEME !== 'witchy' && THEME !== 'chic' && THEME !== 'automne' && THEME !== 'studio') {
     const fin = HOOK, { tG, yG, aQ } = H
     const larg = Math.min(540, T.queue.length * 30 + 20), hQ = Math.ceil((T.queue.length * 30 + 20) / 540) * 72, v = visages(0, fin), touche = (x0, y0) => v.some(f => x0 < f[2] + 16 && x0 + larg > f[0] - 16 && y0 < f[3] + 16 && y0 + hQ > f[1] - 16)
     let x = 720 - 110 - larg, y = yG + tG * 0.5 + 6
@@ -514,7 +625,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   let dernierG = -9, ARC = null; const TYPO = [] // typo : l'ordre des mots forts, pour faire tourner les animations
   const tient = (txt, voulu, largeurLettre, max = 590) => Math.round(Math.min(voulu, max / (Math.max(1, [...txt].length) * largeurLettre))) // taille qui tient sur UNE ligne
   for (const [ip, p] of phrases.entries()) {
-    if (THEME === 'doux' || THEME === 'witchy' || THEME === 'chic') break // doux et witchy : pas de mots géants, l'italique des sous-titres suffit
+    if (THEME === 'doux' || THEME === 'witchy' || THEME === 'chic' || THEME === 'automne' || THEME === 'studio') break // doux et witchy : pas de mots géants, l'italique des sous-titres suffit
     const forts = mots.filter(m => m.ip === ip && m.fort); if (!forts.length) continue
     const t0 = forts[0].t; if (t0 < HOOK + 0.3 || t0 - dernierG < 4 || dansMed(t0) || t0 > TOT - 1.2) continue
     if ([...(K.listes || []), ...(K.effets || [])].some(L => { const a = tf(L.t); return t0 < a + 6 && t0 > a - 1.8 })) continue // pas de mot géant pendant une liste ou un effet
@@ -566,7 +677,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     const avant = mots.filter(m => m.ip === ip && !m.fort && m.t < t0).slice(-3)
     let taille = Math.round(clamp(620 / (0.56 * mot.length), 80, 200))
     const ht = hautTete(t0, fin), place = ht - 170 - 44 // sous les onglets, et la ligne du petit texte au-dessus
-    let yG, calque = THEME === 'typo' ? 'devant' : 'derriere' // typo : devant (CONTOUR_TYPO), jamais mangé par le découpage
+    let yG, calque = THEME === 'typo' || THEME === 'pop' ? 'devant' : 'derriere' // typo : devant (CONTOUR_TYPO), jamais mangé par le découpage
     if (THEME !== 'aurelie' && place >= taille * 0.72) yG = ht - taille * 0.3 // signature : cadrée serré, ses titres vont sur la poitrine
     else if (THEME !== 'aurelie' && place >= 80 * 0.72) { taille = Math.floor(place / 0.72); yG = ht - taille * 0.3 }
     else if (el.some(e => e.zone === 'poitrine' && e.a < fin && e.b > t0)) continue
@@ -574,6 +685,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     else { calque = 'devant'; taille = Math.min(taille, 150); yG = clamp(basVisage(t0, fin) + taille * 0.55 + 40, 520, 870 - taille * 0.5) } // pas de place au-dessus : sur la poitrine
     dernierG = t0; if (THEME === 'typo') TYPO.push(t0)
     const suivi = suiveur(taille * 1.2), yG0 = yG
+    if (THEME === 'pop') GEANTS_POP.push([avant[0]?.t ?? t0, fin])
     el.push({ a: avant[0]?.t ?? t0, b: fin, calque, zone: calque === 'devant' ? 'geant' : null, dessin: t => { const yG = suivi(t, yG0) // le mot suit son visage
       const sortie = 1 - clamp((t - (fin - 0.2)) / 0.2, 0, 1), pG = rebond((t - t0) / 0.25)
       const petit = avant.filter(m => t >= m.t).map(m => esc(m.w)).join(' ')
@@ -629,7 +741,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
         const p = rebond((t - t0) / 0.14)
         return `<div style="position:absolute;inset:0;opacity:${sortie}">
           ${petit ? `<div style="position:absolute;left:0;right:0;top:${yG - taille * 0.55 - 36}px;text-align:center;font:italic 400 40px/1 Ital,serif;color:#EAF2FB;text-shadow:0 2px 10px rgba(0,0,0,.3)">${petit}</div>` : ''}
-          ${t >= t0 ? `<div style="position:absolute;left:0;right:0;top:${yG}px;transform:translateY(-50%) scale(${1.18 - 0.18 * p});text-align:center;font:900 ${taille}px/0.9 Rond,sans-serif;letter-spacing:-0.03em;text-transform:lowercase;color:#fff;text-shadow:0 6px 24px rgba(0,0,0,.25)">${etoile(46, PALETTE.etoile, 'vertical-align:top;margin-right:6px;transform:rotate(-14deg)')}${esc(mot)}${etoile(38, PALETTE.etoile, 'vertical-align:bottom;margin-left:6px;transform:rotate(12deg)')}</div>` : ''}
+          ${t >= t0 ? `<div style="position:absolute;left:0;right:0;top:${yG}px;transform:translateY(-50%) scale(${1.18 - 0.18 * p});text-align:center;font:900 ${taille}px/0.9 Rond,sans-serif;letter-spacing:-0.03em;text-transform:lowercase;color:#fff;filter:drop-shadow(0 0 1.5px #2B3F6B) drop-shadow(0 0 1.5px #2B3F6B) drop-shadow(0 3px 8px rgba(0,0,0,.3));">${etoile(46, PALETTE.etoile, 'vertical-align:top;margin-right:6px;transform:rotate(-14deg)')}${esc(mot)}${etoile(38, PALETTE.etoile, 'vertical-align:bottom;margin-left:6px;transform:rotate(12deg)')}</div>` : ''}
         </div>`
       }
       return `<div style="position:absolute;inset:0;opacity:${sortie}">
@@ -647,7 +759,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   //    éditorial : la vidéo rétrécit en carte sur fond bordeaux nuit, la phrase en chapeau.
   const CARTE = { pop: { l: 432, h: 768, cy: 560, rot: -3 } }[THEME]
   for (const [a, b] of MED) {
-    if (THEME === 'doux' || THEME === 'typo' || THEME === 'chic') continue // doux et typo : pas d'intermède
+    if (THEME === 'doux' || THEME === 'typo' || THEME === 'chic' || THEME === 'automne' || THEME === 'studio') continue // doux et typo : pas d'intermède
     if (THEME === 'witchy') { // PAGE DE GRIMOIRE
       const ps = phrases.filter(p => p.b > a + 0.05 && p.a < b - 0.05)
       const hasard = k => { const x = Math.sin(k * 7.13 + a * 3.1) * 43758.5453; return x - Math.floor(x) }
@@ -766,7 +878,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       return '<div style="position:absolute;left:210px;top:' + y + 'px;width:300px;height:300px;border-radius:50%;border:2px solid ' + PALETTE.or + ';box-shadow:0 0 30px rgba(233,199,123,.4) inset,0 0 30px rgba(233,199,123,.3);display:grid;place-items:center;background:' + PALETTE.prune + '8c;opacity:' + p + ';transform:scale(' + (0.92 + 0.08 * p) + ')"><div style="text-align:center"><div style="font:italic 500 32px/1 DouxI,serif;color:' + PALETTE.creme + '">écris-moi</div><div style="white-space:nowrap;font:700 ' + z + 'px/1.1 Cinzel,serif;text-transform:uppercase;color:' + PALETTE.or + ';text-shadow:0 0 16px rgba(233,199,123,.6)">' + esc(mot) + '</div></div></div>' + WI.lunes(y + 330, p) } })
     sons.push({ t: t0 + 0.2, fam: 'cloche', vol: 0.05 })
   }
-  if (K.fin?.motCle && THEME !== 'collage' && THEME !== 'doux' && THEME !== 'witchy' && THEME !== 'chic') {
+  if (K.fin?.motCle && THEME !== 'collage' && THEME !== 'doux' && THEME !== 'witchy' && THEME !== 'chic' && THEME !== 'automne' && THEME !== 'studio') {
     const t0 = tf(K.fin.t ?? TOT - 3.5), mot = K.fin.motCle, y = clamp(basVisage(t0, TOT) + 30, 560, 760)
     el.push({ a: t0, b: TOT, calque: 'devant', zone: 'poitrine', dessin: t => {
       if (THEME === 'typo') { const n = clamp(Math.floor((t - t0 - 0.35) * 10) + 1, 0, mot.length)
@@ -900,14 +1012,14 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     rle(piste.slice(0, N).map(m => m || noir), 'collage-masques.txt')
     fond = join(st, 'collage-fond.mp4')
     lancer('ffmpeg', ['-y', '-v', 'error', '-i', base, '-f', 'concat', '-safe', '0', '-i', join(st, 'collage-derriere.txt'), '-f', 'concat', '-safe', '0', '-i', join(st, 'collage-masques.txt'),
-      '-filter_complex', THEME === 'aurelie'
+      '-filter_complex', THEME === 'aurelie' || THEME === 'studio'
         ? '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad];[2:v]fps=30,format=gray,scale=720:1280,split=2[m][m2];[m2]dilation,dilation,dilation,dilation,dilation,dilation,dilation,dilation,dilation[md];color=c=white:s=720x1280:r=30,format=rgba[w];[w][md]alphamerge[ct];[ad][ct]overlay=0:0:shortest=1[adc];[b][m]alphamerge[p];[adc][p]overlay=0:0:eof_action=pass[o]'
         : '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad];[2:v]fps=30,format=gray,scale=720:1280[m];[b][m]alphamerge[p];[ad][p]overlay=0:0:eof_action=pass[o]',
       '-map', '[o]', '-map', '0:a', '-c:v', 'libx264', '-crf', '16', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-c:a', 'copy', '-t', TOT.toFixed(3), fond])
   }
 
   // ── Le médaillon : sa vidéo recadrée sur le visage, dans un cercle, sur le papier ──
-  const meds = (THEME === 'editorial' || THEME === 'doux' || THEME === 'typo' || THEME === 'witchy' || THEME === 'chic' ? [] : MED).map(([a, b], k) => {
+  const meds = (THEME === 'editorial' || THEME === 'doux' || THEME === 'typo' || THEME === 'witchy' || THEME === 'chic' || THEME === 'automne' || THEME === 'studio' ? [] : MED).map(([a, b], k) => {
     if (CARTE) { // pop / éditorial : toute l'image réduite en carte (inclinée en pop), sur son fond
       const f = join(st, `collage-medaillon-${k}.mp4`), rot = (CARTE.rot * Math.PI / 180).toFixed(4)
       lancer('ffmpeg', ['-y', '-v', 'error', '-ss', a.toFixed(3), '-t', (b - a).toFixed(3), '-i', base, '-loop', '1', '-i', fondInter, '-loop', '1', '-i', coins,
@@ -933,7 +1045,8 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   const entrees = ['-i', fond, '-f', 'concat', '-safe', '0', '-i', join(st, 'collage-devant.txt'), ...meds.flatMap(m => ['-i', m.f]), ...ev.flatMap(s => ['-i', join(ICI, 'sons', s.n + '.wav')])]
   const lut = join(ICI, 'luts', 'cinema.cube').replace(/\\/g, '/').replace(':', '\\:')
   const traitement = THEME === 'aurelie' && existsSync(join(ICI, 'luts', 'cinema.cube')) ? `lut3d=file='${lut}'`
-    : THEME === 'doux' || THEME === 'witchy' || THEME === 'chic' ? 'null'
+    : THEME === 'automne' ? 'colorbalance=rs=.025:gs=.008:bs=-.03:rm=.02:bm=-.025,eq=saturation=1.05'
+    : THEME === 'doux' || THEME === 'witchy' || THEME === 'chic' || THEME === 'studio' ? 'null'
     : THEME === 'editorial' ? `eq=saturation=1.02:contrast=1.04,colorbalance=rh=.015:bh=-.015,noise=alls=2:allf=t`
     : THEME === 'pop' && ARC ? `hue=s=0:enable='between(t,${ARC[0].toFixed(3)},${ARC[1].toFixed(3)})'` : 'null'
   let g = `[0:v]${traitement}[v0];`, cur = 'v0'
