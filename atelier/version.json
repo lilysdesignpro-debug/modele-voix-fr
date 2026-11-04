@@ -1,11 +1,11 @@
 {
- "version": "202611041810",
+ "version": "202611041853",
  "modeEmploi": 2,
  "fichiers": {
   "assembler.mjs": "d6e4e2627383400a9f0f3a06bc069cb70e4c9632467e0cc3a45549adce79a44a",
   "chartes/modele.json": "9c4118330751cc2b5b391ceaa8a1fa3db887e5ffa67fb0bb457d3629b5d352ce",
   "coach.mjs": "d3984710c67707a9ad40141bfd6d18d4c0286c0e02ae1e77199287cd2f0d1ced",
-  "collage.mjs": "7f79e3a1d3f8cb2e48bccbbf8cef573f2fa7e720aa603612b1e3744a8af306cd",
+  "collage.mjs": "ac68ef8fd76a088450b8b33c10c570a73221d2d718811300a61c26d9758afb1a",
   "declinaisons.mjs": "717f82305a09a2873941ce6f3b7ceebd92d1012d33bffe3d70206aaa6b1ecd84",
   "defi.mjs": "a995dc8ccdd539163b4e60dcee2a0d2019184b2520c7bbc703e3ebc2e14fb961",
   "detourage/detourer.mjs": "0dab5d0007a0ee868da97bff4eb5257c3e038c27fe71872f3e18f64bb9d8c932",

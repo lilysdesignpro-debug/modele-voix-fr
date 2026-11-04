@@ -68,6 +68,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   const PALETTE = { pop: { fond: '#7DB3E8', mot: '#6FA3DE', marine: '#2B3F6B', etoile: '#F2C94C', rose: '#F4A6C4' }, editorial: { rose: '#F2B8AE', bordeaux: '#6B1E24', peche: '#F6C7A8', nuit: '#2A0306' } }[THEME] || {}
   // typo : sa couleur signature + quatre couleurs vives qui tournent d'un mot fort à l'autre (surchargeables)
   if (THEME === 'typo') Object.assign(PALETTE, { mot: coul.mot || C?.motFort?.couleur || '#F4E04D', jaune: '#F4E04D', lilas: '#C9B8FF', cyan: '#8FE3EA', rose: '#FFB8D6' }, K.couleurs || {})
+  const PALETTE_LISTE = { accent: coul.mot || C?.motFort?.couleur || '#2E9E5B', etiquette: '#D62B2B', tampon: coul.mot || C?.motFort?.couleur || '#C62828', ...(K.couleursListe || {}) }
   if (THEME === 'pop') Object.assign(PALETTE, K.couleurs || {}) // pop : ses couleurs à elle si sa charte le demande
   if (THEME === 'editorial') {
     // les couleurs viennent de la vidéo : la teinte moyenne du décor, déclinée en pâle (titres), soutenu et nuit (fond)
@@ -339,6 +340,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     if (THEME === 'doux') break // doux : pas de mots géants, l'italique des sous-titres suffit
     const forts = mots.filter(m => m.ip === ip && m.fort); if (!forts.length) continue
     const t0 = forts[0].t; if (t0 < HOOK + 0.3 || t0 - dernierG < 4 || dansMed(t0) || t0 > TOT - 1.2) continue
+    if ((K.listes || []).some(L => { const a = tf(L.t); return t0 < a + 7 && t0 > a - 1.8 })) continue // pas de mot géant pendant une liste
     const prochainMed = MED.map(([a]) => a).filter(a => a > t0)[0] ?? TOT
     const fin = Math.min(TOT - 0.1, forts.at(-1).t + 1.7, prochainMed - 0.05), mot = forts.map(m => m.w).join(' ').replace(/[,.;:!?]+$/, '')
     if (fin - t0 < 0.8) continue // trop court pour être lu (un médaillon arrive)
@@ -507,6 +509,41 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       return `<div style="position:absolute;left:${360 - 270}px;top:${500 - 270}px;width:540px;height:540px;border-radius:50%;border:12px solid #fff;box-sizing:border-box;box-shadow:0 10px 30px rgba(0,0,0,.18);opacity:${pR};transform:scale(${0.9 + 0.1 * pR})"></div>
         <div style="position:absolute;left:70px;right:110px;top:810px;line-height:1.1">${motsH}</div>`
     } })
+  }
+
+  // 7 bis. LISTES ANIMÉES : quand elle énumère (« 3 erreurs », « mes étapes »), au lieu d'une liste à cocher
+  for (const L of K.listes || []) {
+    const t0 = tf(L.t), items = (L.items || []).slice(0, 5), n = items.length; if (!n) continue
+    const pas = L.type === 'ticket' ? 0.45 : 0.6, b = Math.min(TOT - 0.1, t0 + (L.duree ?? Math.max(3.5, 1.2 + n * pas + 1.6)))
+    const hauteur = { ticket: 130 + n * 44, etiqueteuse: 40 + n * 74, postit: n > 3 ? 420 : 220, tampon: 150 + n * 50 }[L.type] || 300
+    const y = clamp(basVisage(t0, b) + 60, 430, 1280 - 290 - hauteur)
+    const dessin = {
+      // le ticket sort de l'imprimante, ligne après ligne
+      ticket: t => { const dt = t - t0, sorti = clamp(dt / (0.4 + n * pas), 0, 1), hP = 60 + (hauteur - 60) * sorti
+        const lignes = [L.titre ? '** ' + L.titre.toUpperCase() + ' **' : '** MA LISTE **', ...items.map((x, k) => (k + 1) + 'x ' + x)]
+        return '<div style="position:absolute;left:130px;width:460px;top:' + y + 'px;height:34px;border-radius:12px;background:linear-gradient(#e9e9ea,#bdbdc2);box-shadow:0 6px 16px rgba(0,0,0,.3)"><div style="position:absolute;left:30px;right:30px;top:15px;height:6px;border-radius:3px;background:#2b2b2e"></div></div>'
+          + '<div style="position:absolute;left:160px;width:400px;top:' + (y + 18) + 'px;height:' + hP + 'px;overflow:hidden;background:#fbfbf7;box-shadow:0 8px 18px rgba(0,0,0,.25);clip-path:polygon(0 0,100% 0,100% calc(100% - 10px),' + Array.from({ length: 20 }, (_, i) => (100 - (i + 0.5) * 5) + '% ' + (i % 2 ? 'calc(100% - 10px)' : '100%')).join(',') + ',0 calc(100% - 10px))">'
+          + '<div style="position:absolute;left:0;right:0;bottom:16px;padding:0 26px;font:700 24px/1.8 Mono,monospace;color:#2b2b2e">' + lignes.map((l, k) => '<div style="display:flex;justify-content:' + (k ? 'space-between' : 'center') + '"><span>' + esc(l) + '</span>' + (k ? '<span style="color:' + PALETTE_LISTE.accent + '">✓</span>' : '') + '</div>').join('') + '</div></div>' },
+      // l'étiqueteuse : chaque bande rouge s'imprime et glisse en place
+      etiqueteuse: t => items.map((x, k) => { const p = clamp((t - t0 - 0.2 - k * pas) / 0.25, 0, 1); if (!p) return ''
+        const n2 = Math.ceil(x.length * clamp((t - t0 - 0.2 - k * pas) / 0.35, 0, 1))
+        return '<div style="position:absolute;left:' + (100 + (k % 2) * 30 + (1 - doux(p)) * 260) + 'px;top:' + (y + k * 74) + 'px;transform:rotate(' + ((k % 3) - 1) * 1.6 + 'deg);background:' + PALETTE_LISTE.etiquette + ';padding:9px 18px;border-radius:4px;box-shadow:0 4px 0 rgba(0,0,0,.25),0 8px 16px rgba(0,0,0,.25);font:700 34px/1 Mono,monospace;letter-spacing:0.05em;color:#fff;text-shadow:0 -1px 0 rgba(0,0,0,.35),0 1px 0 rgba(255,255,255,.25);white-space:nowrap">' + esc(x.toUpperCase().slice(0, n2)) + '</div>' }).join(''),
+      // les post-it se collent un par un, un peu de travers
+      postit: t => items.map((x, k) => { const p = rebond((t - t0 - 0.15 - k * pas) / 0.22); if (t < t0 + 0.15 + k * pas) return ''
+        const col = k % 2, lig = Math.floor(k / 2), rot = [-6, 5, 3, -4, 6][k]
+        return '<div style="position:absolute;left:' + (n === 1 ? 260 : 120 + col * 250) + 'px;top:' + (y + lig * 205) + 'px;width:200px;height:190px;transform:rotate(' + rot + 'deg) scale(' + (1.35 - 0.35 * clamp(p, 0, 1.1)) + ');background:' + ['#FFF07A', '#FFC7DD', '#BFE8FF', '#C9F2B9', '#FFD9A8'][k] + ';box-shadow:0 10px 18px rgba(0,0,0,.25);padding:22px 16px;font:400 31px/1.12 Carnet,cursive;color:#2a2a2a;display:flex;align-items:center;justify-content:center;text-align:center">' + esc(x) + '</div>' }).join(''),
+      // la liste papier, puis le tampon qui frappe
+      tampon: t => { const dt = t - t0, tT = 0.4 + n * pas, pT = clamp((dt - tT) / 0.18, 0, 1)
+        return '<div style="position:absolute;left:120px;width:480px;top:' + y + 'px;height:' + hauteur + 'px;background:#F6F1E6;box-shadow:0 10px 22px rgba(0,0,0,.25);transform:rotate(-1.5deg);padding:26px 30px;font:700 26px/1.85 Machine,monospace;color:#2B1B17">'
+          + (L.titre ? '<div style="font-size:22px;letter-spacing:.12em;opacity:.7">' + esc(L.titre.toUpperCase()) + '</div>' : '')
+          + items.map((x, k) => '<div style="opacity:' + clamp((dt - 0.2 - k * pas) / 0.2, 0, 1) + ';border-bottom:1.5px dashed rgba(43,27,23,.3)">— ' + esc(x) + '</div>').join('')
+          + (dt >= tT ? '<div style="position:absolute;right:26px;bottom:22px;transform:rotate(-14deg) scale(' + (2.2 - 1.2 * pT) + ');opacity:' + (0.25 + 0.65 * pT) + ';border:6px solid ' + PALETTE_LISTE.tampon + ';border-radius:10px;padding:4px 16px;font:900 46px/1 Rond,sans-serif;letter-spacing:.08em;color:' + PALETTE_LISTE.tampon + ';mix-blend-mode:multiply">' + esc((L.tampon || 'FAIT').toUpperCase()) + '</div>' : '') + '</div>' },
+    }[L.type]
+    if (!dessin) continue
+    el.push({ a: t0, b, calque: 'devant', zone: 'geant', dessin: t => '<div style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)) + '">' + dessin(t) + '</div>' })
+    if (L.type === 'ticket') sons.push({ t: t0 + 0.1, fam: 'clavier', vol: 0.07, duree: 0.4 + n * pas })
+    else if (L.type === 'tampon') { items.forEach((_, k) => sons.push({ t: t0 + 0.2 + k * pas, fam: 'clic', vol: 0.07 })); sons.push({ t: t0 + 0.4 + n * pas, fam: 'pop', vol: 0.14 }) }
+    else items.forEach((_, k) => sons.push({ t: t0 + 0.15 + k * pas, fam: L.type === 'postit' ? 'pop' : 'clic', vol: 0.1 }))
   }
 
   // 8. La fin. Pop : « commente » et le mot-clé qui respire, en rond gonflé. Éditorial : « commente » en italique et
