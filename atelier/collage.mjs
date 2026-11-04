@@ -16,6 +16,8 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync, existsSync
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
+import { effet, POLICES_EFFETS } from './effets.mjs'
+import { etoileGonflee, etoileTrait, etoileBlanche, nuage } from './decor.mjs'
 
 const FPS = 30
 const COUL = { beurre: '#F4EC9C', tomate: '#D9473A', bordeaux: '#3B1424', papier: '#F6F1E6', encre: '#2B1B17', kraft: '#C69C6D' }
@@ -64,11 +66,15 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   //  « pop »       : couleurs franches, gros mots ronds qui claquent, étoiles, carte inclinée sur fond bleu, arc, noir et blanc ;
   //  « editorial » : magazine, une seule famille serrée en minuscules + un mot en italique, titres rose poudré derrière
   //                  la tête, entrées en flou vers net, étalonnage chaud, presque aucun son.
-  const THEME = ({ pop: 'pop', editorial: 'editorial', doux: 'doux', confidence: 'doux', aurelie: 'aurelie', typo: 'typo' })[P.style] || 'collage'
+  const THEME = ({ pop: 'pop', editorial: 'editorial', doux: 'doux', confidence: 'doux', aurelie: 'aurelie', typo: 'typo', witchy: 'witchy', chic: 'chic' })[P.style] || 'collage'
   const PALETTE = { pop: { fond: '#7DB3E8', mot: '#6FA3DE', marine: '#2B3F6B', etoile: '#F2C94C', rose: '#F4A6C4' }, editorial: { rose: '#F2B8AE', bordeaux: '#6B1E24', peche: '#F6C7A8', nuit: '#2A0306' } }[THEME] || {}
   // typo : sa couleur signature + quatre couleurs vives qui tournent d'un mot fort à l'autre (surchargeables)
   if (THEME === 'typo') Object.assign(PALETTE, { mot: coul.mot || C?.motFort?.couleur || '#F4E04D', jaune: '#F4E04D', lilas: '#C9B8FF', cyan: '#8FE3EA', rose: '#FFB8D6' }, K.couleurs || {})
   const PALETTE_LISTE = { accent: coul.mot || C?.motFort?.couleur || '#2E9E5B', etiquette: '#D62B2B', tampon: coul.mot || C?.motFort?.couleur || '#C62828', ...(K.couleursListe || {}) }
+  if (THEME === 'witchy') { const sig = coul.mot || C?.motFort?.couleur || '#6B2F7A', v = parseInt(sig.replace('#', '').slice(0, 6), 16) || 0x6B2F7A, mix = (f, b) => '#' + [v >> 16, (v >> 8) & 255, v & 255].map(c => Math.round(c * f + b).toString(16).padStart(2, '0')).join('')
+    Object.assign(PALETTE, { or: '#E9C77B', prune: mix(0.32, 4), nuit: mix(0.5, 8), creme: '#F6E7C8' }, K.couleurs || {}) } // witchy : la nuit prend SA couleur signature, assombrie ; tout se surcharge avec collage.couleurs
+  if (THEME === 'chic') Object.assign(PALETTE, { sable: '#EFE6DA', cacao: '#3B2A22', accent: coul.mot || C?.motFort?.couleur || '#B98B6E' }, K.couleurs || {}) // chic : SA couleur signature pour le mot fort
+  const OMBRE = 'text-shadow:0 1px 2px rgba(0,0,0,.6),0 2px 18px rgba(0,0,0,.5)' // chic : ombre douce, lisible sur un mur clair
   if (THEME === 'pop') Object.assign(PALETTE, K.couleurs || {}) // pop : ses couleurs à elle si sa charte le demande
   if (THEME === 'editorial') {
     // les couleurs viennent de la vidéo : la teinte moyenne du décor, déclinée en pâle (titres), soutenu et nuit (fond)
@@ -85,6 +91,30 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       return l > 0.42 ? PALETTE.fonce : PALETTE.rose }
   }
   const etoile = (taille, couleur, extra = '') => `<svg width="${taille}" height="${taille}" viewBox="0 0 100 100" style="${extra}"><path d="M50 4 61 37 96 38 68 59 78 94 50 73 22 94 32 59 4 38 39 37Z" fill="${couleur}"/></svg>`
+
+  const WI = {
+    etoile4: (x, y, z, o = 1) => '<svg style="position:absolute;left:' + x + 'px;top:' + y + 'px;opacity:' + o + ';filter:drop-shadow(0 0 6px ' + PALETTE.or + ')" width="' + z + '" height="' + z + '" viewBox="0 0 100 100"><path d="M50 2 C53 40 60 47 98 50 C60 53 53 60 50 98 C47 60 40 53 2 50 C40 47 47 40 50 2Z" fill="' + PALETTE.or + '"/></svg>',
+    croissant: (x, y, z) => '<svg style="position:absolute;left:' + x + 'px;top:' + y + 'px;filter:drop-shadow(0 0 10px ' + PALETTE.or + 'aa)" width="' + z + '" height="' + z + '" viewBox="0 0 100 100"><path d="M62 8 A44 44 0 1 0 92 70 A36 36 0 1 1 62 8Z" fill="none" stroke="' + PALETTE.or + '" stroke-width="3"/></svg>',
+    lunes: (y, cache = 1) => '<div style="position:absolute;left:0;right:0;top:' + y + 'px;display:flex;justify-content:center;gap:22px;opacity:' + cache + '">' + [0, 0.25, 0.5, 0.75, 1].map((f, k) => '<svg width="38" height="38" viewBox="0 0 40 40" style="filter:drop-shadow(0 0 6px ' + PALETTE.or + '88)"><circle cx="20" cy="20" r="16" fill="none" stroke="' + PALETTE.or + '" stroke-width="1.6"/>' + (k === 4 ? '<circle cx="20" cy="20" r="16" fill="' + PALETTE.or + '"/>' : k === 0 ? '' : '<path d="M20 4 A16 16 0 0 1 20 36 A' + (16 * Math.abs(1 - 2 * f)) + ' 16 0 0 ' + (f < 0.5 ? 0 : 1) + ' 20 4Z" fill="' + PALETTE.or + '"/>') + '</svg>').join('') + '</div>',
+    constellation: (x, y) => '<svg style="position:absolute;left:' + x + 'px;top:' + y + 'px" width="200" height="180" viewBox="0 0 220 200"><g stroke="' + PALETTE.or + '" stroke-width="1.6" fill="none" opacity=".85"><path d="M20 40 L80 20 L130 70 L190 50 M130 70 L110 150 L170 180"/></g>' + [[20, 40], [80, 20], [130, 70], [190, 50], [110, 150], [170, 180]].map(([a, b]) => '<circle cx="' + a + '" cy="' + b + '" r="4.5" fill="' + PALETTE.or + '"/>').join('') + '</svg>',
+  }
+  // witchy : un voile prune très léger, plus sombre en haut et sur les bords, comme une pièce à la bougie
+  if (THEME === 'witchy') el.push({ a: 0, b: TOT, calque: 'devant', dessin: () => '<div style="position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 45%,' + PALETTE.prune + '00,' + PALETTE.prune + '6b 78%)"></div><div style="position:absolute;inset:0;background:linear-gradient(' + PALETTE.prune + '73,' + PALETTE.prune + '00 30%)"></div>' })
+
+  if (THEME === 'witchy') {
+    // POUSSIÈRE D'ÉTOILES et orbes de lumière, sur le calque de derrière : elles passent derrière elle
+    const hasard = k => { const x = Math.sin(k * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x) }
+    const grains = Array.from({ length: 46 }, (_, k) => ({ x: hasard(k) * 720, y0: hasard(k + 99) * 1280, v: 14 + hasard(k + 7) * 26, z: 3 + hasard(k + 3) * 7, ph: hasard(k + 5) * 6.28, etoile: k % 4 === 0 }))
+    const orbes = Array.from({ length: 7 }, (_, k) => ({ x: hasard(k + 200) * 640, y: 120 + hasard(k + 300) * 900, r: 40 + hasard(k + 400) * 70, ph: hasard(k + 500) * 6.28 }))
+    el.push({ a: 0, b: TOT, calque: 'derriere', dessin: t => orbes.map(o => '<div style="position:absolute;left:' + (o.x + Math.sin(t * 0.3 + o.ph) * 30).toFixed(1) + 'px;top:' + (o.y + Math.cos(t * 0.25 + o.ph) * 24).toFixed(1) + 'px;width:' + o.r * 2 + 'px;height:' + o.r * 2 + 'px;border-radius:50%;background:radial-gradient(circle,rgba(246,226,170,.30),rgba(233,199,123,.10) 45%,rgba(233,199,123,0) 70%);opacity:' + (0.55 + 0.45 * Math.sin(t * 0.8 + o.ph)).toFixed(2) + '"></div>').join('')
+      + grains.map(g => { const y = ((g.y0 - g.v * t) % 1280 + 1280) % 1280, sc = 0.35 + 0.65 * Math.abs(Math.sin(t * 1.6 + g.ph)), x = g.x + Math.sin(t * 0.7 + g.ph) * 12
+        return g.etoile ? WI.etoile4(x.toFixed(1), y.toFixed(1), Math.round(g.z * 3.2), sc.toFixed(2))
+          : '<div style="position:absolute;left:' + x.toFixed(1) + 'px;top:' + y.toFixed(1) + 'px;width:' + g.z.toFixed(1) + 'px;height:' + g.z.toFixed(1) + 'px;border-radius:50%;background:#FFF3D1;opacity:' + sc.toFixed(2) + ';box-shadow:0 0 ' + (g.z * 2).toFixed(0) + 'px ' + PALETTE.or + '"></div>' }).join('') })
+    // l'étoile filante du hook, tout en haut de l'image
+    el.push({ a: 0.6, b: 2.2, calque: 'devant', dessin: t => { const p = clamp((t - 0.6) / 1.2, 0, 1), x = 700 - 760 * p, y = 40 + 90 * p, o = Math.sin(p * Math.PI)
+      return '<div style="position:absolute;left:' + x.toFixed(1) + 'px;top:' + y.toFixed(1) + 'px;width:220px;height:3px;transform:rotate(-7deg);transform-origin:0 50%;background:linear-gradient(90deg,#fff,' + PALETTE.or + ' 30%,rgba(233,199,123,0));opacity:' + o.toFixed(2) + ';box-shadow:0 0 10px ' + PALETTE.or + '"></div>' + WI.etoile4((x - 14).toFixed(1), (y - 14).toFixed(1), 30, o.toFixed(2)) } })
+    sons.push({ t: 0.6, fam: 'magie', vol: 0.05 })
+  }
 
   // 1. Sous-titres
   if (THEME === 'collage') {
@@ -142,15 +172,17 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   } })
   }
 
-  if (THEME === 'doux') {
+  if (THEME === 'doux' || THEME === 'witchy') {
   // « doux » (luxe, intime) : l'image reste naturelle, un seul mot à la fois au centre de la poitrine, en serif fin,
   // comme si elle parlait à l'oreille ; le mot fort passe en italique, à la couleur de sa charte.
-  const accent = coul.mot || C?.motFort?.couleur || '#E8B4A0'
+  const accent = THEME === 'witchy' ? PALETTE.or : coul.mot || C?.motFort?.couleur || '#E8B4A0'
   const finCarte = K.fin?.motCle ? tf(K.fin.t ?? TOT - 3.5) : TOT
   el.push({ a: 0, b: TOT, calque: 'devant', dessin: t => {
     if (t < HOOK) return ''
     const p = phrases.find(p => t >= p.a && t < p.b); if (!p) return ''
     // pendant la carte « écris-moi », ses dernières phrases restent sous-titrées, juste sous la carte
+    if (THEME === 'witchy' && dansMed(t)) return '' // la carte de tarot porte la phrase
+    if (THEME === 'witchy' && t >= finCarte) return '' // witchy : le sceau de lune prend la place
     const sousCarte = t >= finCarte ? clamp(basVisage(finCarte, TOT) + 30, 560, 760) + 175 : null
     const q = Math.min(doux((t - p.a) / 0.3), 1 - clamp((t - (p.b - 0.15)) / 0.15, 0, 1)), y = sousCarte ?? clamp(basVisage(p.a, p.b) + 130, 620, 900)
     // le mot fort s'allume au moment où elle le DIT (italique, couleur de sa charte, fin contour blanc)
@@ -160,9 +192,11 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     const pw = forts.length ? (t - forts[0].t + 0.05) / 0.45 : 0, r = clamp(rebond(pw), 0, 1.2), lueur = Math.max(0, 1 - Math.abs(pw - 0.6) / 0.6), pe = clamp((t - forts[0]?.t) / 0.9, 0, 1)
     const etoileFort = `<svg width="34" height="34" viewBox="0 0 100 100" style="position:absolute;right:-30px;top:-14px;opacity:${Math.sin(pe * Math.PI).toFixed(3)};transform:scale(${(0.4 + 0.8 * Math.sin(pe * Math.PI)).toFixed(3)}) rotate(${(pe * 90).toFixed(1)}deg)"><path d="M50 0 C54 38 62 46 100 50 C62 54 54 62 50 100 C46 62 38 54 0 50 C38 46 46 38 50 0Z" fill="#fff"/></svg>`
     const html = esc(p.txt).replace(/\*([^*]+)\*/g, (_, w) => dit
-      ? `<span style="position:relative;display:inline-block;margin:0 6px;font:italic 500 ${Math.round(46 + 40 * Math.min(1, r))}px/1 DouxI,serif;color:${accent};-webkit-text-stroke:5px #fff;paint-order:stroke fill;transform:scale(${(0.85 + 0.15 * r).toFixed(3)});text-shadow:0 0 ${Math.round(28 * lueur)}px ${accent},0 2px 18px rgba(0,0,0,.35)">${w}${etoileFort}</span>`
+      ? `<span style="position:relative;display:inline-block;margin:0 6px;font:italic 500 ${Math.round(46 + 40 * Math.min(1, r))}px/1 DouxI,serif;color:${accent};${THEME === 'witchy' ? '' : '-webkit-text-stroke:5px #fff;paint-order:stroke fill;'}transform:scale(${(0.85 + 0.15 * r).toFixed(3)});text-shadow:0 0 ${Math.round(THEME === 'witchy' ? 14 + 20 * lueur : 28 * lueur)}px ${accent},0 2px 18px rgba(0,0,0,.35)">${w}${etoileFort}</span>`
       : `<span style="font:italic 500 46px/1 DouxI,serif">${w}</span>`)
-    return `<div style="position:absolute;left:70px;right:110px;top:${y}px;text-align:center;text-wrap:balance;font:600 44px/1.18 Doux,serif;letter-spacing:0.01em;color:#fff;opacity:${q};transform:translateY(${(1 - q) * 6}px);text-shadow:0 1px 3px rgba(0,0,0,.7),0 2px 20px rgba(0,0,0,.65)">${html}</div>`
+    const gerbe = THEME === 'witchy' && dit && pe < 1 ? Array.from({ length: 9 }, (_, k) => { const a = k / 9 * 6.28 + 0.4, d = 30 + 90 * doux(pe), o = Math.sin(pe * Math.PI)
+      return WI.etoile4((360 + Math.cos(a) * d * 1.8 - 8).toFixed(1), (y + 20 + Math.sin(a) * d * 0.7 - 8).toFixed(1), 12 + (k % 3) * 5, (o * 0.9).toFixed(2)) }).join('') : ''
+    return `<div style="position:absolute;left:70px;right:110px;top:${y}px;text-align:center;text-wrap:balance;font:600 44px/1.18 Doux,serif;letter-spacing:0.01em;color:${THEME === 'witchy' ? PALETTE.creme : '#fff'};opacity:${q};transform:translateY(${(1 - q) * 6}px);text-shadow:0 1px 3px rgba(0,0,0,.7),0 2px 20px rgba(0,0,0,.65)">${html}</div>` + gerbe
   } })
   // l'en-tête discret, comme un magazine : son @ à gauche, le sujet à droite (seulement si elle les donne)
   if (K.entete) el.push({ a: HOOK, b: TOT, calque: 'devant', dessin: t => {
@@ -170,6 +204,31 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     return `<div style="position:absolute;left:46px;right:110px;top:84px;display:flex;justify-content:space-between;font:500 19px/1 Poppins,sans-serif;letter-spacing:0.16em;color:#fff;opacity:${0.85 * q};text-shadow:0 1px 8px rgba(0,0,0,.5)"><span>${esc(K.entete.gauche || '')}</span><span>${esc(K.entete.droite || '')}</span></div>`
   } })
   }
+
+  if (THEME === 'chic') {
+  // sous-titres phrase par phrase sous son visage, sans-serif fin ; le mot fort s'écrit en italique à SA couleur,
+  // un fin trait se dessine dessous au moment où elle le dit
+  const finChic = K.fin?.motCle ? tf(K.fin.t ?? TOT - 3.5) : TOT
+  el.push({ a: HOOK, b: finChic, calque: 'devant', dessin: t => {
+    if ((K.produits || []).some(pr => t >= tf(pr.t) && t < tf(pr.t + (pr.duree || 3.2)))) return '' // l'étiquette produit porte déjà ses mots
+    const p = phrases.find(p => t >= p.a && t < p.b); if (!p) return ''
+    const q = Math.min(doux((t - p.a) / 0.3), 1 - clamp((t - (p.b - 0.15)) / 0.15, 0, 1)), y = clamp(basVisage(p.a, p.b) + 120, 640, 960)
+    const forts = mots.filter(m => m.fort && m.t >= p.a - 0.05 && m.t < p.b), pw = forts.length ? clamp((t - forts[0].t + 0.05) / 0.5, 0, 1) : 0
+    const html = esc(p.txt).replace(/\*([^*]+)\*/g, (_, w) => '<span style="position:relative;display:inline-block;margin:0 4px;font:italic 500 ' + Math.round(48 + 8 * doux(pw)) + 'px/1 DouxI,serif;color:' + (pw > 0 ? PALETTE.accent : '#fff') + ';' + OMBRE + '">' + w
+      + '<span style="position:absolute;left:4%;bottom:-6px;height:1.5px;width:' + (92 * doux(pw)).toFixed(1) + '%;background:' + PALETTE.accent + ';box-shadow:0 1px 4px rgba(0,0,0,.3)"></span></span>')
+    return '<div style="position:absolute;left:70px;right:110px;top:' + y + 'px;text-align:center;text-wrap:balance;font:500 31px/1.35 ChicS,sans-serif;color:#fff;opacity:' + q + ';transform:translateY(' + ((1 - q) * 6).toFixed(1) + 'px);' + OMBRE + '">' + html + '</div>'
+  } })
+  if (K.entete) el.push({ a: HOOK, b: TOT, calque: 'devant', dessin: t => '<div style="position:absolute;left:46px;right:110px;top:84px;display:flex;justify-content:space-between;font:500 17px/1 ChicS,sans-serif;letter-spacing:0.28em;color:#fff;opacity:' + (0.85 * doux((t - HOOK) / 0.6)) + ';' + OMBRE + '"><span>' + esc(K.entete.gauche || '') + '</span><span>' + esc(K.entete.droite || '') + '</span></div>' })
+  }
+
+  // un texte qui suit son visage : il reste où on l'a mis tant qu'elle n'y vient pas, sinon il glisse au-dessus ou en dessous
+  const suiveur = h => { let y = null
+    return (t, voulu) => { const v = vis(t); let c = voulu
+      if (v && voulu - h / 2 < v[3] + 24 && voulu + h / 2 > v[1] - 24) {
+        const dessus = v[1] - 24 - h / 2, dessous = v[3] + 24 + h / 2
+        c = dessus >= 120 + h / 2 ? dessus : dessous <= 980 - h / 2 ? dessous : dessus > 1280 - dessous ? Math.max(80 + h / 2, dessus) : Math.min(990 - h / 2, dessous)
+      }
+      y = y == null ? c : y + (c - y) * 0.35; return Math.round(y) } }
 
   // 2. Le titre du hook en trois voix, derrière sa tête
   const lignes = (P.titre || '').split('/').map(s => s.trim()).filter(Boolean)
@@ -241,10 +300,94 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     })
   }
 
+  if (T.grand && THEME === 'witchy') {
+    const { haut, aD, aG, aQ } = H, vis = visages(0, HOOK)
+    const tG = Math.round(clamp(600 / (0.68 * Math.max(4, T.grand.length)), 70, 110)), y0B = clamp(haut - tG - 90, 110, 420), suiviW = suiveur(tG + 60), y0 = y0B
+    const libre = (x, y, w, h) => !vis.some(v => x < v[2] + 20 && x + w > v[0] - 20 && y < v[3] + 20 && y + h > v[1] - 20)
+    const deco = [[30, y0 - 120, 'croissant', 96], [470, y0 - 120, 'constellation'], [150, y0 + tG + 70, 'etoile4', 30], [600, y0 + tG + 90, 'etoile4', 22], [80, y0 + tG + 190, 'etoile4', 18]].filter(([x, y, ty, z]) => y > 0 && libre(x, y, ty === 'constellation' ? 200 : z, ty === 'constellation' ? 180 : z))
+    el.push({ a: 0, b: HOOK, calque: 'devant', dessin: t => { const y0 = suiviW(t, y0B + tG / 2 - 10) - tG / 2 + 10
+      const sortie = 1 - clamp((t - (HOOK - 0.3)) / 0.3, 0, 1), pD = doux((t - aD) / 0.5), pG = doux((t - aG) / 0.6)
+      return '<div style="position:absolute;inset:0;opacity:' + sortie + '">' + (y0 > 100 ? WI.lunes(y0 - 90, doux(t / 0.6)) : '')
+        + deco.map(([x, y, ty, z], k) => { const p = doux((t - aG - 0.1 - k * 0.12) / 0.4); if (p <= 0) return ''; const f = Math.sin((t + k) * 1.8) * 3
+          return '<div style="position:absolute;left:0;top:' + f + 'px;opacity:' + p + '">' + (ty === 'constellation' ? WI.constellation(x, y) : WI[ty](x, y, z)) + '</div>' }).join('')
+        + (T.dessus ? '<div style="position:absolute;left:0;right:0;top:' + (y0 - 40) + 'px;text-align:center;font:italic 500 38px/1 DouxI,serif;color:' + PALETTE.creme + ';opacity:' + pD + ';text-shadow:0 0 12px ' + PALETTE.prune + '">' + esc(T.dessus) + '</div>' : '')
+        + '<div style="position:absolute;left:0;right:0;top:' + y0 + 'px;text-align:center;white-space:nowrap;font:700 ' + tG + 'px/1 Cinzel,serif;text-transform:uppercase;color:' + PALETTE.or + ';opacity:' + pG + ';filter:blur(' + ((1 - pG) * 5).toFixed(1) + 'px);text-shadow:0 0 18px rgba(233,199,123,.55),0 4px 18px ' + PALETTE.prune + '">' + esc(T.grand) + '</div></div>'
+    } })
+    if (T.queue) el.push({ a: 0, b: HOOK, calque: 'devant', dessin: t => { const pQ = doux((t - aQ) / 0.5), sortie = 1 - clamp((t - (HOOK - 0.3)) / 0.3, 0, 1)
+      return '<div style="position:absolute;left:0;right:0;top:' + clamp(basVisage(0, HOOK) + 150, 640, 930) + 'px;text-align:center;font:italic 500 54px/1 DouxI,serif;color:' + PALETTE.creme + ';opacity:' + (pQ * sortie) + ';text-shadow:0 0 14px ' + PALETTE.or + '88,0 2px 14px rgba(0,0,0,.5)">' + esc(T.queue) + '</div>' } })
+    sons.push({ t: Math.max(0.05, aG), fam: 'magie', vol: 0.06 })
+  }
+
+  if (T.grand && THEME === 'chic') {
+    // une ligne fine en capitales espacées, un filet qui se trace, puis le grand mot en italique qui sort du flou
+    const { haut, aD, aG, aQ } = H, petite = T.dessus || T.petit || ''
+    const tG = Math.round(clamp(600 / (0.4 * Math.max(5, T.grand.length)), 70, 104))
+    const coupe = (txt, max) => { const out = []; let cur = ''; for (const w of txt.split(/\s+/)) { if (cur && (cur + ' ' + w).length > max) { out.push(cur); cur = w } else cur = cur ? cur + ' ' + w : w } if (cur) out.push(cur); return out }
+    const lp = petite ? coupe(petite.toUpperCase(), 30) : [], hBloc = lp.length * 30 + 38 + tG
+    const yB = clamp(haut - hBloc - 40, 130, 420), suivi = suiveur(hBloc)
+    el.push({ a: 0, b: HOOK, calque: 'devant', dessin: t => { const y0 = suivi(t, yB + hBloc / 2) - hBloc / 2
+      const sortie = 1 - clamp((t - (HOOK - 0.3)) / 0.3, 0, 1), pD = doux((t - aD) / 0.5), pF = doux((t - aD - 0.25) / 0.6), pG = doux((t - aG) / 0.6)
+      return '<div style="position:absolute;left:0;right:0;top:' + y0 + 'px;text-align:center;opacity:' + sortie + '">'
+        + lp.map(l => '<div style="font:500 21px/30px ChicS,sans-serif;letter-spacing:0.3em;color:#fff;opacity:' + pD + ';' + OMBRE + '">' + esc(l) + '</div>').join('')
+        + '<div style="width:' + Math.round(64 * pF) + 'px;height:1.5px;background:#fff;margin:16px auto 20px;box-shadow:0 1px 6px rgba(0,0,0,.35)"></div>'
+        + '<div style="white-space:nowrap;font:italic 500 ' + tG + 'px/1 DouxI,serif;color:#fff;opacity:' + pG + ';filter:blur(' + ((1 - pG) * 5).toFixed(1) + 'px);letter-spacing:' + (0.04 - 0.04 * pG).toFixed(3) + 'em;text-shadow:0 2px 20px rgba(0,0,0,.35)">' + esc(T.grand) + '</div></div>'
+    } })
+    if (T.queue) el.push({ a: 0, b: HOOK, calque: 'devant', dessin: t => { const pQ = doux((t - aQ) / 0.5), sortie = 1 - clamp((t - (HOOK - 0.3)) / 0.3, 0, 1)
+      return '<div style="position:absolute;left:70px;right:110px;top:' + clamp(basVisage(0, HOOK) + 140, 640, 960) + 'px;text-align:center;font:500 31px/1.3 ChicS,sans-serif;color:#fff;opacity:' + (pQ * sortie) + ';' + OMBRE + '">' + esc(T.queue) + '</div>' } })
+    sons.push({ t: Math.max(0.05, aG), fam: 'whoosh', vol: 0.05 })
+  }
+
+  if (THEME === 'chic') {
+    // la place libre d'un côté de son visage, à une hauteur donnée
+    const cote = (a, b, y, h) => { const vs = visages(a, b), g = Math.min(...vs.map(v => v[0]), 720), d = Math.max(...vs.map(v => v[2]), 0)
+      return (720 - d) >= g ? 'droite' : 'gauche' }
+    // ÉTIQUETTES PRODUIT : { t, duree, nom, sous, vers: [x, y] (où est le produit, en 720×1280), cote: 'gauche'|'droite' }
+    for (const pr of K.produits || []) {
+      const a = tf(pr.t), b = Math.min(TOT, pr.duree ? tf(pr.t + pr.duree) : a + 3.2)
+      const c = pr.cote || cote(a, b), yL = pr.y ?? 560, xL = c === 'droite' ? 430 : 50
+      el.push({ a, b, calque: 'devant', dessin: t => {
+        const q = doux((t - a) / 0.4) * (1 - doux((t - (b - 0.35)) / 0.35)), pt = doux((t - a) / 0.7), pn = doux((t - a - 0.3) / 0.5), ps = doux((t - a - 0.55) / 0.5)
+        let trait = ''
+        if (pr.vers) { const [vx, vy] = pr.vers, x1 = c === 'droite' ? xL - 10 : xL + 250, y1 = yL + 30, coude = [x1 + (c === 'droite' ? -40 : 40), y1]
+          trait = '<svg style="position:absolute;left:0;top:0;filter:drop-shadow(0 1px 3px rgba(0,0,0,.35))" width="720" height="1280"><path d="M' + x1 + ' ' + y1 + ' L' + coude.join(' ') + ' L' + vx + ' ' + vy + '" fill="none" stroke="#fff" stroke-width="1.6" pathLength="100" stroke-dasharray="100" stroke-dashoffset="' + (100 * (1 - pt)).toFixed(1) + '"/>' + (pt > 0.95 ? '<circle cx="' + vx + '" cy="' + vy + '" r="6" fill="#fff"/>' : '') + '</svg>' }
+        return '<div style="position:absolute;inset:0;opacity:' + q.toFixed(3) + '">' + trait + '<div style="position:absolute;left:' + xL + 'px;top:' + yL + 'px;width:250px;text-align:' + (c === 'droite' ? 'left' : 'right') + '">'
+          + '<div style="font:500 16px/1.3 ChicS,sans-serif;letter-spacing:0.3em;color:#fff;opacity:' + pn + ';' + OMBRE + '">' + esc((pr.nom || '').toUpperCase()) + '</div>'
+          + (pr.sous ? '<div style="font:italic 500 40px/1.05 DouxI,serif;color:#fff;margin-top:8px;opacity:' + ps + ';transform:translateY(' + ((1 - ps) * 8).toFixed(1) + 'px);' + OMBRE + '">' + esc(pr.sous) + '</div>' : '') + '</div></div>'
+      } })
+      sons.push({ t: a, fam: 'whoosh', vol: 0.05 })
+    }
+    // CHIFFRES : { t, duree, valeur: "92", unite: "%", legende, source: "selon la marque", benefices: ["…" ou { t, txt }] }
+    // la source s'affiche toujours : un chiffre de marque n'est jamais présenté comme une promesse personnelle
+    for (const ch of K.chiffres || []) {
+      const a = tf(ch.t), b = Math.min(TOT, ch.duree ? tf(ch.t + ch.duree) : a + 4.5), c = ch.cote || cote(a, b), x0 = c === 'droite' ? 380 : 50, y0 = ch.y ?? 170
+      const bens = (ch.benefices || []).map((x, k) => typeof x === 'string' ? { txt: x, a: a + 0.9 + k * 0.6 } : { txt: x.txt, a: tf(x.t) })
+      el.push({ a, b, calque: 'devant', dessin: t => {
+        const q = doux((t - a) / 0.45) * (1 - doux((t - (b - 0.35)) / 0.35)), z = 0.9 + 0.1 * doux((t - a) / 0.6)
+        const n = parseFloat(String(ch.valeur).replace(',', '.')), compte = isFinite(n) ? String(Math.round(n * doux((t - a - 0.1) / 0.9))) : esc(String(ch.valeur))
+        return '<div style="position:absolute;inset:0;opacity:' + q.toFixed(3) + '"><div style="position:absolute;left:' + x0 + 'px;top:' + y0 + 'px;width:290px;height:290px;border-radius:50%;background:' + PALETTE.sable + 'eb;display:grid;place-items:center;box-shadow:0 10px 30px rgba(0,0,0,.14);transform:scale(' + z.toFixed(3) + ')">'
+          + '<div style="text-align:center;color:' + PALETTE.cacao + '"><div style="font:600 108px/0.9 Doux,serif">' + compte + '<span style="font-size:58px">' + esc(ch.unite || '') + '</span></div>'
+          + (ch.legende ? '<div style="font:500 14px/1.35 ChicS,sans-serif;letter-spacing:0.22em;margin-top:6px;padding:0 30px">' + esc(ch.legende.toUpperCase()) + (ch.source ? '*' : '') + '</div>' : '') + '</div></div>'
+          + '<div style="position:absolute;left:' + x0 + 'px;top:' + (y0 + 312) + 'px;display:flex;flex-direction:column;align-items:' + (c === 'droite' ? 'flex-end' : 'flex-start') + ';width:290px;gap:11px">'
+          + bens.map(be => { const v = doux((t - be.a) / 0.4); return v <= 0 ? '' : '<div style="background:#ffffffdb;color:' + PALETTE.cacao + ';font:500 21px/1 ChicS,sans-serif;padding:11px 18px;border-radius:30px;opacity:' + v + ';transform:translateY(' + ((1 - v) * 10).toFixed(1) + 'px)">' + esc(be.txt) + '</div>' }).join('')
+          + (ch.source ? '<div style="font:500 14px/1.3 ChicS,sans-serif;color:#fff;opacity:.85;' + OMBRE + '">*' + esc(ch.source) + '</div>' : '') + '</div></div>'
+      } })
+      sons.push({ t: a, fam: 'pop', vol: 0.05 }); bens.forEach(be => sons.push({ t: be.a, fam: 'clic', vol: 0.05 }))
+    }
+    // LA FIN : « écris-moi » en capitales fines, le mot-clé en italique, sur une fine pastille sable
+    if (K.fin?.motCle) {
+      const t0 = tf(K.fin.t ?? TOT - 3.5), mot = K.fin.motCle, y = clamp(basVisage(t0, TOT) + 40, 600, 860)
+      el.push({ a: t0, b: TOT, calque: 'devant', zone: 'poitrine', dessin: t => { const p = doux((t - t0) / 0.5), pf = doux((t - t0 - 0.2) / 0.6)
+        return '<div style="position:absolute;left:60px;right:104px;top:' + y + 'px;text-align:center;opacity:' + p + '"><div style="font:500 19px/1 ChicS,sans-serif;letter-spacing:0.32em;color:#fff;' + OMBRE + '">ÉCRIS-MOI EN COMMENTAIRE</div>'
+          + '<div style="width:' + Math.round(60 * pf) + 'px;height:1.5px;background:#fff;margin:16px auto"></div>'
+          + '<div style="display:inline-block;background:' + PALETTE.sable + 'eb;color:' + PALETTE.cacao + ';font:italic 500 ' + Math.round(Math.min(78, 520 / (mot.length * 0.5))) + 'px/1.1 DouxI,serif;padding:10px 34px 14px;border-radius:60px;box-shadow:0 10px 30px rgba(0,0,0,.14)">' + esc(mot) + '</div></div>' } })
+      sons.push({ t: t0 + 0.2, fam: 'cloche', vol: 0.05 })
+    }
+  }
+
   if (T.grand && THEME === 'doux') {
     const { haut, aD, aG, aQ } = H, accent = coul.mot || C?.motFort?.couleur || '#E8B4A0'
-    const tG = Math.round(clamp(560 / (0.42 * Math.max(4, T.grand.length)), 90, 170)), y0 = clamp(haut - tG * 0.9 - 70, 150, 420)
-    el.push({ a: 0, b: HOOK, calque: 'derriere', dessin: t => {
+    const tG = Math.round(clamp(560 / (0.42 * Math.max(4, T.grand.length)), 90, 170)), y0B = clamp(haut - tG * 0.9 - 70, 150, 420), suiviC = suiveur(tG + 60)
+    el.push({ a: 0, b: HOOK, calque: 'derriere', dessin: t => { const y0 = suiviC(t, y0B + 20 + tG / 2) - 20 - tG / 2
       const sortie = 1 - clamp((t - (HOOK - 0.3)) / 0.3, 0, 1), pD = doux((t - aD) / 0.5), pG = doux((t - aG) / 0.6), pQ = doux((t - aQ) / 0.5), pO = rebond((t - aG - 0.25) / 0.45)
       const etoile = `<svg width="78" height="78" viewBox="0 0 100 100" style="position:absolute;right:92px;top:${y0 - 30}px;transform:scale(${clamp(pO, 0, 1.3)}) rotate(${(1 - clamp(pO, 0, 1)) * -40}deg);opacity:${clamp(pO, 0, 1)}"><path d="M50 0 C54 38 62 46 100 50 C62 54 54 62 50 100 C46 62 38 54 0 50 C38 46 46 38 50 0Z" fill="${accent}"/></svg>`
       return `<div style="position:absolute;inset:0;opacity:${sortie};text-shadow:0 4px 24px rgba(0,0,0,.3)">
@@ -256,7 +399,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       return `<div style="position:absolute;left:0;right:0;top:${clamp(basVisage(0, HOOK) + 150, 640, 930)}px;text-align:center;font:400 66px/1 Script,cursive;color:${accent};-webkit-text-stroke:5px #fff;paint-order:stroke fill;opacity:${pQ * sortie};text-shadow:0 2px 14px rgba(0,0,0,.3)">${esc(T.queue)}</div>` } })
   }
 
-  if (T.grand && THEME !== 'aurelie' && THEME !== 'doux') {
+  if (T.grand && THEME !== 'aurelie' && THEME !== 'doux' && THEME !== 'witchy' && THEME !== 'chic') {
     const fin = HOOK, { tG, tD, yG, yD, aD, aG } = H
     // chaque style a sa grosse lettre : serif beurre qui rebondit (collage), rond très gras qui claque (pop),
     // minuscules serrées rose poudré qui sortent du flou (éditorial)
@@ -266,19 +409,20 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       : THEME === 'doux' // doux : un titre fin qui se resserre lentement en apparaissant
       ? `<div style="position:absolute;left:0;right:0;top:${y}px;transform:translateY(-50%);opacity:${doux(p / 2)};text-align:center;font:600 ${Math.round(taille * 0.9)}px/0.9 Doux,serif;letter-spacing:${(0.12 - 0.12 * doux(p / 3)).toFixed(3)}em;color:${couleur};text-shadow:0 4px 22px rgba(0,0,0,.35)">${esc(txt)}</div>`
       : THEME === 'typo' // typo : chaque lettre saute à son tour
-      ? `<div style="position:absolute;left:0;right:0;top:${y}px;transform:translateY(-50%);text-align:center;white-space:nowrap;font:900 ${Math.round(Math.min(taille, 590 / (Math.max(1, [...txt].length) * 0.8)))}px/0.9 Rond,sans-serif;letter-spacing:-0.02em;text-transform:uppercase;color:${couleur};text-shadow:0 6px 24px rgba(0,0,0,.25)">${[...txt].map((l, k) => `<span style="display:inline-block;transform:scale(${clamp(rebond(p * 2.2 - k * 0.12), 0, 1.2)})">${l === ' ' ? '&nbsp;' : esc(l)}</span>`).join('')}</div>`
+      ? `<div style="position:absolute;left:0;right:0;top:${y}px;transform:translateY(-50%);text-align:center;white-space:nowrap;font:900 ${Math.round(Math.min(taille, 590 / (Math.max(1, [...txt].length) * 0.8)))}px/0.9 Rond,sans-serif;letter-spacing:-0.02em;text-transform:uppercase;color:${couleur};-webkit-text-stroke:6px #1d1a24;paint-order:stroke fill;text-shadow:0 6px 24px rgba(0,0,0,.25)">${[...txt].map((l, k) => `<span style="display:inline-block;transform:scale(${clamp(rebond(p * 2.2 - k * 0.12), 0, 1.2)})">${l === ' ' ? '&nbsp;' : esc(l)}</span>`).join('')}</div>`
       : THEME === 'pop'
       ? `<div style="position:absolute;left:0;right:0;top:${y}px;transform:translateY(-50%) scale(${1.18 - 0.18 * rebond(p / 0.6)});opacity:${p > 0 ? 1 : 0};text-align:center;font:900 ${taille}px/0.9 Rond,sans-serif;letter-spacing:-0.03em;text-transform:lowercase;color:${couleur};text-shadow:0 6px 24px rgba(0,0,0,.2)">${esc(txt)}</div>`
       : `<div style="position:absolute;left:0;right:0;top:${y}px;transform:translateY(-50%) scale(${0.82 + 0.18 * rebond(p)});opacity:${p > 0 ? 1 : 0};text-align:center;font:900 ${taille}px/0.9 Gros,serif;letter-spacing:-0.03em;color:${couleur};text-shadow:0 4px 18px rgba(0,0,0,.2)">${esc(txt)}</div>`
     const couleurGrand = T.couleur || ({ typo: PALETTE.jaune, pop: '#fff', doux: '#fff', editorial: THEME === 'editorial' ? PALETTE.sous((aG + fin) / 2, yG - tG * 0.45, yG + tG * 0.45) : '' })[THEME] || coul.beurre
     const couleurDessus = T.couleurDessus || ({ pop: PALETTE.mot })[THEME] || '#fff'
-    el.push({ a: 0, b: fin, calque: 'derriere', dessin: t => {
+    const suiviD = suiveur(tD * 1.1), suiviG = suiveur(tG * 1.1)
+    el.push({ a: 0, b: fin, calque: THEME === 'typo' ? 'devant' : 'derriere', dessin: t => {
       const sortie = 1 - clamp((t - (fin - 0.2)) / 0.2, 0, 1)
-      return `<div style="position:absolute;inset:0;opacity:${sortie}">${T.dessus && t < aG ? ligne(T.dessus, tD, yD, couleurDessus, (t - aD) / 0.22) : ''}${t >= aG ? ligne(T.grand, tG, yG, couleurGrand, (t - aG) / (THEME === 'editorial' ? 0.3 : 0.22)) : ''}</div>`
+      return `<div style="position:absolute;inset:0;opacity:${sortie}">${T.dessus && t < aG ? ligne(T.dessus, tD, suiviD(t, yD), couleurDessus, (t - aD) / 0.22) : ''}${t >= aG ? ligne(T.grand, tG, suiviG(t, yG), couleurGrand, (t - aG) / (THEME === 'editorial' ? 0.3 : 0.22)) : ''}</div>`
     } })
   }
 
-  if (T.grand && T.queue && THEME !== 'aurelie' && THEME !== 'doux') {
+  if (T.grand && T.queue && THEME !== 'aurelie' && THEME !== 'doux' && THEME !== 'witchy' && THEME !== 'chic') {
     const fin = HOOK, { tG, yG, aQ } = H
     const larg = Math.min(540, T.queue.length * 30 + 20), hQ = Math.ceil((T.queue.length * 30 + 20) / 540) * 72, v = visages(0, fin), touche = (x0, y0) => v.some(f => x0 < f[2] + 16 && x0 + larg > f[0] - 16 && y0 < f[3] + 16 && y0 + hQ > f[1] - 16)
     let x = 720 - 110 - larg, y = yG + tG * 0.5 + 6
@@ -287,6 +431,39 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     el.push({ a: 0, b: fin, calque: 'devant', dessin: t => { const pQ = doux((t - aQ) / 0.25), sortie = 1 - clamp((t - (fin - 0.2)) / 0.2, 0, 1)
       const police = ({ typo: `font:400 62px/1 Script,cursive;color:${PALETTE.mot};-webkit-text-stroke:5px #fff;paint-order:stroke fill;transform:rotate(-4deg) scale(${0.8 + 0.2 * rebond(pQ)})`, pop: `font:700 52px/1 Fred,sans-serif;color:#fff;-webkit-text-stroke:5px ${PALETTE.marine};paint-order:stroke fill;transform:rotate(-4deg) scale(${0.7 + 0.3 * rebond(pQ)})`, editorial: `font:italic 400 56px/1 Didot,serif;color:#fff;filter:blur(${(1 - pQ) * 6}px)`, doux: `font:italic 500 58px/1 DouxI,serif;color:#fff` })[THEME] || `font:500 76px/0.95 Main,cursive;color:#fff;-webkit-text-stroke:1.2px #fff;transform:rotate(-4deg) translateX(${(1 - pQ) * 20}px)`
       return `<div style="position:absolute;left:${x}px;top:${y}px;${police};width:${larg}px;opacity:${pQ * sortie};text-shadow:0 2px 8px rgba(0,0,0,.45)">${esc(T.queue)}</div>` } })
+  }
+
+  // 3 bis. LA CONSTELLATION (collage.constellation : true, ou { "couleur": "#…", "trait": "#…" }) : pendant le hook,
+  //        étoiles gonflées, étoiles au trait, petites étoiles blanches et nuages autour du titre. Une place qui touche
+  //        son visage (repéré image par image) ou le texte du titre est retirée.
+  if (K.constellation && T.grand && THEME !== 'aurelie') {
+    const opt = K.constellation === true ? {} : K.constellation, cG = opt.couleur || coul.mot || C?.motFort?.couleur || '#5E8FE8'
+    const fonce = h => { const v = parseInt(h.slice(1), 16), f = x => Math.round(x * 0.42).toString(16).padStart(2, '0'); return '#' + f(v >> 16) + f((v >> 8) & 255) + f(v & 255) }
+    const cT = opt.trait || fonce(cG), vis = visages(0, HOOK), a0 = Math.max(0.05, H.aG - 0.1)
+    const touche = (x, y, w, h, [x0, y0, x1, y1], m) => x < x1 + m && x + w > x0 - m && y < y1 + m && y + h > y0 - m
+    const haut = H.yG - H.tG * 0.62 - (T.dessus ? 80 : 0), boiteTitre = [120, haut, 600, H.yG + H.tG * 0.5]
+    // on cherche une place libre pour chaque élément, au plus près du titre : jamais sur son visage, jamais sur les
+    // lettres, sans se chevaucher entre eux
+    const LISTE = [['gonflee', 160], ['trait', 140], ['nuage', 190], ['blanche', 56], ['trait', 90], ['gonflee', 120], ['blanche', 40], ['trait', 110], ['nuage', 140], ['blanche', 62], ['trait', 74], ['blanche', 36]]
+    const cx = 360, cy = (boiteTitre[1] + boiteTitre[3]) / 2, cand = []
+    for (let y = 20; y <= 760; y += 34) for (let x = 6; x <= 650; x += 34) cand.push([x, y, Math.hypot(x + 40 - cx, (y + 40 - cy) * 1.25) + ((x * 7 + y * 13) % 53)])
+    cand.sort((p, q) => p[2] - q[2])
+    const basV = Math.max(420, ...vis.map(v => v[3])) // rien sous son menton : la poitrine est aux sous-titres
+    const poses = [], places = []
+    for (const [k, [ty, z]] of LISTE.entries()) {
+      const h = ty === 'nuage' ? z * 0.62 : z
+      const c = cand.find(([x, y]) => x + z <= 714 && y + h <= basV && !vis.some(v => touche(x, y, z, h, v, 26)) && !touche(x, y, z, h, boiteTitre, 6) && !poses.some(q => touche(x, y, z, h, q, 12)))
+      if (!c) continue
+      poses.push([c[0], c[1], c[0] + z, c[1] + h]); places.push([ty, c[0], c[1], z, ((k * 37) % 30) - 15])
+    }
+    const dessins = places.map(([ty, , , z, r]) => ({ gonflee: etoileGonflee(cG, z, r), trait: etoileTrait(cT, z, r), blanche: etoileBlanche(z, r), nuage: nuage(z) })[ty])
+    if (places.length) {
+      el.push({ a: a0, b: HOOK, calque: 'devant', dessin: t => { const sortie = 1 - clamp((t - (HOOK - 0.3)) / 0.3, 0, 1)
+        return '<div style="position:absolute;inset:0;opacity:' + sortie + '">' + places.map(([ty, x, y], k) => { const tk = a0 + k * 0.07; if (t < tk) return ''
+          const p = clamp(rebond((t - tk) / 0.3), 0, 1.2), f = Math.sin((t - tk) * 2 + k * 1.7) * (ty === 'nuage' ? 3 : 5)
+          return '<div style="position:absolute;left:' + x + 'px;top:' + (y + f) + 'px;transform:scale(' + p + ')">' + dessins[k] + '</div>' }).join('') + '</div>' } })
+      sons.push({ t: a0, fam: 'magie', vol: 0.07 })
+    }
   }
 
   // 4. Étiquettes tapées à la machine, et 5. barrées au feutre (deux passages, aller puis retour) puis corrigées à la main.
@@ -337,10 +514,10 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   let dernierG = -9, ARC = null; const TYPO = [] // typo : l'ordre des mots forts, pour faire tourner les animations
   const tient = (txt, voulu, largeurLettre, max = 590) => Math.round(Math.min(voulu, max / (Math.max(1, [...txt].length) * largeurLettre))) // taille qui tient sur UNE ligne
   for (const [ip, p] of phrases.entries()) {
-    if (THEME === 'doux') break // doux : pas de mots géants, l'italique des sous-titres suffit
+    if (THEME === 'doux' || THEME === 'witchy' || THEME === 'chic') break // doux et witchy : pas de mots géants, l'italique des sous-titres suffit
     const forts = mots.filter(m => m.ip === ip && m.fort); if (!forts.length) continue
     const t0 = forts[0].t; if (t0 < HOOK + 0.3 || t0 - dernierG < 4 || dansMed(t0) || t0 > TOT - 1.2) continue
-    if ((K.listes || []).some(L => { const a = tf(L.t); return t0 < a + 7 && t0 > a - 1.8 })) continue // pas de mot géant pendant une liste
+    if ([...(K.listes || []), ...(K.effets || [])].some(L => { const a = tf(L.t); return t0 < a + 6 && t0 > a - 1.8 })) continue // pas de mot géant pendant une liste ou un effet
     const prochainMed = MED.map(([a]) => a).filter(a => a > t0)[0] ?? TOT
     const fin = Math.min(TOT - 0.1, forts.at(-1).t + 1.7, prochainMed - 0.05), mot = forts.map(m => m.w).join(' ').replace(/[,.;:!?]+$/, '')
     if (fin - t0 < 0.8) continue // trop court pour être lu (un médaillon arrive)
@@ -389,14 +566,15 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     const avant = mots.filter(m => m.ip === ip && !m.fort && m.t < t0).slice(-3)
     let taille = Math.round(clamp(620 / (0.56 * mot.length), 80, 200))
     const ht = hautTete(t0, fin), place = ht - 170 - 44 // sous les onglets, et la ligne du petit texte au-dessus
-    let yG, calque = 'derriere'
+    let yG, calque = THEME === 'typo' ? 'devant' : 'derriere' // typo : devant (CONTOUR_TYPO), jamais mangé par le découpage
     if (THEME !== 'aurelie' && place >= taille * 0.72) yG = ht - taille * 0.3 // signature : cadrée serré, ses titres vont sur la poitrine
     else if (THEME !== 'aurelie' && place >= 80 * 0.72) { taille = Math.floor(place / 0.72); yG = ht - taille * 0.3 }
     else if (el.some(e => e.zone === 'poitrine' && e.a < fin && e.b > t0)) continue
     else if (K.fin?.motCle && fin > tf(K.fin.t ?? TOT - 3.5)) continue // la barre de commentaire de la fin prend la poitrine // la poitrine est déjà prise par une étiquette
     else { calque = 'devant'; taille = Math.min(taille, 150); yG = clamp(basVisage(t0, fin) + taille * 0.55 + 40, 520, 870 - taille * 0.5) } // pas de place au-dessus : sur la poitrine
     dernierG = t0; if (THEME === 'typo') TYPO.push(t0)
-    el.push({ a: avant[0]?.t ?? t0, b: fin, calque, zone: calque === 'devant' ? 'geant' : null, dessin: t => {
+    const suivi = suiveur(taille * 1.2), yG0 = yG
+    el.push({ a: avant[0]?.t ?? t0, b: fin, calque, zone: calque === 'devant' ? 'geant' : null, dessin: t => { const yG = suivi(t, yG0) // le mot suit son visage
       const sortie = 1 - clamp((t - (fin - 0.2)) / 0.2, 0, 1), pG = rebond((t - t0) / 0.25)
       const petit = avant.filter(m => t >= m.t).map(m => esc(m.w)).join(' ')
       if (THEME === 'editorial') {
@@ -429,20 +607,20 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
         const corps = [
           // 0. tapé au clavier, avec son curseur
           () => { const n = clamp(Math.floor(dt * 14) + 1, 0, mot.length), cur = n < mot.length || Math.floor(t * 2.5) % 2 ? `<span style="color:#fff">|</span>` : ''
-            return `<div style="position:absolute;left:0;right:0;top:${yG}px;transform:translateY(-50%);text-align:center;white-space:nowrap;font:700 ${tient(mot + '|', taille * 0.8, 0.58)}px/1 Mono,monospace;letter-spacing:-0.04em;color:${coulT};text-shadow:0 4px 18px rgba(0,0,0,.3)">${esc(mot.slice(0, n))}${cur}</div>` },
+            return `<div style="position:absolute;left:0;right:0;top:${yG}px;transform:translateY(-50%);text-align:center;white-space:nowrap;font:700 ${tient(mot + '|', taille * 0.8, 0.58)}px/1 Mono,monospace;letter-spacing:-0.04em;color:${coulT};-webkit-text-stroke:6px #1d1a24;paint-order:stroke fill;text-shadow:0 4px 18px rgba(0,0,0,.3)">${esc(mot.slice(0, n))}${cur}</div>` },
           // 1. les lettres sautent une à une
-          () => `<div style="position:absolute;left:0;right:0;top:${yG}px;transform:translateY(-50%);text-align:center;white-space:nowrap;font:900 ${tient(mot, taille, 0.84)}px/0.9 Rond,sans-serif;letter-spacing:0.02em;color:${coulT};-webkit-text-stroke:4px #fff;paint-order:stroke fill;text-shadow:0 6px 22px rgba(0,0,0,.25)">${lettres.map((l, j) => `<span style="display:inline-block;transform:translateY(${(1 - clamp(rebond((dt - j * 0.06) / 0.22), 0, 1.2)) * 60}px) scale(${clamp(rebond((dt - j * 0.06) / 0.22), 0, 1.2)})">${l === ' ' ? '&nbsp;' : esc(l)}</span>`).join('')}</div>`,
+          () => `<div style="position:absolute;left:0;right:0;top:${yG}px;transform:translateY(-50%);text-align:center;white-space:nowrap;font:900 ${tient(mot, taille, 0.84)}px/0.9 Rond,sans-serif;letter-spacing:0.02em;color:${coulT};-webkit-text-stroke:6px #1d1a24;paint-order:stroke fill;text-shadow:0 6px 22px rgba(0,0,0,.25)">${lettres.map((l, j) => `<span style="display:inline-block;transform:translateY(${(1 - clamp(rebond((dt - j * 0.06) / 0.22), 0, 1.2)) * 60}px) scale(${clamp(rebond((dt - j * 0.06) / 0.22), 0, 1.2)})">${l === ' ' ? '&nbsp;' : esc(l)}</span>`).join('')}</div>`,
           // 2. néon qui s'allume (deux petits clignements)
           () => { const on = dt < 0.08 || (dt > 0.16 && dt < 0.22) || dt > 0.3 ? 1 : 0.25
             return `<div style="position:absolute;left:0;right:0;top:${yG}px;transform:translateY(-50%);text-align:center;white-space:nowrap;font:700 ${tient(mot, taille, 0.6)}px/0.95 Fred,sans-serif;letter-spacing:0.01em;color:#fff;-webkit-text-stroke:3px ${coulT};paint-order:stroke fill;opacity:${on};text-shadow:0 0 4px rgba(0,0,0,.55),0 0 14px ${coulT},0 0 34px ${coulT},0 3px 10px rgba(0,0,0,.45)">${esc(mot.toLowerCase())}</div>` },
           // 3. en arc de cercle, qui se déroule
           () => { const R = 420, w = Math.min(640, mot.length * taille * 0.55), q = doux(dt / 0.45)
-            return `<svg style="position:absolute;left:0;top:${yG - taille * 0.9}px;overflow:visible" width="720" height="${taille * 2}" viewBox="0 0 720 ${taille * 2}"><defs><path id="arc${k}" d="M ${360 - w / 2} ${taille * 1.2} Q 360 ${taille * 1.2 - w * 0.32} ${360 + w / 2} ${taille * 1.2}"/></defs><text font-family="Fred" font-weight="700" font-size="${tient(mot, taille * 0.85, 0.66, Math.min(640, mot.length * taille * 0.55))}" fill="${coulT}" stroke="#fff" stroke-width="6" paint-order="stroke" text-anchor="middle" letter-spacing="2"><textPath href="#arc${k}" startOffset="50%">${esc(mot.toLowerCase().slice(0, Math.max(1, Math.round(mot.length * q))))}</textPath></text></svg>` },
+            return `<svg style="position:absolute;left:0;top:${yG - taille * 0.9}px;overflow:visible" width="720" height="${taille * 2}" viewBox="0 0 720 ${taille * 2}"><defs><path id="arc${k}" d="M ${360 - w / 2} ${taille * 1.2} Q 360 ${taille * 1.2 - w * 0.32} ${360 + w / 2} ${taille * 1.2}"/></defs><text font-family="Fred" font-weight="700" font-size="${tient(mot, taille * 0.85, 0.66, Math.min(640, mot.length * taille * 0.55))}" fill="${coulT}" stroke="#1d1a24" stroke-width="8" paint-order="stroke" text-anchor="middle" letter-spacing="2"><textPath href="#arc${k}" startOffset="50%">${esc(mot.toLowerCase().slice(0, Math.max(1, Math.round(mot.length * q))))}</textPath></text></svg>` },
           // 4. le duo de polices : un petit mot manuscrit qui chevauche un grand mot serré
           () => { const q = rebond(dt / 0.3), grand = mot, fin = avant.length ? avant.at(-1).w.replace(/[,.;:!?]+$/, '') : '' // le petit mot dit juste avant, en manuscrite
             return `<div style="position:absolute;left:0;right:0;top:${yG}px;transform:translateY(-50%) scale(${0.8 + 0.2 * clamp(q, 0, 1.15)});text-align:center">
               ${fin ? `<div style="font:400 ${Math.round(taille * 0.5)}px/1 Script,cursive;color:#fff;margin-bottom:-${Math.round(taille * 0.18)}px;position:relative;z-index:1;text-shadow:0 2px 10px rgba(0,0,0,.4)">${esc(fin)}</div>` : ''}
-              <div style="white-space:nowrap;font:400 ${tient(grand, taille * 1.1, 0.5)}px/0.9 Anton,sans-serif;text-transform:uppercase;letter-spacing:0.01em;color:${coulT};text-shadow:0 6px 24px rgba(0,0,0,.3)">${esc(grand)}</div></div>` },
+              <div style="white-space:nowrap;font:400 ${tient(grand, taille * 1.1, 0.5)}px/0.9 Anton,sans-serif;text-transform:uppercase;letter-spacing:0.01em;color:${coulT};-webkit-text-stroke:6px #1d1a24;paint-order:stroke fill;text-shadow:0 6px 24px rgba(0,0,0,.3)">${esc(grand)}</div></div>` },
         ][k]()
         return `<div style="position:absolute;inset:0;opacity:${sortie}">${k === 4 ? '' : haut}${corps}</div>` // le duo porte déjà le petit mot d'avant
       }
@@ -469,7 +647,24 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   //    éditorial : la vidéo rétrécit en carte sur fond bordeaux nuit, la phrase en chapeau.
   const CARTE = { pop: { l: 432, h: 768, cy: 560, rot: -3 } }[THEME]
   for (const [a, b] of MED) {
-    if (THEME === 'doux' || THEME === 'typo') continue // doux et typo : pas d'intermède
+    if (THEME === 'doux' || THEME === 'typo' || THEME === 'chic') continue // doux et typo : pas d'intermède
+    if (THEME === 'witchy') { // PAGE DE GRIMOIRE
+      const ps = phrases.filter(p => p.b > a + 0.05 && p.a < b - 0.05)
+      const hasard = k => { const x = Math.sin(k * 7.13 + a * 3.1) * 43758.5453; return x - Math.floor(x) }
+      const pts = Array.from({ length: 6 }, (_, k) => [110 + k * 100 + hasard(k) * 40, 240 + hasard(k + 9) * 160])
+      el.push({ a, b, calque: 'devant', zone: 'page', dessin: t => {
+        const q = doux((t - a) / 0.45) * (1 - doux((t - (b - 0.4)) / 0.4)), tr = clamp((t - a - 0.3) / 1.6, 0, 1)
+        const etoiles = Array.from({ length: 34 }, (_, k) => WI.etoile4(Math.round(hasard(k + 20) * 700), Math.round(hasard(k + 70) * 1260), 6 + (k % 4) * 4, (q * (0.3 + 0.7 * Math.abs(Math.sin(t * 1.5 + k)))).toFixed(2))).join('')
+        const ligne = '<svg style="position:absolute;left:0;top:0;opacity:' + q.toFixed(2) + '" width="720" height="1280"><path d="M' + pts.map(p => p.map(v => v.toFixed(0)).join(' ')).join(' L') + '" fill="none" stroke="' + PALETTE.or + '" stroke-width="1.8" pathLength="100" stroke-dasharray="100" stroke-dashoffset="' + (100 * (1 - tr)).toFixed(1) + '"/>' + pts.map(([x, y], k) => tr * pts.length > k ? '<circle cx="' + x.toFixed(0) + '" cy="' + y.toFixed(0) + '" r="5" fill="' + PALETTE.or + '"/>' : '').join('') + '</svg>'
+        const texte = ps.map((p, k) => { const v = doux((t - Math.max(a, p.a)) / 0.5); if (v <= 0) return ''
+          const html = esc(p.txt).replace(/\*([^*]+)\*/g, (_, w) => '<span style="color:' + PALETTE.or + ';text-shadow:0 0 14px ' + PALETTE.or + '">' + w + '</span>')
+          return '<div style="font:italic 500 ' + (k === ps.length - 1 ? 60 : 48) + 'px/1.25 DouxI,serif;color:' + PALETTE.creme + ';opacity:' + v.toFixed(2) + ';filter:blur(' + ((1 - v) * 6).toFixed(1) + 'px);text-shadow:0 0 14px ' + PALETTE.or + '55">' + html + '</div>' }).join('')
+        return '<div style="position:absolute;inset:0;background:radial-gradient(90% 70% at 50% 45%,' + PALETTE.nuit + 'f4,#0d0a0cfc);opacity:' + q.toFixed(2) + '"></div>' + etoiles + ligne
+          + '<div style="position:absolute;left:70px;right:70px;top:540px;text-align:center;text-wrap:balance;opacity:' + q.toFixed(2) + '">' + texte + '</div>'
+      } })
+      sons.push({ t: a, fam: 'magie', vol: 0.06 })
+      continue
+    }
     if (THEME === 'editorial') {
       // la « page de titre » (choix d'Aurélie, B) : un aplat couleur décor couvre l'écran, sa voix continue, et ses mots
       // se TAPENT comme au clavier, avec le bruit des touches. La 1re phrase en gros titre, la suite en texte, puis sa signature.
@@ -494,6 +689,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     if (CARTE) { el.push({ a, b, calque: 'devant', dessin: t => {
       const pR = doux((t - a) / 0.2), p = phrases.find(p => t >= p.a && t < p.b)
       const ici = p ? mots.filter(m => m.ip === phrases.indexOf(p) && t >= m.t) : []
+      if (THEME === 'witchy') return '<div style="position:absolute;left:60px;right:104px;top:1046px;text-align:center;font:italic 500 40px/1.2 DouxI,serif;color:' + PALETTE.creme + ';opacity:' + pR + '">' + ici.map(m => m.fort ? '<span style="color:' + PALETTE.or + ';text-shadow:0 0 12px ' + PALETTE.or + '">' + esc(m.w) + '</span>' : esc(m.w)).join(' ') + '</div>'
       const texte = THEME === 'pop'
         ? ici.map(m => `<span style="display:inline-block;margin:0 6px;${m.fort ? `font:900 70px/1 Rond,sans-serif;color:${PALETTE.etoile}` : 'font:900 46px/1.1 Rond,sans-serif;color:#fff'};-webkit-text-stroke:4px ${PALETTE.marine};paint-order:stroke fill">${esc(m.w)}</span>`).join(' ')
         : ici.map(m => m.fort ? `<span style="font:italic 400 52px/1 Ital,serif;color:${PALETTE.rose}">${esc(m.w)}</span>` : esc(m.w)).join(' ')
@@ -546,6 +742,17 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     else items.forEach((_, k) => sons.push({ t: t0 + 0.15 + k * pas, fam: L.type === 'postit' ? 'pop' : 'clic', vol: 0.1 }))
   }
 
+  // 7 ter. Les effets ponctuels (effets.mjs) : la phrase-choc et les commentaires vont au-dessus de sa tête, la
+  //         capture et l'avant/après sous son visage ; jamais sur son visage.
+  for (const E of K.effets || []) {
+    const Em = effet(E, { clamp, doux, rebond, esc, dossier: dir, couleurs: { marqueur: E.couleur || '#FFE14D', contour: '#2b2416', feutre: coul.mot || C?.motFort?.couleur || '#E8613C' } })
+    if (!Em) continue
+    const t0 = tf(E.t), b = Math.min(TOT - 0.1, t0 + Em.duree), haut = E.type === 'choc' || E.type === 'commentaires'
+    const yHaut = hautTete(t0, b) - Em.hauteur - 24, y = haut && yHaut >= 110 ? yHaut : clamp(basVisage(t0, b) + 50, 430, 1280 - 290 - Em.hauteur)
+    el.push({ a: t0, b, calque: 'devant', zone: 'geant', dessin: t => '<div style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)).toFixed(2) + '">' + Em.dessin(t - t0, Math.round(y)) + '</div>' })
+    sons.push(...Em.sons(t0))
+  }
+
   // 8. La fin. Pop : « commente » et le mot-clé qui respire, en rond gonflé. Éditorial : « commente » en italique et
   //    le mot-clé entre guillemets, en flou vers net. Collage : le mot-clé se tape dans une barre de commentaire.
   if (K.fin?.motCle && THEME === 'doux') {
@@ -553,7 +760,13 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     el.push({ a: t0, b: TOT, calque: 'devant', zone: 'poitrine', dessin: t => { const p = doux((t - t0) / 0.5)
       return `<div style="position:absolute;left:60px;right:104px;top:${y}px;text-align:center;opacity:${p};text-shadow:0 2px 16px rgba(0,0,0,.5)"><div style="font:italic 500 44px/1 DouxI,serif;color:#fff">écris-moi</div><div style="font:600 96px/1.05 Doux,serif;color:#fff">« ${esc(mot)} »</div></div>` } })
   }
-  if (K.fin?.motCle && THEME !== 'collage' && THEME !== 'doux') {
+  if (K.fin?.motCle && THEME === 'witchy') {
+    const t0 = tf(K.fin.t ?? TOT - 3.5), mot = K.fin.motCle, y = clamp(basVisage(t0, TOT) + 30, 540, 720)
+    el.push({ a: t0, b: TOT, calque: 'devant', zone: 'poitrine', dessin: t => { const p = doux((t - t0) / 0.5), z = Math.round(Math.min(66, 230 / (mot.length * 0.75)))
+      return '<div style="position:absolute;left:210px;top:' + y + 'px;width:300px;height:300px;border-radius:50%;border:2px solid ' + PALETTE.or + ';box-shadow:0 0 30px rgba(233,199,123,.4) inset,0 0 30px rgba(233,199,123,.3);display:grid;place-items:center;background:' + PALETTE.prune + '8c;opacity:' + p + ';transform:scale(' + (0.92 + 0.08 * p) + ')"><div style="text-align:center"><div style="font:italic 500 32px/1 DouxI,serif;color:' + PALETTE.creme + '">écris-moi</div><div style="white-space:nowrap;font:700 ' + z + 'px/1.1 Cinzel,serif;text-transform:uppercase;color:' + PALETTE.or + ';text-shadow:0 0 16px rgba(233,199,123,.6)">' + esc(mot) + '</div></div></div>' + WI.lunes(y + 330, p) } })
+    sons.push({ t: t0 + 0.2, fam: 'cloche', vol: 0.05 })
+  }
+  if (K.fin?.motCle && THEME !== 'collage' && THEME !== 'doux' && THEME !== 'witchy' && THEME !== 'chic') {
     const t0 = tf(K.fin.t ?? TOT - 3.5), mot = K.fin.motCle, y = clamp(basVisage(t0, TOT) + 30, 560, 760)
     el.push({ a: t0, b: TOT, calque: 'devant', zone: 'poitrine', dessin: t => {
       if (THEME === 'typo') { const n = clamp(Math.floor((t - t0 - 0.35) * 10) + 1, 0, mot.length)
@@ -591,7 +804,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   const css = face('Fraunces-900.woff2', 'Gros', 900) + face('ReenieBeanie-400.woff2', 'Main', 500) + face('CourierPrime-700.woff2', 'Machine', 700)
     + face('GloriaHallelujah-400.woff2', 'Carnet', 400) + face('SpaceMono-700.woff2', 'Mono', 700) + face('Poppins-600.woff2', 'Poppins', 600)
     + face('Montserrat-900.woff2', 'Rond', 900) + face('Fraunces-italique.woff2', 'Ital', 400, 'italic') + face('Poppins-800.woff2', 'Edito', 800) + face('Fredoka-700.woff2', 'Fred', 700)
-    + face('Anton-400.woff2', 'Anton', 400) + face('Caveat-700.woff2', 'Annot', 700) + face('Cormorant-600.woff2', 'Doux', 600) + face('Cormorant-italique.woff2', 'DouxI', 500, 'italic') + face('Inter-500.woff2', 'DidotT', 400) + face('InstrumentSerif-italique.woff2', 'Didot', 400, 'italic') + face('Bricolage-800.woff2', 'DidotG', 800) + face('DMSerifDisplay-400.woff2', 'Display', 400) + face('Satisfy-400.woff2', 'Script', 400)
+    + face('Anton-400.woff2', 'Anton', 400) + face('Caveat-700.woff2', 'Annot', 700) + face('Cormorant-600.woff2', 'Doux', 600) + face('Cormorant-italique.woff2', 'DouxI', 500, 'italic') + face('Inter-500.woff2', 'DidotT', 400) + face('InstrumentSerif-italique.woff2', 'Didot', 400, 'italic') + face('Bricolage-800.woff2', 'DidotG', 800) + face('DMSerifDisplay-400.woff2', 'Display', 400) + face('Satisfy-400.woff2', 'Script', 400) + face('CinzelDecorative-700.woff2', 'Cinzel', 700) + face('Poppins-500.woff2', 'ChicS', 500)
   const nav = await ouvrirNavigateur(), page = await nav.newPage(); await page.setViewport({ width: 720, height: 1280 })
   await page.setContent(`<html><head><style>${css} html,body{margin:0;width:720px;height:1280px;background:transparent;overflow:hidden}</style></head><body style="clip-path:inset(0 0 1px 0)"><div id="s"></div></body></html>`)
   await page.evaluate(() => document.fonts.ready)
@@ -619,12 +832,18 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   await page.screenshot({ path: papier })
   const fondInter = join(st, 'collage-fond-intermede.png')
   if (THEME !== 'collage') {
-    const htmlFond = THEME === 'pop' ? `<div style="position:absolute;inset:0;background:#7DB3E8"></div>${[[90, 210, 40, -10], [610, 330, 30, 14], [70, 1050, 34, 8], [600, 1090, 46, -16], [640, 760, 24, 0]].map(([x, y, z, r]) => etoile(z, '#F2C94C', `position:absolute;left:${x}px;top:${y}px;transform:rotate(${r}deg)`)).join('')}` : '<div style="position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 40%,#3a0a10,#2A0306 70%)"></div>'
+    const nomCarte = (K.tarot?.nom || (mots.find(m => m.fort && MED[0] && m.t >= MED[0][0] - 0.05 && m.t < MED[0][1])?.w) || 'ta carte').replace(/[,.;:!?]+$/, '').toUpperCase()
+    const fondWitchy = '<div style="position:absolute;inset:0;background:radial-gradient(90% 60% at 50% 40%,' + PALETTE.nuit + ',' + PALETTE.prune + ' 70%,#0d0a0c)"></div>' + Array.from({ length: 26 }, (_, k) => WI.etoile4((k * 137) % 700, (k * 251) % 1260, 6 + (k % 4) * 4, 0.35 + (k % 3) * 0.2)).join('')
+      + '<div style="position:absolute;left:150px;top:170px;width:420px;height:850px;border-radius:22px;background:#F3E6C9;box-shadow:0 0 40px rgba(233,199,123,.35),0 20px 50px rgba(0,0,0,.6)"><div style="position:absolute;inset:16px;border:2px solid ' + PALETTE.or + ';border-radius:14px"></div><div style="position:absolute;inset:24px;border:1px solid ' + PALETTE.or + ';border-radius:10px"></div>'
+      + '<div style="position:absolute;left:0;right:0;top:30px;text-align:center;font:700 32px/1 Cinzel,serif;color:#7a5a1e">' + (K.tarot?.numero || 'III') + '</div>'
+      + '<div style="position:absolute;left:36px;top:84px;width:348px;height:612px;border-radius:174px 174px 8px 8px;border:2px solid ' + PALETTE.or + '"></div>'
+      + '<div style="position:absolute;left:0;right:0;bottom:44px;text-align:center;white-space:nowrap;font:700 ' + Math.round(Math.min(40, 360 / (nomCarte.length * 0.72))) + 'px/1 Cinzel,serif;color:#4a2a10;letter-spacing:2px">' + esc(nomCarte) + '</div></div>'
+    const htmlFond = THEME === 'witchy' ? fondWitchy : THEME === 'pop' ? `<div style="position:absolute;inset:0;background:#7DB3E8"></div>${[[90, 210, 40, -10], [610, 330, 30, 14], [70, 1050, 34, 8], [600, 1090, 46, -16], [640, 760, 24, 0]].map(([x, y, z, r]) => etoile(z, '#F2C94C', `position:absolute;left:${x}px;top:${y}px;transform:rotate(${r}deg)`)).join('')}` : '<div style="position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 40%,#3a0a10,#2A0306 70%)"></div>'
     await page.evaluate(h => { document.body.style.background = 'transparent'; document.getElementById('s').innerHTML = h }, htmlFond)
     await page.screenshot({ path: fondInter })
   }
   const coins = join(st, 'collage-coins.png')
-  if (CARTE) { await page.evaluate((l, h, r) => { document.body.style.background = '#000'; document.getElementById('s').innerHTML = `<div style="position:absolute;left:0;top:0;width:${l}px;height:${h}px;border-radius:${r}px;background:#fff"></div>` }, CARTE.l, CARTE.h, THEME === 'pop' ? 24 : 2); await page.screenshot({ path: coins, clip: { x: 0, y: 0, width: CARTE.l, height: CARTE.h } }); await page.evaluate(() => { document.body.style.background = 'transparent' }) }
+  if (CARTE) { await page.evaluate((l, h, r) => { document.body.style.background = '#000'; document.getElementById('s').innerHTML = `<div style="position:absolute;left:0;top:0;width:${l}px;height:${h}px;border-radius:${typeof r === 'number' ? r + 'px' : r};background:#fff"></div>` }, CARTE.l, CARTE.h, THEME === 'pop' ? 24 : THEME === 'witchy' ? '170px 170px 6px 6px' : 2); await page.screenshot({ path: coins, clip: { x: 0, y: 0, width: CARTE.l, height: CARTE.h } }); await page.evaluate(() => { document.body.style.background = 'transparent' }) }
   const cercle = join(st, 'collage-cercle.png')
   await page.evaluate(() => { document.getElementById('s').innerHTML = '<div style="position:absolute;left:0;top:0;width:420px;height:420px;border-radius:50%;background:#fff"></div><div style="position:absolute;left:420px;top:0;right:0;bottom:0;background:#000"></div><div style="position:absolute;left:0;top:420px;width:420px;bottom:0;background:#000"></div>'; document.body.style.background = '#000' })
   await page.screenshot({ path: cercle, clip: { x: 0, y: 0, width: 420, height: 420 } })
@@ -657,7 +876,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   }
 
   // ── Le médaillon : sa vidéo recadrée sur le visage, dans un cercle, sur le papier ──
-  const meds = (THEME === 'editorial' || THEME === 'doux' || THEME === 'typo' ? [] : MED).map(([a, b], k) => {
+  const meds = (THEME === 'editorial' || THEME === 'doux' || THEME === 'typo' || THEME === 'witchy' || THEME === 'chic' ? [] : MED).map(([a, b], k) => {
     if (CARTE) { // pop / éditorial : toute l'image réduite en carte (inclinée en pop), sur son fond
       const f = join(st, `collage-medaillon-${k}.mp4`), rot = (CARTE.rot * Math.PI / 180).toFixed(4)
       lancer('ffmpeg', ['-y', '-v', 'error', '-ss', a.toFixed(3), '-t', (b - a).toFixed(3), '-i', base, '-loop', '1', '-i', fondInter, '-loop', '1', '-i', coins,
@@ -683,7 +902,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   const entrees = ['-i', fond, '-f', 'concat', '-safe', '0', '-i', join(st, 'collage-devant.txt'), ...meds.flatMap(m => ['-i', m.f]), ...ev.flatMap(s => ['-i', join(ICI, 'sons', s.n + '.wav')])]
   const lut = join(ICI, 'luts', 'cinema.cube').replace(/\\/g, '/').replace(':', '\\:')
   const traitement = THEME === 'aurelie' && existsSync(join(ICI, 'luts', 'cinema.cube')) ? `lut3d=file='${lut}'`
-    : THEME === 'doux' ? 'null'
+    : THEME === 'doux' || THEME === 'witchy' || THEME === 'chic' ? 'null'
     : THEME === 'editorial' ? `eq=saturation=1.02:contrast=1.04,colorbalance=rh=.015:bh=-.015,noise=alls=2:allf=t`
     : THEME === 'pop' && ARC ? `hue=s=0:enable='between(t,${ARC[0].toFixed(3)},${ARC[1].toFixed(3)})'` : 'null'
   let g = `[0:v]${traitement}[v0];`, cur = 'v0'

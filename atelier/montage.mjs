@@ -19,6 +19,7 @@ import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { habillage } from './habillages.mjs'
 import { liste as listeAnimee, POLICES_LISTES } from './listes.mjs'
+import { effet as effetPonctuel, POLICES_EFFETS } from './effets.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
 const PROJETS = join(ICI, 'projets')
@@ -200,11 +201,11 @@ async function monter(nom) {
   const lignesFortes = lignesST.map(l => [+l.split('|')[0], /\*[^*]+\*/.test(l)])
   const lignesGrosPlan = lignesST.filter(l => /#grosplan\b/.test(l)).map(l => +l.split('|')[0])
   const finHook = P.hookFin ?? (lignesST[1] ? +lignesST[1].split('|')[0] : 0)
-  const style = ({ confidence: 'doux', energie: 'energique', serie: 'rythme', classique: 'rythme', pop: 'energique', editorial: 'doux', collage: 'doux', aurelie: 'rythme', typo: 'rythme' })[P.style] || P.style || 'doux'
+  const style = ({ confidence: 'doux', energie: 'energique', serie: 'rythme', classique: 'rythme', pop: 'energique', editorial: 'doux', collage: 'doux', aurelie: 'rythme', typo: 'rythme', witchy: 'doux', chic: 'doux' })[P.style] || P.style || 'doux'
   const rapproche = (a, b, i) => {
     if (lignesGrosPlan.some(t => t >= a - 0.05 && t < b)) return GROS_PLAN
     if ((P.rapprocher || []).some(([x, y]) => b > x && a < y)) return RAPPROCHE
-    if (a >= finHook && (P.style === 'doux' || P.style === 'confidence')) return i % 2 ? RAPPROCHE : 1 // doux : de près, de loin, on s'assoit en face d'elle
+    if (a >= finHook && (P.style === 'doux' || P.style === 'confidence' || P.style === 'witchy' || P.style === 'chic')) return i % 2 ? RAPPROCHE : 1 // doux : de près, de loin, on s'assoit en face d'elle
     if (a < finHook || style === 'prof' || style === 'doux' || style === 'carnet') return 1
     if (style === 'rythme') return lignesFortes.some(([t, fort]) => fort && t >= a - 0.05 && t < b) ? RAPPROCHE : 1
     if (style === 'energique') return i % 2 ? RAPPROCHE : 1
@@ -269,7 +270,22 @@ async function monter(nom) {
   // sans se voir ; puis les options qu'elle demande. JAMAIS de grain, de vignette ou de teinte qui abîme une vidéo
   // de téléphone. "image": "aucun" pour garder l'image telle quelle.
   const FILTRES = { auto: 'hqdn3d=3:2:4:3,eq=gamma=1.13:contrast=1.04:saturation=1.04,unsharp=5:5:0.45', lumineux: 'eq=brightness=0.05:gamma=1.18:contrast=1.03', grain: 'hqdn3d=5:4:7:5', net: 'unsharp=5:5:0.9', chaud: 'colorbalance=rs=.05:gs=.01:bs=-.05:rm=.03:bm=-.03,eq=saturation=1.06', froid: 'colorbalance=rs=-.04:bs=.05:rm=-.02:bm=.03' }
-  const IMAGE = P.image === 'aucun' ? '' : ['auto', ...[].concat(P.image || []).filter(x => x !== 'auto')].map(n => FILTRES[n]).filter(Boolean).map(x => ',' + x).join('')
+  const IMAGE0 = P.image === 'aucun' ? '' : ['auto', ...[].concat(P.image || []).filter(x => x !== 'auto')].map(n => FILTRES[n]).filter(Boolean).map(x => ',' + x).join('')
+  // COLOR MATCH : les couleurs d'une photo qu'elle aime, posées sur sa vidéo (après la correction de base)
+  let MATCH = ''
+  if (P.reference) {
+    const ref = /^[a-z]:|^[\\/]/i.test(P.reference) ? P.reference : join(dir, P.reference)
+    const pixels = (f, t) => spawnSync('ffmpeg', ['-v', 'error', ...(t != null ? ['-ss', String(t)] : []), '-i', f, '-frames:v', '1', '-vf', 'scale=64:64:flags=area', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { maxBuffer: 1 << 24 }).stdout || Buffer.alloc(0)
+    const stats = b => { const n = b.length / 3 || 1, mo = [0, 0, 0], e = [0, 0, 0]; for (let q = 0; q < b.length; q += 3) for (let c = 0; c < 3; c++) mo[c] += b[q + c]; mo.forEach((v, c) => mo[c] = v / n); for (let q = 0; q < b.length; q += 3) for (let c = 0; c < 3; c++) e[c] += (b[q + c] - mo[c]) ** 2; return { mo, e: e.map(v => Math.sqrt(v / n) || 1) } }
+    if (existsSync(ref)) {
+      const Dv = duree(join(dir, 'source.mp4')), r = stats(pixels(ref)), v = stats(Buffer.concat([0.15, 0.35, 0.55, 0.75, 0.9].map(x => pixels(join(dir, 'source.mp4'), (x * Dv).toFixed(2)))))
+      const k = Math.max(0, Math.min(1, P.intensiteReference ?? 0.6))
+      const expr = c => { const R = Math.max(0.6, Math.min(1.6, r.e[c] / v.e[c])); return 'clip(val+' + k.toFixed(2) + '*((val-' + v.mo[c].toFixed(1) + ')*' + R.toFixed(3) + '+' + r.mo[c].toFixed(1) + '-val),0,255)' }
+      MATCH = ",format=rgb24,lutrgb=r='" + expr(0) + "':g='" + expr(1) + "':b='" + expr(2) + "',format=yuv420p"
+      console.log('Couleurs de la photo de référence appliquées (dose ' + Math.round(k * 100) + ' %)')
+    } else console.log('(photo de référence introuvable : ' + ref + ', couleurs inchangées)')
+  }
+  const IMAGE = IMAGE0 + MATCH
   // Les ambiances, par-dessus la correction, seulement si elle en demande une (validées par Aurélie le 04/11/2026 :
   // cocooning et matin lumineux ; les autres ont été refusées). Un léger halo lumineux adoucit l'ensemble.
   const AMBIANCES = { cocooning: ["curves=r='0/0.08 0.5/0.55 1/0.95':g='0/0.05 0.5/0.44 1/0.88':b='0/0.03 0.5/0.33 1/0.72',eq=saturation=0.95:gamma=0.92", 0.2], matin: ['eq=brightness=0.1:gamma=1.3:contrast=0.86:saturation=0.75,colortemperature=temperature=7500:mix=0.4', 0.28] }
@@ -347,7 +363,7 @@ async function monter(nom) {
 
   // Style « collage » : un autre moteur (collage.mjs) habille la vidéo. On lui passe la vidéo coupée et cadrée
   // (avec sa voix), les phrases relues, chaque mot entendu avec son temps, le visage, et la table des temps.
-  if (['collage', 'pop', 'editorial', 'doux', 'confidence', 'aurelie', 'typo'].includes(P.style)) {
+  if (['collage', 'pop', 'editorial', 'doux', 'confidence', 'aurelie', 'typo', 'witchy', 'chic'].includes(P.style)) {
     const st = join(dir, 'rendu'); mkdirSync(st, { recursive: true })
     lancer('ffmpeg', ['-y', '-v', 'error', '-i', source, '-filter_complex', fSegments.replace(/;$/, ''), '-map', '[cv]', '-map', '[voix]', '-c:v', 'libx264', '-crf', '16', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', join(st, 'base-av.mp4')])
     const visages = []; for (let T = 0; T < TOT; T += 0.1) visages.push(visageFinal(T)?.map(Math.round) ?? null)
@@ -361,7 +377,7 @@ async function monter(nom) {
   const page = await nav.newPage(); await page.setViewport({ width: 720, height: 1280 })
   const face = (p) => `@font-face{font-family:'${p.famille}';font-weight:${p.poids};src:url(data:font/${p.fichier.split('.').pop().toLowerCase()};base64,${readFileSync(join(ICI, 'polices', p.fichier)).toString('base64')})}`
   const S = C.sousTitres, F = C.motFort, T = C.titre, E = C.etiquette
-  const css = `${face(C.polices.texte)}${face(C.polices.fort)}${face(C.polices.titre)}${face({ fichier: 'Caveat-700.woff2', famille: 'Main', poids: 700 })}${face({ fichier: 'DMSerifDisplay-400.woff2', famille: 'Serif', poids: 400 })}${POLICES_LISTES.map(([fichier, famille, poids]) => face({ fichier, famille, poids })).join('')}
+  const css = `${face(C.polices.texte)}${face(C.polices.fort)}${face(C.polices.titre)}${face({ fichier: 'Caveat-700.woff2', famille: 'Main', poids: 700 })}${face({ fichier: 'DMSerifDisplay-400.woff2', famille: 'Serif', poids: 400 })}${POLICES_LISTES.map(([fichier, famille, poids]) => face({ fichier, famille, poids })).join('')}${POLICES_EFFETS.filter(([, f]) => f !== 'Carnet').map(([fichier, famille, poids]) => face({ fichier, famille, poids })).join('')}
 html,body{margin:0;width:720px;height:1280px;background:transparent}
 .fort{font-family:'${C.polices.fort.famille}',cursive;font-weight:${C.polices.fort.poids};color:${F.couleur};letter-spacing:${F.espacement};text-transform:${F.majuscules ? 'uppercase' : 'none'};${F.contour ? `-webkit-text-stroke:${F.contourEpaisseur}px ${F.contour};paint-order:stroke fill;` : ''}${F.fond ? `background:${F.fond};padding:0 14px 2px;border-radius:3px;` : ''}display:inline-block;transform:rotate(${F.rotation}deg);text-shadow:none;line-height:1}
 .st{position:absolute;left:${Math.max(S.marge, 48)}px;right:${Math.max(S.marge, 96)}px;transform:translateY(-50%);text-align:center;font-family:'${C.polices.texte.famille}',sans-serif;font-weight:${C.polices.texte.poids};font-size:${S.taille}px;line-height:1.22;color:${S.couleur};letter-spacing:${S.espacement};text-transform:${S.majuscules ? 'uppercase' : 'none'};text-shadow:${S.ombre}${S.couleur && /^#f|^#e|^#d|white|#fff/i.test(S.couleur) ? ', 0 0 1px rgba(0,0,0,.9), 1px 1px 0 rgba(0,0,0,.35), -1px -1px 0 rgba(0,0,0,.35)' : ''}}
@@ -411,11 +427,12 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
   let jm = 0
   let yPrecedent = null
   // pendant une liste animée, les sous-titres se taisent : la liste dit déjà ses mots
+  const fenetresEffets = (P.effets || []).map(E => [nt(E.t), nt(E.t) + (E.duree ?? 3)])
   const fenetresListes = (P.listes || []).map(L => { const n = Math.min(5, (L.items || []).length), pas = L.type === 'ticket' ? 0.45 : 0.6; return [nt(L.t), nt(L.t) + (L.duree ?? Math.max(3.5, 1.2 + n * pas + 1.6))] })
   for (let i = 0; i < subs.length; i++) {
     const s = subs[i]
     if (P.titre && s.b <= HOOK + 0.3) continue // le titre du hook = ses mots : il remplace le sous-titre
-    if (fenetresListes.some(([a, b]) => s.a < b && s.b > a + 0.05)) continue
+    if ([...fenetresListes, ...fenetresEffets].some(([a, b]) => s.a < b && s.b > a + 0.05)) continue
     // une phrase à cheval sur la fin du hook n'apparaît qu'une fois le titre parti : sinon les deux se superposent
     if (P.titre && !P.titreFixe && s.a < HOOK) s.a = HOOK
     // En cartons, on ne voit jamais que quelques mots à la fois : c'est le plus long paquet qui compte, pas la phrase
@@ -697,6 +714,18 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
       plus.push({ a: t0 + j / IPS, b: j < nImg ? t0 + (j + 1) / IPS : fin, fichier })
     }
     for (const x of Lm.sons(t0)) if (x.fam === 'clavier') for (let u = 0; u < x.duree; u += 0.16) sonsListes.push(['clic', x.t + u]); else sonsListes.push([x.fam, x.t])
+  }
+  // Les effets ponctuels (effets.mjs) : choc et commentaires en haut, capture et avant/après plus bas, jamais sur son visage
+  for (const [k, E] of (P.effets || []).entries()) {
+    const borne = (x, a, b) => Math.max(a, Math.min(b, x)), dx = x => 1 - Math.pow(1 - borne(x, 0, 1), 3)
+    const rb = x => { x = borne(x, 0, 1); const c = 1.4; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2) }
+    const Em = effetPonctuel(E, { clamp: borne, doux: dx, rebond: rb, esc: x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;'), dossier: dir, couleurs: { marqueur: E.couleur || '#FFE14D', contour: '#2b2416', feutre: accent } })
+    if (!Em) continue
+    const t0 = nt(E.t), fin = Math.min(TOT, t0 + Em.duree), haut = E.type === 'choc' || E.type === 'commentaires'
+    const y = Math.round(placer('effet', haut ? 260 : 780, Em.hauteur, t0, fin) - Em.hauteur / 2)
+    const IPS = 15, nImg = Math.ceil(Em.anim * IPS)
+    for (let j = 0; j <= nImg; j++) { const fichier = join(st, `effet-${k}-${j}.png`); await png(Em.dessin(j / IPS, y), fichier); plus.push({ a: t0 + j / IPS, b: j < nImg ? t0 + (j + 1) / IPS : fin, fichier }) }
+    for (const x of Em.sons(t0)) sonsListes.push([x.fam, x.t])
   }
   if (P.carteFin) {
     const fichier = join(st, 'carte-fin.png')
