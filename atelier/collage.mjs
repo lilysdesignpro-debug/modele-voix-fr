@@ -812,8 +812,39 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   const vide = join(st, 'collage-vide.png')
   await page.evaluate(() => { document.getElementById('s').innerHTML = '' }); await page.screenshot({ path: vide, omitBackground: true })
   mkdirSync(join(st, 'collage'), { recursive: true })
+  // CONTROLE_VISUEL : ce que chaque texte devient à l'écran, mesuré dans le navigateur
+  const alertes = new Map(), alerte = (cle, msg, t) => { const a = alertes.get(cle); if (a) a.n++; else alertes.set(cle, { msg, t, n: 1 }) }
+  const lum = c => { const v = (c.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(x => +x / 255); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2] }
+  const fondA = t => { const o = spawnSync('ffmpeg', ['-v', 'error', '-ss', t.toFixed(2), '-i', join(st, 'base-av.mp4'), '-frames:v', '1', '-vf', 'scale=72:128', '-f', 'rawvideo', '-pix_fmt', 'gray', '-']); return o.stdout?.length >= 72 * 128 ? o.stdout : null }
+  const mesurer = () => page.evaluate(() => { const out = [], w = document.createTreeWalker(document.getElementById('s'), NodeFilter.SHOW_TEXT); let n
+    while ((n = w.nextNode())) { const txt = n.textContent.trim(); if (!txt) continue; const e = n.parentElement; let o = 1, a = e
+      while (a && a.id !== 's') { o *= +getComputedStyle(a).opacity; a = a.parentElement } if (o < 0.6) continue
+      const r = document.createRange(); r.selectNodeContents(n); const q = r.getBoundingClientRect(); if (q.width < 3 || q.height < 3) continue
+      const cs = getComputedStyle(e), z = parseFloat(cs.fontSize) || +e.getAttribute('font-size') || 0
+      let deco = (parseFloat(cs.webkitTextStrokeWidth) || 0) >= 2.5; a = e; while (!deco && a && a.id !== 's') { if (getComputedStyle(a).filter.includes('drop-shadow') || a.tagName === 'text' || a.closest?.('svg')) deco = true; a = a.parentElement }
+      out.push({ txt, x: q.x, y: q.y, w: q.width, h: q.height, z, c: cs.color, deco }) } return out })
+  const sans2 = w => w.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '')
   for (let f = 0; f < N; f++) {
     const t = f / FPS
+    if (f % Math.round(FPS / 2) === 0 && t > 0.3 && t < TOT - 0.2) { // une image toutes les 0,5 s
+      const boites = []
+      for (const calque of ['derriere', 'devant']) { const html = el.filter(e => e.calque === calque && t >= e.a && t < e.b).map(e => e.dessin(t)).join(''); if (!html) continue
+        await page.evaluate(x => { document.getElementById('s').innerHTML = x }, html); for (const b of await mesurer()) boites.push({ ...b, calque }) }
+      const v = vis(t), fond = boites.some(b => b.z >= 28 && !b.deco) ? fondA(t) : null, ts = t.toFixed(1) + ' s'
+      const vus = new Map()
+      for (const b of boites) {
+        const mot = b.txt.slice(0, 24), aire = b.w * b.h
+        if (v && b.z >= 20) { const ix = Math.max(0, Math.min(b.x + b.w, v[2] - (v[2] - v[0]) * 0.1) - Math.max(b.x, v[0] + (v[2] - v[0]) * 0.1)), iy = Math.max(0, Math.min(b.y + b.h, v[3]) - Math.max(b.y, v[1] + (v[3] - v[1]) * 0.1)), part = ix * iy / aire
+          if (b.calque === 'devant' && part > 0.25) alerte('visage:' + mot, 'texte sur son visage (« ' + mot + ' »)', ts)
+          if (b.calque === 'derriere' && part > 0.6) alerte('cache:' + mot, 'titre caché derrière sa tête (« ' + mot + ' »)', ts) }
+        if (b.z >= 20 && (b.x < 6 || b.x + b.w > 714)) alerte('bord:' + mot, 'texte coupé au bord de l\'image (« ' + mot + ' »)', ts)
+        if (b.z >= 22 && b.y + b.h > 1280 - 170) alerte('legende:' + mot, 'texte dans la zone de la légende Instagram, en bas (« ' + mot + ' »)', ts)
+        if (fond && b.z >= 28 && !b.deco) { let S = 0, k = 0
+          for (let yy = Math.max(0, Math.floor(b.y / 10)); yy < Math.min(128, Math.ceil((b.y + b.h) / 10)); yy++) for (let xx = Math.max(0, Math.floor(b.x / 10)); xx < Math.min(72, Math.ceil((b.x + b.w) / 10)); xx++) { S += fond[yy * 72 + xx]; k++ }
+          if (k && Math.abs(lum(b.c) - S / k / 255) < 0.22) alerte('contraste:' + mot, 'texte peu lisible, de la même clarté que le fond (« ' + mot + ' »)', ts) }
+        for (const w of b.txt.split(/\s+/)) { const c = sans2(w); if (c.length >= 5) { if (vus.has(c) && vus.get(c) !== b) alerte('double:' + c, 'le même mot deux fois à l\'écran (« ' + w + ' »)', ts); vus.set(c, b) } }
+      }
+    }
     for (const calque of ['derriere', 'devant']) {
       const html = el.filter(e => e.calque === calque && t >= e.a && t < e.b).map(e => e.dessin(t)).join('')
       if (!html) { pistes[calque].push(vide); continue }
@@ -913,6 +944,9 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   g += `[0:a]${ev.map((_, k) => `[s${k}]`).join('')}amix=inputs=${ev.length + 1}:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100[ao]`
   writeFileSync(join(dir, 'sons-places.txt'), ev.map(s => `${s.t.toFixed(1).padStart(5)} s  ${s.n}`).join('\n') + '\n')
   lancer('ffmpeg', ['-y', '-v', 'error', ...entrees, '-filter_complex', g, '-map', '[vo]', '-map', '[ao]', '-t', TOT.toFixed(3), '-c:v', 'libx264', '-crf', '19', '-preset', 'fast', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', sortie])
+  const rapport = [...alertes.values()].map(a => '⚠️ CONTRÔLE : ' + a.msg + ' à ' + a.t + (a.n > 1 ? ' (et ' + (a.n - 1) + ' autre' + (a.n > 2 ? 's' : '') + ' fois)' : ''))
+  writeFileSync(join(st, 'controle-visuel.txt'), rapport.join('\n') || 'rien à signaler')
+  if (rapport.length) console.log(rapport.join('\n')); else console.log('Contrôle visuel : rien à signaler (visage, doublons, bords, lisibilité)')
   console.log(`Collage · ${TOT.toFixed(1)} s · hook jusqu'à ${HOOK.toFixed(1)} s · ${ev.length} sons\nVidéo : ${sortie}`)
   verifier(sortie, dir, true)
 }
