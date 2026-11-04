@@ -464,7 +464,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       const sortie = 1 - clamp((t - (HOOK - 0.3)) / 0.3, 0, 1), pD = doux((t - aD) / 0.4), pG = clamp(rebond((t - aG) / 0.3), 0, 1.12), pQ = doux((t - aQ) / 0.45)
       const etoile = (x, y, n) => '<svg style="position:absolute;left:' + x + 'px;top:' + y + 'px;opacity:' + Math.min(1, pG) + '" width="' + n + '" height="' + n + '" viewBox="0 0 24 24"><path d="M12 1.5l3 7.2 7.6.6-5.8 5 1.8 7.4L12 17.8 5.4 21.7l1.8-7.4-5.8-5 7.6-.6z" fill="#fff"/></svg>'
       return '<div style="position:absolute;left:0;right:0;top:' + y0 + 'px;text-align:center;opacity:' + sortie + '">'
-        + (petite ? '<div style="font:' + fA(PS, 44) + ';line-height:54px;color:' + PALETTE.creme + ';opacity:' + pD + ';text-shadow:0 2px 10px rgba(60,20,0,.6)">' + esc(petite) + '</div>' : '')
+        + (petite ? '<div style="font:' + fA(PS, 44) + ';line-height:54px;color:' + PALETTE.creme + ';-webkit-text-stroke:5px ' + PALETTE.brun + ';paint-order:stroke fill;opacity:' + pD + ';text-shadow:0 2px 10px rgba(60,20,0,.6)">' + esc(petite) + '</div>' : '')
         + '<div style="white-space:nowrap;font:' + fA(PT, tG) + ';text-transform:uppercase;letter-spacing:-0.01em;color:' + PALETTE.creme + ';-webkit-text-stroke:9px ' + PALETTE.brun + ';paint-order:stroke fill;transform:scale(' + pG.toFixed(3) + ');text-shadow:0 6px 16px rgba(60,20,0,.4)">' + esc(T.grand) + '</div>'
         + (T.queue ? '<div style="font:' + fA(PS, 58) + ';line-height:70px;color:' + PALETTE.rouille + ';-webkit-text-stroke:6px ' + PALETTE.creme + ';paint-order:stroke fill;opacity:' + pQ + '">' + esc(T.queue) + '</div>' : '')
         + etoile(90, petite ? 30 : -10, 26) + etoile(600, (petite ? 54 : 0) + tG * 0.7, 20) + etoile(120, hBloc - 20, 16) + '</div>'
@@ -474,7 +474,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   if (K.fin?.motCle && THEME === 'automne') {
     const t0 = tf(K.fin.t ?? TOT - 3.5), mot = K.fin.motCle, y = clamp(basVisage(t0, TOT) + 40, 600, 860)
     el.push({ a: t0, b: TOT, calque: 'devant', zone: 'poitrine', dessin: t => { const p = doux((t - t0) / 0.5), r = clamp(rebond((t - t0 - 0.2) / 0.3), 0, 1.1)
-      return '<div style="position:absolute;left:60px;right:104px;top:' + y + 'px;text-align:center;opacity:' + p + '"><div style="font:' + fA(PS, 50) + ';color:' + PALETTE.creme + ';text-shadow:0 2px 10px rgba(60,20,0,.6)">écris-moi</div>'
+      return '<div style="position:absolute;left:60px;right:104px;top:' + y + 'px;text-align:center;opacity:' + p + '"><div style="font:' + fA(PS, 50) + ';color:' + PALETTE.creme + ';-webkit-text-stroke:5px ' + PALETTE.brun + ';paint-order:stroke fill;text-shadow:0 2px 10px rgba(60,20,0,.6)">écris-moi</div>'
         + '<div style="display:inline-block;margin-top:10px;background:' + PALETTE.rouille + ';color:' + PALETTE.creme + ';font:' + fA(PT, Math.round(Math.min(84, 520 / (mot.length * 0.62)))) + ';line-height:1.1;text-transform:uppercase;padding:12px 30px 16px;border-radius:14px;transform:rotate(-2deg) scale(' + r.toFixed(3) + ');box-shadow:0 10px 24px rgba(60,20,0,.35)">' + esc(mot) + '</div></div>' } })
     sons.push({ t: t0 + 0.2, fam: 'pop', vol: 0.08 })
   }
