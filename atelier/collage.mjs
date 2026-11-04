@@ -64,8 +64,10 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   //  « pop »       : couleurs franches, gros mots ronds qui claquent, étoiles, carte inclinée sur fond bleu, arc, noir et blanc ;
   //  « editorial » : magazine, une seule famille serrée en minuscules + un mot en italique, titres rose poudré derrière
   //                  la tête, entrées en flou vers net, étalonnage chaud, presque aucun son.
-  const THEME = ({ pop: 'pop', editorial: 'editorial', doux: 'doux', confidence: 'doux', aurelie: 'aurelie' })[P.style] || 'collage'
+  const THEME = ({ pop: 'pop', editorial: 'editorial', doux: 'doux', confidence: 'doux', aurelie: 'aurelie', typo: 'typo' })[P.style] || 'collage'
   const PALETTE = { pop: { fond: '#7DB3E8', mot: '#6FA3DE', marine: '#2B3F6B', etoile: '#F2C94C', rose: '#F4A6C4' }, editorial: { rose: '#F2B8AE', bordeaux: '#6B1E24', peche: '#F6C7A8', nuit: '#2A0306' } }[THEME] || {}
+  // typo : sa couleur signature + quatre couleurs vives qui tournent d'un mot fort à l'autre (surchargeables)
+  if (THEME === 'typo') Object.assign(PALETTE, { mot: coul.mot || C?.motFort?.couleur || '#F4E04D', jaune: '#F4E04D', lilas: '#C9B8FF', cyan: '#8FE3EA', rose: '#FFB8D6' }, K.couleurs || {})
   if (THEME === 'pop') Object.assign(PALETTE, K.couleurs || {}) // pop : ses couleurs à elle si sa charte le demande
   if (THEME === 'editorial') {
     // les couleurs viennent de la vidéo : la teinte moyenne du décor, déclinée en pâle (titres), soutenu et nuit (fond)
@@ -93,6 +95,16 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     const html = esc(p.txt).replace(/\*([^*]+)\*/g, `<span style="display:inline-block;font:900 54px/1 Gros,serif;letter-spacing:-0.02em;color:${coul.beurre};-webkit-text-stroke:0;transform:rotate(-3deg) translateY(-4px);margin:0 4px">$1</span>`)
     const enBas = basVisage(p.a, p.b) < 870
     return `<div style="position:absolute;left:60px;right:104px;${enBas ? 'bottom:300px' : 'top:180px'};text-align:center;font:500 66px/0.95 Main,cursive;color:#fff;-webkit-text-stroke:1.2px #fff;text-shadow:0 2px 6px rgba(0,0,0,.7),0 0 2px rgba(0,0,0,.6)">${html}</div>`
+  } })
+  }
+  if (THEME === 'typo') {
+  // typo : les sous-titres restent sobres (la phrase entière, en petit gras), c'est le mot fort qui fait le spectacle
+  el.push({ a: 0, b: TOT, calque: 'devant', dessin: t => {
+    if (t < HOOK || el.some(e => e.zone === 'geant' && t >= e.a && t < e.b)) return ''
+    const p = phrases.find(p => t >= p.a && t < p.b); if (!p) return ''
+    const html = esc(p.txt).replace(/\*([^*]+)\*/g, `<span style="color:${PALETTE.mot}">$1</span>`)
+    const enBas = basVisage(p.a, p.b) < 870
+    return `<div style="position:absolute;left:70px;right:110px;${enBas ? 'bottom:300px' : 'top:180px'};text-align:center;text-wrap:balance;font:600 36px/1.2 Poppins,sans-serif;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.6),0 0 2px rgba(0,0,0,.6)">${html}</div>`
   } })
   }
   if (THEME === 'pop') {
@@ -252,10 +264,12 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       ? `<div style="position:absolute;left:0;right:0;top:${y}px;transform:translateY(-50%) scale(${1.04 - 0.04 * doux(p)});opacity:${clamp(p * 1.4, 0, 1)};text-align:center;font:800 ${Math.round(taille * 0.92)}px/0.85 DidotG,sans-serif;letter-spacing:-0.035em;text-transform:lowercase;color:${couleur};text-shadow:0 6px 22px rgba(0,0,0,.25)">${esc(txt)}</div>`
       : THEME === 'doux' // doux : un titre fin qui se resserre lentement en apparaissant
       ? `<div style="position:absolute;left:0;right:0;top:${y}px;transform:translateY(-50%);opacity:${doux(p / 2)};text-align:center;font:600 ${Math.round(taille * 0.9)}px/0.9 Doux,serif;letter-spacing:${(0.12 - 0.12 * doux(p / 3)).toFixed(3)}em;color:${couleur};text-shadow:0 4px 22px rgba(0,0,0,.35)">${esc(txt)}</div>`
+      : THEME === 'typo' // typo : chaque lettre saute à son tour
+      ? `<div style="position:absolute;left:0;right:0;top:${y}px;transform:translateY(-50%);text-align:center;white-space:nowrap;font:900 ${Math.round(Math.min(taille, 590 / (Math.max(1, [...txt].length) * 0.8)))}px/0.9 Rond,sans-serif;letter-spacing:-0.02em;text-transform:uppercase;color:${couleur};text-shadow:0 6px 24px rgba(0,0,0,.25)">${[...txt].map((l, k) => `<span style="display:inline-block;transform:scale(${clamp(rebond(p * 2.2 - k * 0.12), 0, 1.2)})">${l === ' ' ? '&nbsp;' : esc(l)}</span>`).join('')}</div>`
       : THEME === 'pop'
       ? `<div style="position:absolute;left:0;right:0;top:${y}px;transform:translateY(-50%) scale(${1.18 - 0.18 * rebond(p / 0.6)});opacity:${p > 0 ? 1 : 0};text-align:center;font:900 ${taille}px/0.9 Rond,sans-serif;letter-spacing:-0.03em;text-transform:lowercase;color:${couleur};text-shadow:0 6px 24px rgba(0,0,0,.2)">${esc(txt)}</div>`
       : `<div style="position:absolute;left:0;right:0;top:${y}px;transform:translateY(-50%) scale(${0.82 + 0.18 * rebond(p)});opacity:${p > 0 ? 1 : 0};text-align:center;font:900 ${taille}px/0.9 Gros,serif;letter-spacing:-0.03em;color:${couleur};text-shadow:0 4px 18px rgba(0,0,0,.2)">${esc(txt)}</div>`
-    const couleurGrand = T.couleur || ({ pop: '#fff', doux: '#fff', editorial: THEME === 'editorial' ? PALETTE.sous((aG + fin) / 2, yG - tG * 0.45, yG + tG * 0.45) : '' })[THEME] || coul.beurre
+    const couleurGrand = T.couleur || ({ typo: PALETTE.jaune, pop: '#fff', doux: '#fff', editorial: THEME === 'editorial' ? PALETTE.sous((aG + fin) / 2, yG - tG * 0.45, yG + tG * 0.45) : '' })[THEME] || coul.beurre
     const couleurDessus = T.couleurDessus || ({ pop: PALETTE.mot })[THEME] || '#fff'
     el.push({ a: 0, b: fin, calque: 'derriere', dessin: t => {
       const sortie = 1 - clamp((t - (fin - 0.2)) / 0.2, 0, 1)
@@ -270,7 +284,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     if (touche(x, y)) x = 60
     if (touche(x, y)) { x = 60; y = clamp(basVisage(0, fin) + 30, 560, 900) }
     el.push({ a: 0, b: fin, calque: 'devant', dessin: t => { const pQ = doux((t - aQ) / 0.25), sortie = 1 - clamp((t - (fin - 0.2)) / 0.2, 0, 1)
-      const police = ({ pop: `font:700 52px/1 Fred,sans-serif;color:#fff;-webkit-text-stroke:5px ${PALETTE.marine};paint-order:stroke fill;transform:rotate(-4deg) scale(${0.7 + 0.3 * rebond(pQ)})`, editorial: `font:italic 400 56px/1 Didot,serif;color:#fff;filter:blur(${(1 - pQ) * 6}px)`, doux: `font:italic 500 58px/1 DouxI,serif;color:#fff` })[THEME] || `font:500 76px/0.95 Main,cursive;color:#fff;-webkit-text-stroke:1.2px #fff;transform:rotate(-4deg) translateX(${(1 - pQ) * 20}px)`
+      const police = ({ typo: `font:400 62px/1 Script,cursive;color:${PALETTE.mot};-webkit-text-stroke:5px #fff;paint-order:stroke fill;transform:rotate(-4deg) scale(${0.8 + 0.2 * rebond(pQ)})`, pop: `font:700 52px/1 Fred,sans-serif;color:#fff;-webkit-text-stroke:5px ${PALETTE.marine};paint-order:stroke fill;transform:rotate(-4deg) scale(${0.7 + 0.3 * rebond(pQ)})`, editorial: `font:italic 400 56px/1 Didot,serif;color:#fff;filter:blur(${(1 - pQ) * 6}px)`, doux: `font:italic 500 58px/1 DouxI,serif;color:#fff` })[THEME] || `font:500 76px/0.95 Main,cursive;color:#fff;-webkit-text-stroke:1.2px #fff;transform:rotate(-4deg) translateX(${(1 - pQ) * 20}px)`
       return `<div style="position:absolute;left:${x}px;top:${y}px;${police};width:${larg}px;opacity:${pQ * sortie};text-shadow:0 2px 8px rgba(0,0,0,.45)">${esc(T.queue)}</div>` } })
   }
 
@@ -319,7 +333,8 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   }
 
   // 3. Les mots forts en géant, derrière sa tête (un toutes les 4 s au plus, jamais pendant le hook ni un médaillon)
-  let dernierG = -9, ARC = null
+  let dernierG = -9, ARC = null; const TYPO = [] // typo : l'ordre des mots forts, pour faire tourner les animations
+  const tient = (txt, voulu, largeurLettre, max = 590) => Math.round(Math.min(voulu, max / (Math.max(1, [...txt].length) * largeurLettre))) // taille qui tient sur UNE ligne
   for (const [ip, p] of phrases.entries()) {
     if (THEME === 'doux') break // doux : pas de mots géants, l'italique des sous-titres suffit
     const forts = mots.filter(m => m.ip === ip && m.fort); if (!forts.length) continue
@@ -378,7 +393,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     else if (el.some(e => e.zone === 'poitrine' && e.a < fin && e.b > t0)) continue
     else if (K.fin?.motCle && fin > tf(K.fin.t ?? TOT - 3.5)) continue // la barre de commentaire de la fin prend la poitrine // la poitrine est déjà prise par une étiquette
     else { calque = 'devant'; taille = Math.min(taille, 150); yG = clamp(basVisage(t0, fin) + taille * 0.55 + 40, 520, 870 - taille * 0.5) } // pas de place au-dessus : sur la poitrine
-    dernierG = t0
+    dernierG = t0; if (THEME === 'typo') TYPO.push(t0)
     el.push({ a: avant[0]?.t ?? t0, b: fin, calque, zone: calque === 'devant' ? 'geant' : null, dessin: t => {
       const sortie = 1 - clamp((t - (fin - 0.2)) / 0.2, 0, 1), pG = rebond((t - t0) / 0.25)
       const petit = avant.filter(m => t >= m.t).map(m => esc(m.w)).join(' ')
@@ -404,6 +419,31 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
           ${t >= t0 ? `<div style="position:absolute;left:0;right:0;top:${yG}px;transform:translateY(-50%) scale(${0.85 + 0.15 * p});text-align:center;font:400 ${Math.round(taille * 1.05)}px/0.9 Anton,sans-serif;letter-spacing:-0.01em;text-shadow:0 6px 24px rgba(0,0,0,.25)">${corps}</div>` : ''}
         </div>`
       }
+      if (THEME === 'typo') {
+        const k = TYPO.indexOf(t0) % 5, coulT = [PALETTE.jaune, PALETTE.lilas, PALETTE.mot, PALETTE.cyan, PALETTE.rose][k], dt = t - t0
+        const haut = petit ? `<div style="position:absolute;left:0;right:0;top:${yG - taille * 0.55 - 40}px;text-align:center;font:600 30px/1 Poppins,sans-serif;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.5)">${petit}</div>` : ''
+        if (t < t0) return `<div style="position:absolute;inset:0;opacity:${sortie}">${haut}</div>`
+        const lettres = [...mot.toUpperCase()]
+        const corps = [
+          // 0. tapé au clavier, avec son curseur
+          () => { const n = clamp(Math.floor(dt * 14) + 1, 0, mot.length), cur = n < mot.length || Math.floor(t * 2.5) % 2 ? `<span style="color:#fff">|</span>` : ''
+            return `<div style="position:absolute;left:0;right:0;top:${yG}px;transform:translateY(-50%);text-align:center;white-space:nowrap;font:700 ${tient(mot + '|', taille * 0.8, 0.58)}px/1 Mono,monospace;letter-spacing:-0.04em;color:${coulT};text-shadow:0 4px 18px rgba(0,0,0,.3)">${esc(mot.slice(0, n))}${cur}</div>` },
+          // 1. les lettres sautent une à une
+          () => `<div style="position:absolute;left:0;right:0;top:${yG}px;transform:translateY(-50%);text-align:center;white-space:nowrap;font:900 ${tient(mot, taille, 0.84)}px/0.9 Rond,sans-serif;letter-spacing:0.02em;color:${coulT};-webkit-text-stroke:4px #fff;paint-order:stroke fill;text-shadow:0 6px 22px rgba(0,0,0,.25)">${lettres.map((l, j) => `<span style="display:inline-block;transform:translateY(${(1 - clamp(rebond((dt - j * 0.06) / 0.22), 0, 1.2)) * 60}px) scale(${clamp(rebond((dt - j * 0.06) / 0.22), 0, 1.2)})">${l === ' ' ? '&nbsp;' : esc(l)}</span>`).join('')}</div>`,
+          // 2. néon qui s'allume (deux petits clignements)
+          () => { const on = dt < 0.08 || (dt > 0.16 && dt < 0.22) || dt > 0.3 ? 1 : 0.25
+            return `<div style="position:absolute;left:0;right:0;top:${yG}px;transform:translateY(-50%);text-align:center;white-space:nowrap;font:700 ${tient(mot, taille, 0.6)}px/0.95 Fred,sans-serif;letter-spacing:0.01em;color:#fff;-webkit-text-stroke:3px ${coulT};paint-order:stroke fill;opacity:${on};text-shadow:0 0 4px rgba(0,0,0,.55),0 0 14px ${coulT},0 0 34px ${coulT},0 3px 10px rgba(0,0,0,.45)">${esc(mot.toLowerCase())}</div>` },
+          // 3. en arc de cercle, qui se déroule
+          () => { const R = 420, w = Math.min(640, mot.length * taille * 0.55), q = doux(dt / 0.45)
+            return `<svg style="position:absolute;left:0;top:${yG - taille * 0.9}px;overflow:visible" width="720" height="${taille * 2}" viewBox="0 0 720 ${taille * 2}"><defs><path id="arc${k}" d="M ${360 - w / 2} ${taille * 1.2} Q 360 ${taille * 1.2 - w * 0.32} ${360 + w / 2} ${taille * 1.2}"/></defs><text font-family="Fred" font-weight="700" font-size="${tient(mot, taille * 0.85, 0.66, Math.min(640, mot.length * taille * 0.55))}" fill="${coulT}" stroke="#fff" stroke-width="6" paint-order="stroke" text-anchor="middle" letter-spacing="2"><textPath href="#arc${k}" startOffset="50%">${esc(mot.toLowerCase().slice(0, Math.max(1, Math.round(mot.length * q))))}</textPath></text></svg>` },
+          // 4. le duo de polices : un petit mot manuscrit qui chevauche un grand mot serré
+          () => { const q = rebond(dt / 0.3), grand = mot, fin = avant.length ? avant.at(-1).w.replace(/[,.;:!?]+$/, '') : '' // le petit mot dit juste avant, en manuscrite
+            return `<div style="position:absolute;left:0;right:0;top:${yG}px;transform:translateY(-50%) scale(${0.8 + 0.2 * clamp(q, 0, 1.15)});text-align:center">
+              ${fin ? `<div style="font:400 ${Math.round(taille * 0.5)}px/1 Script,cursive;color:#fff;margin-bottom:-${Math.round(taille * 0.18)}px;position:relative;z-index:1;text-shadow:0 2px 10px rgba(0,0,0,.4)">${esc(fin)}</div>` : ''}
+              <div style="white-space:nowrap;font:400 ${tient(grand, taille * 1.1, 0.5)}px/0.9 Anton,sans-serif;text-transform:uppercase;letter-spacing:0.01em;color:${coulT};text-shadow:0 6px 24px rgba(0,0,0,.3)">${esc(grand)}</div></div>` },
+        ][k]()
+        return `<div style="position:absolute;inset:0;opacity:${sortie}">${k === 4 ? '' : haut}${corps}</div>` // le duo porte déjà le petit mot d'avant
+      }
       if (THEME === 'pop') {
         // ça claque : ×1,18 → 1 en un éclair, blanc, deux étoiles jaunes
         const p = rebond((t - t0) / 0.14)
@@ -417,7 +457,8 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
         ${t >= t0 ? `<div style="position:absolute;left:0;right:0;top:${yG}px;transform:translateY(-50%) scale(${0.75 + 0.25 * pG});text-align:center;font:900 ${taille}px/0.9 Gros,serif;letter-spacing:-0.03em;color:${coul.beurre};text-shadow:0 4px 18px rgba(0,0,0,.18)">${esc(mot)}</div>` : ''}
       </div>`
     } })
-    sons.push(THEME === 'editorial' ? { t: t0, fam: 'whoosh', vol: 0.06 } : { t: t0, fam: 'pop', vol: 0.12 })
+    if (THEME === 'typo') { const k = (TYPO.length - 1) % 5; sons.push(k === 0 ? { t: t0, fam: 'clavier', vol: 0.09, duree: mot.length / 14 + 0.1 } : k === 2 ? { t: t0, fam: 'magie', vol: 0.08 } : { t: t0, fam: k === 3 ? 'whoosh' : 'pop', vol: 0.1 }) }
+    else sons.push(THEME === 'editorial' ? { t: t0, fam: 'whoosh', vol: 0.06 } : { t: t0, fam: 'pop', vol: 0.12 })
   }
 
   // 7. L'intermède (`collage.medaillon`), un par style. La vidéo réduite se fait au rendu ; ici, le cadre et les mots.
@@ -426,7 +467,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   //    éditorial : la vidéo rétrécit en carte sur fond bordeaux nuit, la phrase en chapeau.
   const CARTE = { pop: { l: 432, h: 768, cy: 560, rot: -3 } }[THEME]
   for (const [a, b] of MED) {
-    if (THEME === 'doux') continue // doux : pas d'intermède
+    if (THEME === 'doux' || THEME === 'typo') continue // doux et typo : pas d'intermède
     if (THEME === 'editorial') {
       // la « page de titre » (choix d'Aurélie, B) : un aplat couleur décor couvre l'écran, sa voix continue, et ses mots
       // se TAPENT comme au clavier, avec le bruit des touches. La 1re phrase en gros titre, la suite en texte, puis sa signature.
@@ -478,6 +519,10 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   if (K.fin?.motCle && THEME !== 'collage' && THEME !== 'doux') {
     const t0 = tf(K.fin.t ?? TOT - 3.5), mot = K.fin.motCle, y = clamp(basVisage(t0, TOT) + 30, 560, 760)
     el.push({ a: t0, b: TOT, calque: 'devant', zone: 'poitrine', dessin: t => {
+      if (THEME === 'typo') { const n = clamp(Math.floor((t - t0 - 0.35) * 10) + 1, 0, mot.length)
+        return `<div style="position:absolute;left:60px;right:104px;top:${y}px;text-align:center">
+          <div style="font:600 32px/1 Poppins,sans-serif;color:#fff;opacity:${clamp((t - t0) / 0.2, 0, 1)};text-shadow:0 2px 8px rgba(0,0,0,.5)">écris-moi</div>
+          <div style="white-space:nowrap;font:700 ${Math.round(Math.min(100, 540 / ((mot.length + 1) * 0.58)))}px/1.05 Mono,monospace;letter-spacing:-0.04em;color:${PALETTE.mot};-webkit-text-stroke:4px #fff;paint-order:stroke fill">${esc(mot.slice(0, n))}<span style="color:#fff;-webkit-text-stroke:0">${n < mot.length || Math.floor(t * 2.5) % 2 ? '|' : ''}</span></div></div>` }
       if (THEME === 'pop') { const p = rebond((t - t0 - 0.3) / 0.25), souffle = 1 + 0.03 * Math.sin((t - t0) * 5.2)
         return `<div style="position:absolute;left:60px;right:104px;top:${y}px;text-align:center">
           <div style="font:700 40px/1 Fred,sans-serif;color:#F4F1A6;-webkit-text-stroke:5px #2B2B10;paint-order:stroke fill;opacity:${clamp((t - t0) / 0.15, 0, 1)}">commente</div>
@@ -487,7 +532,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
         <div style="font:500 18px/1 Poppins,sans-serif;letter-spacing:0.34em;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.4)">COMMENTE</div>
         <div style="font:italic 400 110px/1.05 Didot,serif;color:${PALETTE.rose};text-shadow:0 8px 24px rgba(0,0,0,.35)">« ${esc(mot)} »</div></div>`
     } })
-    sons.push({ t: t0 + 0.3, fam: THEME === 'pop' ? 'pop' : 'cloche', vol: THEME === 'pop' ? 0.12 : 0.06 })
+    sons.push(THEME === 'typo' ? { t: t0 + 0.35, fam: 'clavier', vol: 0.09, duree: mot.length / 10 + 0.1 } : { t: t0 + 0.3, fam: THEME === 'pop' ? 'pop' : 'cloche', vol: THEME === 'pop' ? 0.12 : 0.06 })
   }
   if (K.fin?.motCle && THEME === 'collage') {
     const t0 = tf(K.fin.t ?? TOT - 3.5), mot = K.fin.motCle, tT = t0 + 0.5
@@ -575,7 +620,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   }
 
   // ── Le médaillon : sa vidéo recadrée sur le visage, dans un cercle, sur le papier ──
-  const meds = (THEME === 'editorial' || THEME === 'doux' ? [] : MED).map(([a, b], k) => {
+  const meds = (THEME === 'editorial' || THEME === 'doux' || THEME === 'typo' ? [] : MED).map(([a, b], k) => {
     if (CARTE) { // pop / éditorial : toute l'image réduite en carte (inclinée en pop), sur son fond
       const f = join(st, `collage-medaillon-${k}.mp4`), rot = (CARTE.rot * Math.PI / 180).toFixed(4)
       lancer('ffmpeg', ['-y', '-v', 'error', '-ss', a.toFixed(3), '-t', (b - a).toFixed(3), '-i', base, '-loop', '1', '-i', fondInter, '-loop', '1', '-i', coins,
