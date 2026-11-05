@@ -114,5 +114,19 @@ export function effet(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) {
         return h + '</div>' },
       sons: t0 => [{ t: t0, fam: 'pop', vol: 0.07 }, ...(E.etiquettes ? [{ t: t0 + 0.9, fam: 'clic', vol: 0.06 }] : [])] }
   }
+  if (E.type === 'telephone') {
+    const src = image(chemin(E.image)); if (!src) return null
+    const W = Math.round(E.largeur || 250), H = Math.round(W * 2.08), R = E.ratio || 3, cote = E.cote === 'gauche' ? 'gauche' : 'droite', duree = E.duree ?? 4
+    return { hauteur: H, anim: duree, duree, place: cote,
+      dessin: (dt, y) => { const p = clamp(rebond(dt / 0.45), 0, 1.06), sortie = 1 - clamp((dt - (duree - 0.3)) / 0.3, 0, 1)
+        const defile = clamp((dt - 0.6) / Math.max(0.5, duree - 1.1), 0, 1), haut = (W - 20) * R - (H - 24), dy = -haut * (defile < 0.5 ? 2 * defile * defile : 1 - Math.pow(-2 * defile + 2, 2) / 2)
+        const x = cote === 'droite' ? 720 - W - 26 : 26, rot = cote === 'droite' ? 5 : -5
+        return '<div style="position:absolute;left:' + x + 'px;top:' + y + 'px;width:' + W + 'px;height:' + H + 'px;opacity:' + sortie.toFixed(2) + ';transform:translateY(' + ((1 - Math.min(1, p)) * 160).toFixed(1) + 'px) rotate(' + rot + 'deg) scale(' + (0.9 + 0.1 * Math.min(1, p)).toFixed(3) + ')">'
+          + '<div style="position:absolute;inset:0;border-radius:40px;background:#111;box-shadow:0 24px 50px rgba(0,0,0,.45),inset 0 0 0 2px #3a3a3a"></div>'
+          + '<div style="position:absolute;left:10px;top:12px;right:10px;bottom:12px;border-radius:31px;overflow:hidden;background:#fff"><div style="position:absolute;left:0;top:' + dy.toFixed(1) + 'px;width:100%;height:' + Math.round((W - 20) * R) + 'px;background:url(' + src + ') top center/100% auto no-repeat"></div></div>'
+          + '<div style="position:absolute;left:50%;top:20px;width:70px;height:20px;margin-left:-35px;border-radius:12px;background:#111"></div>'
+          + '<div style="position:absolute;right:-4px;top:110px;width:4px;height:56px;border-radius:2px;background:#2a2a2a"></div></div>' },
+      sons: t0 => [{ t: t0, fam: 'whoosh', vol: 0.07 }] }
+  }
   return null
 }

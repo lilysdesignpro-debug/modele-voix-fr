@@ -1,11 +1,11 @@
 {
- "version": "202611051234",
+ "version": "202611051300",
  "modeEmploi": 2,
  "fichiers": {
   "assembler.mjs": "d6e4e2627383400a9f0f3a06bc069cb70e4c9632467e0cc3a45549adce79a44a",
   "chartes/modele.json": "9c4118330751cc2b5b391ceaa8a1fa3db887e5ffa67fb0bb457d3629b5d352ce",
   "coach.mjs": "d3984710c67707a9ad40141bfd6d18d4c0286c0e02ae1e77199287cd2f0d1ced",
-  "collage.mjs": "6332ee7be94b995df66cb7294c65c64047102bc9dfb4be97babdc9c1f7a5caa7",
+  "collage.mjs": "ecb37f6aa43d26873450c83d96d838dfba52f136fcab368ac14ae0611e57345d",
   "declinaisons.mjs": "717f82305a09a2873941ce6f3b7ceebd92d1012d33bffe3d70206aaa6b1ecd84",
   "decor.mjs": "37c36fd797af9e0cd3cf3d952c1d3d1a30a69c9c4c0378d55c17e89bb8480fc5",
   "defi.mjs": "a995dc8ccdd539163b4e60dcee2a0d2019184b2520c7bbc703e3ebc2e14fb961",
@@ -16,7 +16,7 @@
   "detourage/vision_bundle.mjs": "e77f281f9619150d937023c355bae170e9120e3b9e43f1e23a2a7bee07197669",
   "detourage/wasm/vision_wasm_internal.js": "9440cf0cc0cea21800e31581ec32aeedcc5fbf9df4509796bbc7d3f99e52ab9c",
   "detourage/wasm/vision_wasm_internal.wasm": "f82a8e6c05e08a44cc9f9e7ec5f845935bcbb1b1500ebe8c2f4812fb4e2917dc",
-  "effets.mjs": "2a0e8a43b05d2988a57f733254aae8598001b3b3bb8abc4e43c6cbe6073ad3cf",
+  "effets.mjs": "6eba08a29512cc02c71424234412f8743ac8d749c8547f3f3c79766e0f77cc0b",
   "habillages.mjs": "f360dccfa16fc036536a677a55db48dc1c852c2e5b7884fb61f22edba92b0734",
   "listes.mjs": "c656d6f9755e32f16f5452e0b7c17cfe0612eb3fb0c4c12efe222fd3676e216e",
   "marges.mjs": "6672934028c7a36689779fb1ebd58dd127e5265b2b7500ed09c3ca22389e77b6",

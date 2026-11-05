@@ -862,14 +862,17 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
 
   // 7 ter. Les effets ponctuels (effets.mjs) : la phrase-choc et les commentaires vont au-dessus de sa tête, la
   //         capture et l'avant/après sous son visage ; jamais sur son visage.
-  for (const E of K.effets || []) {
+  for (let E of K.effets || []) {
+    if (E.type === 'telephone') { const vs = visages(tf(E.t), tf(E.t) + (E.duree || 4)), g = vs.length ? Math.min(...vs.map(v => v[0])) : 230, d = vs.length ? 720 - Math.max(...vs.map(v => v[2])) : 230 // placeTel : du côté libre
+      const cote = E.cote || (g > d ? 'gauche' : 'droite'), libre = cote === 'gauche' ? g : d; E = { ...E, cote, largeur: E.largeur || Math.max(170, Math.min(250, libre - 30)) } }
     const decor = E.type === 'duo' && (!E.couleur || E.couleur === 'auto') ? couleurDecor(spawnSync('ffmpeg', ['-v', 'error', '-ss', tf(E.t).toFixed(2), '-i', join(st, 'base-av.mp4'), '-frames:v', '1', '-vf', 'scale=36:64', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-']).stdout, vis(tf(E.t))) : null
     if (decor) console.log('Couleur du décor pour « ' + E.grand + ' » : ' + decor)
     const Em = effet(E, { clamp, doux, rebond, esc, dossier: dir, couleurs: { marqueur: E.couleur || '#FFE14D', contour: '#2b2416', feutre: coul.mot || C?.motFort?.couleur || '#E8613C', decor } })
     if (!Em) continue
     const t0 = tf(E.t), b = Math.min(TOT - 0.1, t0 + Em.duree), haut = E.type === 'choc' || E.type === 'commentaires'
     const yHaut = hautTete(t0, b) - Em.hauteur - 24, y = haut && yHaut >= 110 ? yHaut : clamp(basVisage(t0, b) + 50, 430, 1280 - 290 - Em.hauteur)
-    el.push({ a: t0, b, calque: 'devant', zone: 'geant', dessin: t => '<div style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)).toFixed(2) + '">' + Em.dessin(t - t0, Math.round(y)) + '</div>' })
+    const yP = Em.place ? clamp(hautTete(t0, b) + 40, 200, 1280 - 300 - Em.hauteur) : null
+    el.push({ a: t0, b, calque: 'devant', zone: 'geant', dessin: t => '<div style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)).toFixed(2) + '">' + Em.dessin(t - t0, Math.round(yP ?? y)) + '</div>' })
     sons.push(...Em.sons(t0))
   }
 
@@ -928,7 +931,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     for (const I of segs) {
       const cases = grille(Math.min(4, I.srcs.length))
       pre.push({ a: I.a, b: I.b, calque: 'derriere', dessin: t => { const q = doux((t - I.a) / 0.12)
-        return cases.map(([x, y, w, h], k) => '<div style="position:absolute;left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;overflow:hidden;opacity:' + q.toFixed(2) + ';box-shadow:inset 0 0 0 2px #fff">' + flou(I.srcs[k]) + '<div style="position:absolute;inset:0;background:url(' + I.srcs[k] + ') center/' + (cases.length === 1 ? 'contain' : 'cover') + ' no-repeat"></div></div>').join('') } })
+        return cases.map(([x, y, w, h], k) => '<div style="position:absolute;left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;overflow:hidden;opacity:' + q.toFixed(2) + ';box-shadow:inset 0 0 0 2px #fff">' + flou(I.srcs[k]) + '<div style="position:absolute;inset:0;background:url(' + I.srcs[k] + ') center/' + (cases.length === 1 ? 'contain' : 'cover') + ' no-repeat;transform:translateY(' + ((1 - q) * 24).toFixed(1) + 'px) scale(' + (1.02 + 0.06 * clamp((t - I.a) / Math.max(1, I.b - I.a), 0, 1)).toFixed(4) + ')"></div></div>').join('') } })
       if ((I.etiquettes || []).length) el.push({ a: I.a, b: I.b, calque: 'devant', dessin: t => { const q = clamp(rebond((t - I.a - 0.15) / 0.3), 0, 1.08)
         return cases.map(([x, y, w], k) => I.etiquettes[k] ? '<div style="position:absolute;left:' + (x + 18) + 'px;top:' + (y + (y ? 18 : 110)) + 'px;max-width:' + (w - 36) + 'px;padding:9px 16px;border-radius:12px;background:#fff;color:#151515;font:700 26px/1.15 Poppins,sans-serif;box-shadow:0 6px 16px rgba(0,0,0,.3);transform:scale(' + q.toFixed(3) + ');transform-origin:left top">' + esc(I.etiquettes[k]) + '</div>' : '').join('') } })
       sons.push({ t: I.a, fam: 'clic', vol: 0.06 })
