@@ -890,5 +890,6 @@ function verifier(video, dir, raccourci = false) {
 const [cmd, ...args] = process.argv.slice(2)
 if (cmd === 'lire') lire(...args)
 else if (cmd === 'monter') await monter(args[0])
+else if (cmd === 'apercu') { process.env.APERCU = '1'; await monter(args[0]) }
 else if (cmd === 'verifier') verifier(args[0], dirname(args[0]))
 else console.log('Usage :\n  node contenu/montage/montage.mjs lire <video> <charte> [nom]\n  node contenu/montage/montage.mjs monter <nom>')

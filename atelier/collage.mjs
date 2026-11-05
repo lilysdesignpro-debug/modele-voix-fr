@@ -1024,6 +1024,37 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       const cs = getComputedStyle(e), z = parseFloat(cs.fontSize) || +e.getAttribute('font-size') || 0
       let deco = (parseFloat(cs.webkitTextStrokeWidth) || 0) >= 2.5; a = e; while (!deco && a && a.id !== 's') { if (getComputedStyle(a).filter.includes('drop-shadow') || a.tagName === 'text' || a.closest?.('svg')) deco = true; a = a.parentElement }
       out.push({ txt, x: q.x, y: q.y, w: q.width, h: q.height, z, c: cs.color, deco }) } return out })
+  if (process.env.APERCU) { // ── LA PLANCHE AVANT FABRICATION ──
+    const debuts = el.filter(e => e.calque === 'devant' && e.b - e.a < 8 && e.a > HOOK + 0.3).map(e => Math.min(e.b - 0.1, e.a + Math.min(0.9, (e.b - e.a) / 2))).sort((x, y) => x - y)
+    let instants = [Math.min(HOOK - 0.1, Math.max(0.6, HOOK * 0.7))]
+    for (const t of debuts) if (t < TOT - 0.3 && instants.every(u => Math.abs(u - t) > 1.8)) instants.push(t)
+    for (let k = 1; instants.length < 8 && k < 40; k++) { const t = TOT * k / 40; if (instants.every(u => Math.abs(u - t) > 1.8)) instants.push(t) }
+    instants = instants.sort((x, y) => x - y); while (instants.length > 8) { let mi = 1, md = 1e9; for (let i = 1; i < instants.length; i++) { const d = instants[i] - instants[i - 1]; if (d < md) { md = d; mi = i } } instants.splice(mi, 1) }
+    const ap = join(st, 'apercu'); rmSync(ap, { recursive: true, force: true }); mkdirSync(ap, { recursive: true })
+    const images = []
+    for (const [k, t] of instants.entries()) {
+      const html = c => el.filter(e => e.calque === c && t >= e.a && t < e.b).map(e => e.dessin(t)).join('')
+      const fD = join(ap, 'd' + k + '.png'), fV = join(ap, 'v' + k + '.png'), fI = join(ap, 'i' + k + '.png'), fM = join(ap, 'm' + k), sortieK = join(ap, 'a' + k + '.jpg')
+      await page.evaluate(x => { document.getElementById('s').innerHTML = x }, html('derriere')); await page.screenshot({ path: fD, omitBackground: true })
+      await page.evaluate(x => { document.getElementById('s').innerHTML = x }, html('devant')); await ranger(); await page.screenshot({ path: fV, omitBackground: true })
+      lancer('ffmpeg', ['-y', '-v', 'error', '-ss', t.toFixed(3), '-i', join(st, 'base-av.mp4'), '-frames:v', '1', fI])
+      const avecDerriere = html('derriere').length > 0
+      if (avecDerriere) spawnSync('node', [join(ICI, 'detourage', 'detourer.mjs'), join(st, 'base-av.mp4'), t.toFixed(3), (t + 0.04).toFixed(3), fM], { stdio: 'ignore' })
+      const masque = join(fM, 'masque-0001.png'), detour = avecDerriere && existsSync(masque)
+      const g = !avecDerriere ? '[0][2]overlay=0:0[o]'
+        : !detour ? '[0][1]overlay=0:0[x];[x][2]overlay=0:0[o]'
+        : FV ? '[3]format=gray,scale=720:1280,split=2[m][m2];[m2]' + Array(11).fill('dilation').join(',') + '[md];color=c=white:s=720x1280,format=rgba[w];[w][md]alphamerge,scale=' + wFV + ':' + hFV + '[ct];[0]format=rgba[b];[b][m]alphamerge,scale=' + wFV + ':' + hFV + '[p];[0][1]overlay=0:0[x];[x][ct]overlay=' + xFV + ':' + yFV + ':shortest=1[x2];[x2][p]overlay=' + xFV + ':' + yFV + '[x3];[x3][2]overlay=0:0[o]'
+        : '[3]format=gray,scale=720:1280[m];[0]format=rgba[b];[b][m]alphamerge[p];[0][1]overlay=0:0[x];[x][p]overlay=0:0[x2];[x2][2]overlay=0:0[o]'
+      lancer('ffmpeg', ['-y', '-v', 'error', '-i', fI, '-i', fD, '-i', fV, ...(detour ? ['-i', masque] : []), '-filter_complex', g, '-map', '[o]', '-frames:v', '1', '-q:v', '3', sortieK])
+      if (existsSync(sortieK)) images.push(sortieK)
+    }
+    await nav.close()
+    const { zones: zonesP, dessinZones: dz } = await import('./marges.mjs')
+    const planche = join(dir, nom + '-apercu.jpg')
+    lancer('ffmpeg', ['-y', '-v', 'error', ...images.flatMap(f => ['-i', f]), '-filter_complex', images.map((_, k) => '[' + k + ']scale=720:1280,' + dz(zonesP(P.plateforme)) + ',scale=270:480[t' + k + ']').join(';') + ';' + images.map((_, k) => '[t' + k + ']').join('') + 'xstack=inputs=' + images.length + ':layout=' + images.map((_, k) => (k % 4) * 270 + '_' + Math.floor(k / 4) * 480).join('|') + ':fill=white[o]', '-map', '[o]', '-frames:v', '1', '-q:v', '3', planche])
+    console.log('Planche avant fabrication : ' + planche + '\nInstants (dans l\'ordre, de gauche à droite puis en dessous) : ' + instants.map(t => t.toFixed(1) + ' s').join(', ') + '\nRien n\'est encore fabriqué : montre-la-lui, corrige, puis « node montage.mjs monter ' + nom + ' ».')
+    return
+  }
   const sans2 = w => w.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '')
   for (let f = 0; f < N; f++) {
     const t = f / FPS
