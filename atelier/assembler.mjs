@@ -20,10 +20,19 @@ const sonde = f => {
 const infos = videos.map(sonde)
 const horizontales = infos.map((x, k) => x.l > x.h ? k + 1 : 0).filter(Boolean)
 
+// la lumière et la couleur de chaque morceau, pour les égaliser (egaliser) : on vise la moyenne des morceaux
+const stats = videos.map(v => { const o = spawnSync('ffmpeg', ['-v', 'error', '-i', v, '-vf', 'fps=1,scale=64:-2,signalstats,metadata=print:file=-', '-f', 'null', '-'], { encoding: 'utf8' }).stdout || ''
+  const moy = k => { const l = [...o.matchAll(new RegExp('lavfi.signalstats.' + k + '=([\\d.]+)', 'g'))].map(x => +x[1]); return l.length ? l.reduce((s, x) => s + x, 0) / l.length : null }
+  return { y: moy('YAVG'), u: moy('UAVG'), v: moy('VAVG') } })
+const med = k => { const l = stats.map(s => s[k]).filter(x => x != null).sort((x, y) => x - y); return l.length ? l[l.length >> 1] : null }
+const cible = { y: med('y'), u: med('u'), v: med('v') }
+const egaliser = k => { const s = stats[k]; if (videos.length < 2 || !s || s.y == null || cible.y == null) return ''
+  const by = Math.max(-0.12, Math.min(0.12, (cible.y - s.y) / 255)), du = Math.round(Math.max(-8, Math.min(8, cible.u - s.u))), dv = Math.round(Math.max(-8, Math.min(8, cible.v - s.v)))
+  return `,eq=brightness=${by.toFixed(3)},lutyuv=u=val${du >= 0 ? '+' : ''}${du}:v=val${dv >= 0 ? '+' : ''}${dv}` }
 // chaque morceau : recadré en vertical (sans bandes noires), 30 i/s, son stéréo 48 kHz au même volume
 let f = '', debut = 0; const plans = []
 infos.forEach((x, k) => {
-  f += `[${k}:v]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,setsar=1,fps=30,format=yuv420p[v${k}];`
+  f += `[${k}:v]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,setsar=1,fps=30,format=yuv420p${egaliser(k)}[v${k}];`
   f += x.son ? `[${k}:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000[a${k}];`
     : `anullsrc=r=48000:cl=stereo,atrim=0:${x.duree.toFixed(3)}[a${k}];`
   plans.push({ video: videos[k], debut: +debut.toFixed(3), duree: +x.duree.toFixed(3) }); debut += x.duree

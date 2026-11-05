@@ -142,7 +142,9 @@ async function monter(nom) {
   const dir = join(PROJETS, nom)
   const P = JSON.parse(readFileSync(join(dir, 'projet.json'), 'utf8'))
   const C = JSON.parse(readFileSync(join(ICI, 'chartes', P.charte + '.json'), 'utf8'))
-  const source = join(dir, 'source.mp4'), D = duree(source)
+  let source = join(dir, 'source.mp4')
+  if (P.stabiliser) { const stab = join(dir, 'source-stable.mp4'), trf = join(dir, 'stab.trf').replace(/\\/g, '/').replace(':', '\\:'); if (!existsSync(stab)) { console.log('Stabilisation de la vidéo…'); lancer('ffmpeg', ['-y', '-v', 'error', '-i', source, '-vf', "vidstabdetect=shakiness=6:accuracy=12:result='" + trf + "'", '-f', 'null', '-']); lancer('ffmpeg', ['-y', '-v', 'error', '-i', source, '-vf', "vidstabtransform=input='" + trf + "':smoothing=18:zoom=4,unsharp=5:5:0.6", '-c:v', 'libx264', '-crf', '17', '-preset', 'fast', '-c:a', 'copy', stab]) } source = stab }
+  const D = duree(source)
   const blancs = JSON.parse(readFileSync(join(dir, 'blancs.json'), 'utf8'))
   const coupes = JSON.parse(readFileSync(join(dir, 'plans.json'), 'utf8'))
   // Le visage, repéré toutes les 0,25 s : RIEN ne se pose dessus (règle d'Aurélie, pour toutes les élèves).
@@ -167,7 +169,21 @@ async function monter(nom) {
   if (D - cur > 0.1) segs.push([cur, D])
   segs[segs.length - 1][1] = D // la fin garde tout son souffle
   // Passages retirés (version courte) : à couper dans un blanc, jamais au milieu d'un mot.
-  const RETIRER = P.retirer || []
+  const HESITATIONS = (() => { if (P.hesitations === false || !existsSync(join(dir, 'mots.json'))) return []
+    const ms = (JSON.parse(readFileSync(join(dir, 'mots.json'), 'utf8')).transcription || []).filter(w => /\p{L}|\d/u.test(w.text || '')).map(w => [w.offsets.from / 1000, w.offsets.to / 1000])
+    const out = []
+    for (let i = 1; i < ms.length; i++) { const a = ms[i - 1][1] + 0.06, b = ms[i][0] - 0.06; if (b - a < 0.45 || b - a > 1.6) continue
+      if (P.garder.some(([x, y]) => a < y && b > x)) continue
+      const silence = blancs.filter(([s, e]) => s < b && e > a).reduce((t, [s, e]) => t + Math.min(b, e) - Math.max(a, s), 0)
+      if (silence < (b - a) * 0.5) out.push([+a.toFixed(3), +b.toFixed(3)]) }
+    if (out.length) console.log('Hésitations coupées : ' + out.length + ' (' + out.reduce((t, [a, b]) => t + b - a, 0).toFixed(1) + ' s)')
+    return out })()
+  const VIGNETTE = (() => { if (P.vignette === false) return []
+    const o = spawnSync('ffmpeg', ['-v', 'info', '-t', '0.5', '-i', join(dir, 'source.mp4'), '-vf', "select='gt(scene,0.3)',showinfo", '-f', 'null', '-'], { encoding: 'utf8' }).stderr || ''
+    const cuts = [...o.matchAll(/pts_time:([0-9.]+)/g)].map(m => +m[1]).filter(t => t > 0.05 && t < 0.45)
+    if (!cuts.length) return []
+    console.log('Vignette du début enlevée (' + Math.max(...cuts).toFixed(2) + ' s)'); return [[0, +Math.max(...cuts).toFixed(3)]] })()
+  const RETIRER = [...(P.retirer || []), ...VIGNETTE, ...HESITATIONS]
   for (const [x, y] of RETIRER) {
     const garde = []
     for (const [a, b, k] of segs) {
@@ -306,7 +322,11 @@ async function monter(nom) {
     if (k) { f += `[0:v]trim=${a}:${b},setpts=${k}*(PTS-STARTPTS)${cadre}${z},setsar=1,fps=30[v${i}];anullsrc=r=44100:cl=stereo,atrim=0:${((b - a) * k).toFixed(3)}[a${i}];`; return }
     f += `[0:v]trim=${a}:${b},setpts=PTS-STARTPTS${cadre}${z},setsar=1,fps=30[v${i}];[0:a]atrim=${a}:${b},asetpts=PTS-STARTPTS,aresample=44100,aformat=channel_layouts=stereo,afade=t=in:d=0.015,afade=t=out:st=${Math.max(0, b - a - 0.015).toFixed(3)}:d=0.015[a${i}];`
   })
-  f += segs.map((_, i) => `[v${i}][a${i}]`).join('') + `concat=n=${segs.length}:v=1:a=1[cv][voix];`
+  f += segs.map((_, i) => `[v${i}][a${i}]`).join('') + `concat=n=${segs.length}:v=1:a=1[cvb][voix0];`
+  f += '[cvb]null[cv];'
+  f += P.son === 'brut' ? '[voix0]anull[vp];' : "[voix0]highpass=f=70,afftdn=nf=-28:tn=1,deesser=i=0.3:m=0.5,acompressor=threshold=0.09:ratio=2.5:attack=8:release=160:makeup=1.5[vp];"
+  const musique = P.musique && existsSync(join(dir, P.musique)) ? join(dir, P.musique).replace(/\\/g, '/').replace(':', '\\:') : null
+  f += musique ? `amovie='${musique}':loop=0,aresample=44100,aformat=channel_layouts=stereo,volume=${P.musiqueVolume ?? 0.15}[mus];[vp]asplit=2[vp1][vp2];[mus][vp2]sidechaincompress=threshold=0.03:ratio=10:attack=15:release=450[md];[vp1][md]amix=inputs=2:duration=first:normalize=0[voix];` : '[vp]anull[voix];'
   const fSegments = f // le découpage seul : le détourage travaille sur la vidéo déjà cadrée
 
   // 3. Sous-titres
@@ -883,6 +903,13 @@ function verifier(video, dir, raccourci = false) {
   lancer('ffmpeg', ['-y', '-v', 'error', '-i', video, '-vf', `fps=12/${Math.max(1, dv).toFixed(2)},scale=720:1280,${dessinZones(zonesPlateforme(plat))},scale=180:-1,tile=6x2`, '-frames:v', '1', planche])
   if (existsSync(planche)) console.log(`Planche de contrôle : ${planche} (12 images, en rouge ce que l'appli recouvre : à regarder avant de la montrer)`)
   if (Math.abs(dv - da) > 0.15) console.log('⚠️  image et son n\'ont pas la même durée : synchro à vérifier')
+  // l'œil du monteur : une image trop sombre, un son qui sature, une fin qui coupe le dernier mot
+  const lum = (lancer('ffmpeg', ['-v', 'error', '-i', video, '-vf', 'fps=2,scale=72:128,signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-', '-f', 'null', '-'], { sortie: true }) || '').match(/YAVG=([\d.]+)/g) || []
+  const sombres = lum.map((x, k) => [k / 2, +x.split('=')[1]]).filter(([, v]) => v < 38)
+  if (sombres.length >= 3) console.log('⚠️  image très sombre à ' + [...new Set(sombres.map(([t]) => Math.floor(t)))].slice(0, 6).join(', ') + ' s : propose-lui l\'option "image": ["lumineux"]')
+  const pic = (lancer('ffmpeg', ['-v', 'info', '-i', video, '-af', 'astats=metadata=0', '-f', 'null', '-'], { sortie: true }) || '').match(/Peak level dB:\s*(-?[\d.]+)/)
+  if (pic && +pic[1] > -0.3) console.log('⚠️  le son sature par moments (pic à ' + pic[1] + ' dB)')
+  const dernier = mots.at(-1); if (dernier && dernier.fin > dv - 0.08) console.log('⚠️  la vidéo s\'arrête juste sur le dernier mot : vérifie qu\'il n\'est pas coupé')
   if (!raccourci && mots.length < avant * 0.9) console.log('⚠️  il manque des mots : écouter avant de montrer')
   if (trous.length) console.log('⚠️  silence de plus de 3 s à ' + trous.map(([a]) => a.toFixed(1) + ' s').join(', '))
 }

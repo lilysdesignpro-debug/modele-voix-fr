@@ -13,6 +13,7 @@
 //  - collage.fin        : { t, motCle }             le mot-clé se tape dans une barre de commentaire.
 // Tous les temps sont ceux de la vidéo d'origine, comme le reste de projet.json.
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync, existsSync } from 'node:fs'
+import { remplirBandes } from './bandes.mjs'
 import { zones as zonesPlateforme } from './marges.mjs'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -27,13 +28,15 @@ const COUL = { beurre: '#F4EC9C', tomate: '#D9473A', bordeaux: '#3B1424', papier
 export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, verifier, ICI }) {
   const st = join(dir, 'rendu'), E = JSON.parse(readFileSync(join(st, 'collage-entree.json'), 'utf8'))
   const { TOT, HOOK } = E, K = P.collage || {}
+  if (K.bandes !== false) { const rb = remplirBandes(join(st, 'base-av.mp4'), { lancer }); if (rb.segments.length) console.log('Bandes noires remplies : ' + rb.segments.length + ' passage(s), sans les légendes coupées') }
   const coul = { ...COUL, ...(K.couleurs || {}) }
   const tf = t => E.temps[Math.min(E.temps.length - 1, Math.max(0, Math.round(t / 0.05)))] // temps d'origine → temps final
   const FV = K.fondVert && (K.fondVert.images || []).length ? K.fondVert : null, kFV = FV ? Math.min(0.75, Math.max(0.4, FV.taille || 0.56)) : 1
   const wFV = Math.round(720 * kFV / 2) * 2, hFV = Math.round(1280 * kFV / 2) * 2, xFV = FV?.cote === 'droite' ? 720 - wFV - 20 : Math.round((720 - wFV) / 2), yFV = 1280 - hFV
   const visBrut = t => E.visages[Math.min(E.visages.length - 1, Math.max(0, Math.round(t * 10)))]
   const A0FV = FV ? tf(Math.min(...FV.images.map(I => I.t))) : 0, TRFV = 0.5
-  const kFVat = t => !FV || t < A0FV ? 1 : t >= A0FV + TRFV ? kFV : 1 - (1 - kFV) * (1 - Math.pow(1 - (t - A0FV) / TRFV, 3))
+  const FINFV = FV && FV.fin != null ? tf(FV.fin) : 1e9
+  const kFVat = t => !FV || t < A0FV || t >= FINFV ? 1 : t >= A0FV + TRFV ? kFV : 1 - (1 - kFV) * (1 - Math.pow(1 - (t - A0FV) / TRFV, 3))
   const vis = t => { const v = visBrut(t); if (!v || !FV) return v; const k = kFVat(t), f = kFV < 1 ? (1 - k) / (1 - kFV) : 0, x = xFV * f, y = yFV * f; return [v[0] * k + x, v[1] * k + y, v[2] * k + x, v[3] * k + y] }
   const visages = (a, b) => { const l = []; for (let t = a; t <= b; t += 0.1) { const v = vis(t); if (v) l.push(v) } return l }
   const hautTete = (a, b) => Math.min(...visages(a, b).map(v => v[1]), 1280)
@@ -84,7 +87,12 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   const OMBRE = 'text-shadow:0 1px 2px rgba(0,0,0,.6),0 2px 18px rgba(0,0,0,.5)' // chic : ombre douce, lisible sur un mur clair
   if (THEME === 'automne') Object.assign(PALETTE, { creme: '#FFF3DF', brun: '#4A2412', rouille: '#B4481C', ocre: '#E3A03A' }, K.couleurs || {}) // automne : crème, brun, rouille, ocre
   if (THEME === 'studio') { const sig = coul.mot || C?.motFort?.couleur || '#5A0E1A', v = parseInt(sig.replace('#', '').slice(0, 6), 16) || 0x5A0E1A, mix = f => '#' + [v >> 16, (v >> 8) & 255, v & 255].map(c => Math.round(c * f).toString(16).padStart(2, '0')).join('')
-    Object.assign(PALETTE, { fond: mix(0.45), trait: mix(1.0) + '55', creme: '#F7EAD9', soleil: '#F3D58C' }, K.couleurs || {}) } // studio : le fond prend SA couleur, assombrie
+    const studioClair = K.clair === true
+    // sur le blanc, une couleur pâle ne se lit pas : on la fonce jusqu'à ce qu'elle tienne (clarté < 45 %)
+    let encreC = v; for (let k = 0; k < 12; k++) { const L = (0.2126 * (encreC >> 16) + 0.7152 * ((encreC >> 8) & 255) + 0.0722 * (encreC & 255)) / 255; if (L < 0.35) break; encreC = [encreC >> 16, (encreC >> 8) & 255, encreC & 255].map(c => Math.round(c * 0.85)).reduce((x, c) => x * 256 + c, 0) }
+    const encreS = '#' + encreC.toString(16).padStart(6, '0')
+    Object.assign(PALETTE, studioClair ? { fond: '#F3F1ED', trait: '#2a2a2a22', creme: '#F7EAD9', encre: encreS, soleil: '#FFC400' } : { fond: mix(0.45), trait: mix(1.0) + '55', creme: '#F7EAD9', soleil: '#F3D58C' }, K.couleurs || {})
+    PALETTE.encre = PALETTE.encre || PALETTE.creme; PALETTE.ombreS = studioClair ? 'none' : null } // studio : le fond prend SA couleur, assombrie
   if (THEME === 'pop') Object.assign(PALETTE, K.couleurs || {}) // pop : ses couleurs à elle si sa charte le demande
   if (THEME === 'editorial') {
     // les couleurs viennent de la vidéo : la teinte moyenne du décor, déclinée en pâle (titres), soutenu et nuit (fond)
@@ -188,7 +196,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   const accent = THEME === 'witchy' ? PALETTE.or : coul.mot || C?.motFort?.couleur || '#E8B4A0'
   const finCarte = K.fin?.motCle ? tf(K.fin.t ?? TOT - 3.5) : TOT
   el.push({ a: 0, b: TOT, calque: 'devant', dessin: t => {
-    if (t < HOOK) return ''
+    if (t < HOOK || el.some(e => e.duo && t >= e.a && t < e.b)) return ''
     const p = phrases.find(p => t >= p.a && t < p.b); if (!p) return ''
     // pendant la carte « écris-moi », ses dernières phrases restent sous-titrées, juste sous la carte
     if (THEME === 'witchy' && dansMed(t)) return '' // la carte de tarot porte la phrase
@@ -268,27 +276,28 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     if (!K.studio) { scenes = [[0, HOOK]]; let d = HOOK, k = 0
       for (const [ip, p] of phrases.entries()) { if (p.a < HOOK + 1 || p.b > finS - 0.3 || p.a - d < 6 || p.b - p.a < 1.2 || !mots.some(m => m.ip === ip && m.fort)) continue
         if (k++ % 2 === 0) { scenes.push([p.a - 0.05, p.b + 0.1]); d = p.b } } }
+    K._scenesStudio = scenes
     const dansScene = t => scenes.some(([a, b]) => t >= a && t < b)
     const hasard = k => { const x = Math.sin(k * 5.17 + 1.3) * 43758.5453; return x - Math.floor(x) }
     // le fond : sa couleur, un quadrillage tracé à la main (lignes un peu tremblées), ou uni
     const grille = K.fond === 'uni' ? '' : '<svg style="position:absolute;inset:0" width="720" height="1280">' + Array.from({ length: 13 }, (_, k) => '<path d="M' + (k * 60 + 10) + ' 0 Q ' + (k * 60 + 10 + (hasard(k) - 0.5) * 10) + ' 640 ' + (k * 60 + 10 + (hasard(k + 40) - 0.5) * 8) + ' 1280" stroke="' + PALETTE.trait + '" stroke-width="2" fill="none"/>').join('') + Array.from({ length: 22 }, (_, k) => '<path d="M0 ' + (k * 60 + 20) + ' Q 360 ' + (k * 60 + 20 + (hasard(k + 80) - 0.5) * 10) + ' 720 ' + (k * 60 + 20 + (hasard(k + 120) - 0.5) * 8) + '" stroke="' + PALETTE.trait + '" stroke-width="2" fill="none"/>').join('') + '</svg>'
     const soleil = (cx, cy, r, rot) => '<svg style="position:absolute;left:' + (cx - r) + 'px;top:' + (cy - r) + 'px;transform:rotate(' + rot + 'deg)" width="' + 2 * r + '" height="' + 2 * r + '" viewBox="-100 -100 200 200"><path d="' + Array.from({ length: 24 }, (_, k) => { const a = k / 24 * Math.PI * 2, rr = k % 2 ? 62 : 100; return (k ? 'L' : 'M') + (Math.cos(a) * rr).toFixed(1) + ' ' + (Math.sin(a) * rr).toFixed(1) }).join(' ') + 'Z" fill="' + PALETTE.soleil + '"/></svg>'
-    for (const [a, b] of scenes) {
-      el.push({ a, b, calque: 'derriere', dessin: t => { const v = vis(t), q = doux((t - a) / 0.2)
+    for (const [ks, [a, b]] of scenes.entries()) {
+      el.push({ a, b, scene: ks, calque: 'derriere', dessin: t => { const v = vis(t), q = doux((t - a) / 0.2)
         return '<div style="position:absolute;inset:0;background:' + PALETTE.fond + '"></div>' + grille + (v ? soleil(Math.round((v[0] + v[2]) / 2), Math.round((v[1] + v[3]) / 2), Math.round((v[2] - v[0]) * 1.15 * (0.85 + 0.15 * q)), Math.round(t * 12)) : '') } })
       sons.push({ t: a, fam: 'whoosh', vol: 0.07 })
     }
     // les mots en escalier, pendant les scènes (hors hook) : chaque mot à sa ligne, gauche puis droite ; le mot fort en manuscrite
-    for (const [a, b] of scenes.slice(1)) {
+    for (const [ks0, [a, b]] of scenes.slice(1).entries()) { const ks = ks0 + 1
       const ici = mots.filter(m => m.t >= a - 0.02 && m.t < b).slice(0, 9); if (!ici.length) continue
       const v0 = vis((a + b) / 2), haut = v0 ? v0[1] : 300, bas = v0 ? v0[3] : 700
       const gx = v0 ? v0[0] : 220, dx = v0 ? v0[2] : 500, largeur = m => m.w.length * (m.fort ? 34 : 23) + 10
       const cotes = ici.map((m, k) => { const L = gx - 40 - largeur(m), Rr = 690 - (dx + 40) - largeur(m); return k % 2 ? (Rr >= 0 ? dx + 40 : L >= 24 ? L : null) : (L >= 24 ? L : Rr >= 0 ? dx + 40 : null) })
       const surCote = cotes.every(x => x != null), yDeb = surCote ? clamp(haut + 30, 260, 1050 - ici.length * 58) : clamp(bas + 30, 420, 1050 - ici.length * 58)
-      el.push({ a, b, calque: 'devant', dessin: t => '<div style="position:absolute;inset:0">' + ici.map((m, k) => { const q = doux((t - m.t + 0.03) / 0.2); if (q <= 0) return ''
+      el.push({ a, b, scene: ks, calque: 'devant', dessin: t => '<div style="position:absolute;inset:0">' + ici.map((m, k) => { const q = doux((t - m.t + 0.03) / 0.2); if (q <= 0) return ''
         const x = surCote ? Math.round(cotes[k]) : (k % 2 ? 380 : 90), w = esc(m.w.replace(/[*]/g, ''))
-        return m.fort ? '<div style="position:absolute;left:' + (x - 40) + 'px;top:' + (yDeb + k * 58 - 14) + 'px;font:400 70px/1 Script,cursive;color:' + PALETTE.creme + ';opacity:' + q + ';transform:translateY(' + ((1 - q) * 10).toFixed(1) + 'px);text-shadow:0 0 3px rgba(0,0,0,.7),0 2px 12px rgba(0,0,0,.45)">' + w + '</div>'
-          : '<div style="position:absolute;left:' + x + 'px;top:' + (yDeb + k * 58) + 'px;font:400 44px/1 Display,serif;color:' + PALETTE.creme + ';opacity:' + q + ';transform:translateY(' + ((1 - q) * 10).toFixed(1) + 'px);text-shadow:0 0 3px rgba(0,0,0,.7),0 2px 10px rgba(0,0,0,.45)">' + w + '</div>' }).join('') + '</div>' })
+        return m.fort ? '<div style="position:absolute;left:' + (x - 40) + 'px;top:' + (yDeb + k * 58 - 14) + 'px;font:400 70px/1 Script,cursive;color:' + PALETTE.encre + ';opacity:' + q + ';transform:translateY(' + ((1 - q) * 10).toFixed(1) + 'px);text-shadow:' + (PALETTE.ombreS || '0 0 3px rgba(0,0,0,.7),0 2px 12px rgba(0,0,0,.45)') + '">' + w + '</div>'
+          : '<div style="position:absolute;left:' + x + 'px;top:' + (yDeb + k * 58) + 'px;font:400 44px/1 Display,serif;color:' + PALETTE.encre + ';opacity:' + q + ';transform:translateY(' + ((1 - q) * 10).toFixed(1) + 'px);text-shadow:' + (PALETTE.ombreS || '0 0 3px rgba(0,0,0,.7),0 2px 10px rgba(0,0,0,.45)') + '">' + w + '</div>' }).join('') + '</div>' })
     }
     // hors scènes : sa phrase en serif fin crème, sous son visage
     el.push({ a: HOOK, b: finS, calque: 'devant', dessin: t => { if (dansScene(t)) return ''
@@ -493,10 +502,10 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     const { haut, aD, aG, aQ } = H, petite = T.dessus || T.petit || ''
     const tG = Math.round(clamp(600 / (0.42 * Math.max(4, T.grand.length)), 70, 130)), yB = clamp(haut - tG - 110, 90, 420)
     el.push({ a: 0, b: HOOK, calque: 'devant', dessin: t => { const sortie = 1 - clamp((t - (HOOK - 0.3)) / 0.3, 0, 1), pD = doux((t - aD) / 0.35), pG = doux((t - aG) / 0.45), pQ = doux((t - aQ) / 0.4)
-      return '<div style="position:absolute;left:0;right:0;top:' + yB + 'px;text-align:center;opacity:' + sortie + ';text-shadow:0 2px 12px rgba(0,0,0,.35)">'
-        + (petite ? '<div style="font:400 44px/1.1 Display,serif;color:' + PALETTE.creme + ';opacity:' + pD + '">' + esc(petite) + '</div>' : '')
-        + '<div style="white-space:nowrap;font:400 ' + tG + 'px/1.1 Script,cursive;color:' + PALETTE.creme + ';opacity:' + pG + ';transform:translateY(' + ((1 - pG) * 12).toFixed(1) + 'px)">' + esc(T.grand) + '</div>'
-        + (T.queue ? '<div style="font:400 40px/1.1 Display,serif;color:' + PALETTE.creme + ';opacity:' + pQ + '">' + esc(T.queue) + '</div>' : '') + '</div>' } })
+      return '<div style="position:absolute;left:0;right:0;top:' + yB + 'px;text-align:center;opacity:' + sortie + ';text-shadow:' + (PALETTE.ombreS || '0 2px 12px rgba(0,0,0,.35)') + '">'
+        + (petite ? '<div style="font:400 44px/1.1 Display,serif;color:' + PALETTE.encre + ';opacity:' + pD + '">' + esc(petite) + '</div>' : '')
+        + '<div style="white-space:nowrap;font:400 ' + tG + 'px/1.1 Script,cursive;color:' + PALETTE.encre + ';opacity:' + pG + ';transform:translateY(' + ((1 - pG) * 12).toFixed(1) + 'px)">' + esc(T.grand) + '</div>'
+        + (T.queue ? '<div style="font:400 40px/1.1 Display,serif;color:' + PALETTE.encre + ';opacity:' + pQ + '">' + esc(T.queue) + '</div>' : '') + '</div>' } })
   }
   if (K.fin?.motCle && THEME === 'studio') {
     const t0 = tf(K.fin.t ?? TOT - 3.5), mot = K.fin.motCle, y = clamp(basVisage(t0, TOT) + 40, 600, 880)
@@ -506,8 +515,9 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
 
   if (T.grand && THEME === 'doux') {
     const { haut, aD, aG, aQ } = H, accent = coul.mot || C?.motFort?.couleur || '#E8B4A0'
-    const tG = Math.round(clamp(560 / (0.42 * Math.max(4, T.grand.length)), 90, 170)), y0B = clamp(haut - tG * 0.9 - 70, 150, 420), suiviC = suiveur(tG + 60)
-    el.push({ a: 0, b: HOOK, calque: 'derriere', dessin: t => { const y0 = suiviC(t, y0B + 20 + tG / 2) - 20 - tG / 2
+    const tG = Math.round(clamp(560 / (0.42 * Math.max(4, T.grand.length)), 90, 170)), placeHaut = haut - tG * 0.9 - 70 >= 150 // titreDouxPlace
+    const y0B = placeHaut ? clamp(haut - tG * 0.9 - 70, 150, 420) : clamp(basVisage(0, HOOK) + 30, 520, 1280 - 300 - tG - 150), suiviC = suiveur(tG + 60)
+    el.push({ a: 0, b: HOOK, calque: placeHaut ? 'derriere' : 'devant', dessin: t => { const y0 = suiviC(t, y0B + 20 + tG / 2) - 20 - tG / 2
       const sortie = 1 - clamp((t - (HOOK - 0.3)) / 0.3, 0, 1), pD = doux((t - aD) / 0.5), pG = doux((t - aG) / 0.6), pQ = doux((t - aQ) / 0.5), pO = rebond((t - aG - 0.25) / 0.45)
       const etoile = `<svg width="78" height="78" viewBox="0 0 100 100" style="position:absolute;right:92px;top:${y0 - 30}px;transform:scale(${clamp(pO, 0, 1.3)}) rotate(${(1 - clamp(pO, 0, 1)) * -40}deg);opacity:${clamp(pO, 0, 1)}"><path d="M50 0 C54 38 62 46 100 50 C62 54 54 62 50 100 C46 62 38 54 0 50 C38 46 46 38 50 0Z" fill="${accent}"/></svg>`
       return `<div style="position:absolute;inset:0;opacity:${sortie};text-shadow:0 4px 24px rgba(0,0,0,.3)">
@@ -516,7 +526,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
         ${etoile}</div>`
     } })
     if (T.queue) el.push({ a: 0, b: HOOK, calque: 'devant', dessin: t => { const pQ = doux((t - aQ) / 0.5), sortie = 1 - clamp((t - (HOOK - 0.3)) / 0.3, 0, 1)
-      return `<div style="position:absolute;left:0;right:0;top:${clamp(basVisage(0, HOOK) + 150, 640, 930)}px;text-align:center;font:400 66px/1 Script,cursive;color:${accent};-webkit-text-stroke:5px #fff;paint-order:stroke fill;opacity:${pQ * sortie};text-shadow:0 2px 14px rgba(0,0,0,.3)">${esc(T.queue)}</div>` } })
+      return `<div style="position:absolute;left:0;right:0;top:${placeHaut ? clamp(basVisage(0, HOOK) + 150, 640, 930) : y0B + 60 + tG}px;text-align:center;font:400 66px/1 Script,cursive;color:${accent};-webkit-text-stroke:5px #fff;paint-order:stroke fill;opacity:${pQ * sortie};text-shadow:0 2px 14px rgba(0,0,0,.3)">${esc(T.queue)}</div>` } })
   }
 
   if (T.grand && THEME !== 'aurelie' && THEME !== 'doux' && THEME !== 'witchy' && THEME !== 'chic' && THEME !== 'automne' && THEME !== 'studio') {
@@ -881,7 +891,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     const t0 = tf(E.t), b = Math.min(TOT - 0.1, t0 + Em.duree), haut = E.type === 'choc' || E.type === 'commentaires'
     const yHaut = hautTete(t0, b) - Em.hauteur - 24, y = (haut || FV) && yHaut >= 110 ? yHaut : clamp(basVisage(t0, b) + 50, 430, 1280 - 290 - Em.hauteur)
     const yP = Em.place ? clamp(FV ? hautTete(t0, b) - Em.hauteur - 20 : hautTete(t0, b) + 40, FV ? 110 : 200, 1280 - 300 - Em.hauteur) : null
-    el.push({ a: t0, b, calque: 'devant', zone: 'geant', dessin: t => '<div style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)).toFixed(2) + '">' + Em.dessin(t - t0, Math.round(yP ?? y)) + '</div>' })
+    el.push({ a: t0, b, calque: 'devant', zone: 'geant', duo: E.type === 'duo', dessin: t => '<div style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)).toFixed(2) + '">' + Em.dessin(t - t0, Math.round(yP ?? y)) + '</div>' })
     sons.push(...Em.sons(t0))
   }
 
@@ -903,6 +913,14 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     if (bords > 6) return { ok: false, pourquoi: 'sa silhouette touche le bord de l’image (bras levés, ou un bout de décor pris pour elle)' }
     return { ok: true }
   }
+  // les scènes studio où le détourage ne tient pas : retirées (la vidéo normale et ses sous-titres restent)
+  if (THEME === 'studio' && K._scenesStudio && !K.forcer) for (let ks = K._scenesStudio.length - 1; ks >= 0; ks--) {
+    const [a, b] = K._scenesStudio[ks], r = detourTient(a, b); if (r.ok) continue
+    console.log('⚠️ SCÈNE STUDIO RETIRÉE à ' + a.toFixed(1) + ' s, ' + r.pourquoi + ' : image normale gardée')
+    for (let j = el.length - 1; j >= 0; j--) if (el[j].scene === ks) el.splice(j, 1)
+    K._scenesStudio.splice(ks, 1)
+  }
+
   const DET = (K.detours || []).map(D => { const a = tf(D.t), b = Math.min(TOT - 0.1, a + (D.duree || 2.5)); return { ...D, a, b } })
     .filter(D => { const g = D.forcer ? { ok: true } : detourTient(D.a, D.b); if (!g.ok) console.log('⚠️ EFFET RETIRÉ : « ' + D.type + ' » à ' + D.t + ' s, ' + g.pourquoi + ' : image normale gardée'); return g.ok })
   const sigD = coul.mot || C?.motFort?.couleur || '#C0182B'
@@ -928,27 +946,41 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   let FVok = false
   if (FV) {
     let nFV = 0
+    const ARFV = new Map(), ajusteFV = (u, w, h, n) => { if (n === 1) return 'contain'; const r = (ARFV.get(u) || w / h) / (w / h); return r > 1.45 || r < 0.69 ? 'contain' : 'cover' }
     const imgF = f => { const p = f && (f.includes(':') || f.startsWith('/') ? f : join(dir, f)); if (!p || !existsSync(p)) return null
       const cd = spawnSync('ffmpeg', ['-v', 'info', '-i', p, '-vf', 'cropdetect=limit=28:round=2:skip=0', '-frames:v', '3', '-f', 'null', '-'], { encoding: 'utf8' }).stderr || '', m = [...cd.matchAll(/crop=(\d+):(\d+):(\d+):(\d+)/g)].pop()
       const sortieI = join(st, 'fv-' + (nFV++) + '.jpg'); spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', p, '-vf', (m ? 'crop=' + m.slice(1).join(':') + ',' : '') + "scale='min(1080,iw)':-2", '-q:v', '3', sortieI])
-      return existsSync(sortieI) ? 'data:image/jpeg;base64,' + readFileSync(sortieI).toString('base64') : null }
-    const fondFV = FV.fond || '#d9d4cf', segs = FV.images.map((I, k, l) => ({ ...I, a: tf(I.t), b: l[k + 1] ? tf(l[k + 1].t) : TOT, srcs: [].concat(I.src || []).map(imgF).filter(Boolean) })).filter(I => I.srcs.length)
+      if (!existsSync(sortieI)) return null
+      const dim = (spawnSync('ffprobe', ['-v', 'error', '-show_entries', 'stream=width,height', '-of', 'csv=p=0', sortieI], { encoding: 'utf8' }).stdout || '').trim().split(',').map(Number)
+      const u = 'data:image/jpeg;base64,' + readFileSync(sortieI).toString('base64'); if (dim[0] && dim[1]) ARFV.set(u, dim[0] / dim[1]); return u }
+    const fondFV = FV.fond || '#d9d4cf', segs = FV.images.map((I, k, l) => ({ ...I, a: tf(I.t), b: Math.min(FINFV, l[k + 1] ? tf(l[k + 1].t) : TOT), srcs: [].concat(I.src || []).map(imgF).filter(Boolean) })).filter(I => I.srcs.length)
     const grille = n => n === 1 ? [[0, 0, 720, 1280]] : n === 2 ? [[0, 0, 360, 1280], [360, 0, 360, 1280]] : n === 3 ? [[0, 0, 720, 640], [0, 640, 360, 640], [360, 640, 360, 640]] : [[0, 0, 360, 640], [360, 0, 360, 640], [0, 640, 360, 640], [360, 640, 360, 640]]
     const pre = []
     const flou = src => '<div style="position:absolute;inset:-60px;background:url(' + src + ') center/cover;filter:blur(34px) brightness(.82) saturate(1.1)"></div>'
-    pre.push({ a: A0FV, b: TOT, calque: 'derriere', dessin: () => '<div style="position:absolute;inset:0;overflow:hidden;background:' + fondFV + '">' + (FV.fond || !segs[0] ? '' : flou(segs[0].srcs[0])) + '</div>' })
+    pre.push({ a: A0FV, b: Math.min(TOT, FINFV), calque: 'derriere', dessin: () => '<div style="position:absolute;inset:0;overflow:hidden;background:' + fondFV + '">' + (FV.fond || !segs[0] ? '' : flou(segs[0].srcs[0])) + '</div>' })
     for (const I of segs) {
       const cases = grille(Math.min(4, I.srcs.length))
       pre.push({ a: I.a, b: I.b, calque: 'derriere', dessin: t => { const q = doux((t - I.a) / 0.12)
-        return cases.map(([x, y, w, h], k) => '<div style="position:absolute;left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;overflow:hidden;opacity:' + q.toFixed(2) + ';box-shadow:inset 0 0 0 2px #fff">' + flou(I.srcs[k]) + '<div style="position:absolute;inset:0;background:url(' + I.srcs[k] + ') center/' + (cases.length === 1 ? 'contain' : 'cover') + ' no-repeat;transform:translateY(' + ((1 - q) * 24).toFixed(1) + 'px) scale(' + (1.02 + 0.06 * clamp((t - I.a) / Math.max(1, I.b - I.a), 0, 1)).toFixed(4) + ')"></div></div>').join('') } })
+        return cases.map(([x, y, w, h], k) => '<div style="position:absolute;left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;overflow:hidden;opacity:' + q.toFixed(2) + ';box-shadow:inset 0 0 0 2px #fff">' + flou(I.srcs[k]) + '<div style="position:absolute;inset:0;background:url(' + I.srcs[k] + ') center/' + ajusteFV(I.srcs[k], w, h, cases.length) + ' no-repeat;transform:translateY(' + ((1 - q) * 24).toFixed(1) + 'px) scale(' + (1.02 + 0.06 * clamp((t - I.a) / Math.max(1, I.b - I.a), 0, 1)).toFixed(4) + ')"></div></div>').join('') } })
       if ((I.etiquettes || []).length) el.push({ a: I.a, b: I.b, calque: 'devant', dessin: t => { const q = clamp(rebond((t - I.a - 0.15) / 0.3), 0, 1.08)
         return cases.map(([x, y, w], k) => I.etiquettes[k] ? '<div style="position:absolute;left:' + (x + 18) + 'px;top:' + (y + (y ? 18 : 110)) + 'px;max-width:' + (w - 36) + 'px;padding:9px 16px;border-radius:12px;background:#fff;color:#151515;font:700 26px/1.15 Poppins,sans-serif;box-shadow:0 6px 16px rgba(0,0,0,.3);transform:scale(' + q.toFixed(3) + ');transform-origin:left top">' + esc(I.etiquettes[k]) + '</div>' : '').join('') } })
       sons.push({ t: I.a, fam: 'clic', vol: 0.06 })
     }
     el.unshift(...pre)
-    const ech = [0.12, 0.5, 0.85].map(f => Math.max(0.2, TOT * f)).map(a => [a, Math.min(TOT - 0.1, a + 2)])
+    const finE = Math.min(TOT, FINFV), ech = [0.15, 0.5, 0.85].map(f => A0FV + (finE - A0FV) * f).map(a => [Math.max(0.2, Math.min(a, finE - 2.1)), Math.min(finE - 0.1, Math.max(a, finE - 2.1) + 2)])
     const g = FV.forcer ? { ok: true } : ech.map(([a, b]) => detourTient(a, b)).find(r => !r.ok) || { ok: true }
     FVok = g.ok; if (!FVok) console.log('⚠️ FOND VERT : détourage trop fragile (' + g.pourquoi + ') : elle passe dans une fenêtre aux coins arrondis')
+  }
+
+  // 7 nonies. Les titres de chapitre
+  const tonChap = (K.couleurs || {}).chapitre || coul.mot || C?.motFort?.couleur || '#F3C9B4'
+  for (const Ch of K.chapitres || []) {
+    const a = tf(Ch.t), b = Math.min(TOT, a + (Ch.duree || 2.8)), y = Ch.y ?? 150
+    el.push({ a, b, calque: 'devant', dessin: t => { const o = Math.min(clamp((t - a) / 0.3, 0, 1), 1 - clamp((t - (b - 0.3)) / 0.3, 0, 1)), p = doux((t - a) / 0.6)
+      return '<div style="position:absolute;left:40px;right:40px;top:' + y + 'px;text-align:center;color:#fff;opacity:' + o.toFixed(2) + ';transform:translateY(' + ((1 - p) * 18).toFixed(1) + 'px);text-shadow:0 0 2px rgba(0,0,0,.6),0 2px 18px rgba(0,0,0,.55)">'
+        + (Ch.petit ? '<div style="font:300 22px/1 DuoJost,sans-serif;letter-spacing:.42em;padding-left:.42em;text-transform:uppercase;color:' + tonChap + ';filter:brightness(1.35)">' + esc(Ch.petit) + '</div>' : '')
+        + '<div style="font:400 58px/1.05 Display,serif;margin-top:10px">' + esc(Ch.titre || '') + '</div></div>' } })
+    sons.push({ t: a, fam: 'whoosh', vol: 0.05 })
   }
 
   // 8. La fin. Pop : « commente » et le mot-clé qui respire, en rond gonflé. Éditorial : « commente » en italique et
@@ -1158,9 +1190,9 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       + '[b][m]alphamerge[p];[ad2][p]overlay=0:0:eof_action=pass[o]'
     lancer('ffmpeg', ['-y', '-v', 'error', '-i', base, '-f', 'concat', '-safe', '0', '-i', join(st, 'collage-derriere.txt'), '-f', 'concat', '-safe', '0', '-i', join(st, 'collage-masques.txt'), ...(DET.length ? plusD : []),
       '-filter_complex', FV ? (FVok
-        ? '[0:v]split=3[a][b][bg];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad0];[2:v]fps=30,format=gray,scale=720:1280,' + "tmix=frames=3:weights='1 2 1',gblur=sigma=1.4,lut=c0='clip((val-96)*2.1,0,255)'" + ',split=3[m][m2][m3];[bg][m3]alphamerge[pg];[m2]' + Array(11).fill('dilation').join(',') + '[md];color=c=white:s=720x1280:r=30,format=rgba[w];[w][md]alphamerge,scale=' + wFV + ':' + hFV + '[ct];[b][m]alphamerge,scale=' + wFV + ':' + hFV + '[p];[ad0][pg]overlay=0:0:eof_action=pass:enable=lt(t\\,' + A0FV.toFixed(3) + ')[ad1];[ad1][ct]overlay=' + xFV + ':' + yFV + ':shortest=1:enable=gte(t\\,' + A0FV.toFixed(3) + ')[x];[x][p]overlay=' + xFV + ':' + yFV + ':eof_action=pass:enable=gte(t\\,' + A0FV.toFixed(3) + ')[o]'
+        ? '[0:v]split=3[a][b][bg];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad0];[2:v]fps=30,format=gray,scale=720:1280,' + "tmix=frames=3:weights='1 2 1',gblur=sigma=1.4,lut=c0='clip((val-96)*2.1,0,255)'[mg];nullsrc=s=720x1280:r=30,geq=lum='255*min(1,min(X,W-X)/90)':cb=128:cr=128,format=gray[gf];[mg][gf]blend=all_mode=multiply:shortest=1" + ',split=3[m][m2][m3];[bg][m3]alphamerge[pg];[m2]' + Array(11).fill('dilation').join(',') + '[md];color=c=white:s=720x1280:r=30,format=rgba[w];[w][md]alphamerge,scale=' + wFV + ':' + hFV + '[ct];[b][m]alphamerge,scale=' + wFV + ':' + hFV + '[p];[ad0][pg]overlay=0:0:eof_action=pass:enable=not(between(t\\,' + A0FV.toFixed(3) + '\\,' + Math.min(TOT, FINFV).toFixed(3) + '))[ad1];[ad1][ct]overlay=' + xFV + ':' + yFV + ':shortest=1:enable=' + (FV.contour ? 'between(t\\,' + A0FV.toFixed(3) + '\\,' + Math.min(TOT, FINFV).toFixed(3) + ')' : '0') + '[x];[x][p]overlay=' + xFV + ':' + yFV + ':eof_action=pass:enable=between(t\\,' + A0FV.toFixed(3) + '\\,' + Math.min(TOT, FINFV).toFixed(3) + ')[o]'
         : '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad0];[b]scale=' + (wFV - 40) + ':' + (hFV - 70) + ',format=rgba,geq=r=\'r(X,Y)\':g=\'g(X,Y)\':b=\'b(X,Y)\':a=\'if(gt(hypot(max(abs(X-W/2)-(W/2-34),0),max(abs(Y-H/2)-(H/2-34),0)),34),0,255)\'[pip];color=c=white:s=' + (wFV - 28) + 'x' + (hFV - 58) + ':r=30,format=rgba,geq=r=255:g=255:b=255:a=\'if(gt(hypot(max(abs(X-W/2)-(W/2-40),0),max(abs(Y-H/2)-(H/2-40),0)),40),0,255)\'[cad];[ad0][cad]overlay=' + (xFV + 14) + ':' + (yFV + 20) + ':shortest=1[x];[x][pip]overlay=' + (xFV + 20) + ':' + (yFV + 26) + ':eof_action=pass[o]')
-      : DET.length && THEME !== 'aurelie' && THEME !== 'studio' ? grapheD : THEME === 'aurelie' || THEME === 'studio'
+      : DET.length && THEME !== 'aurelie' && THEME !== 'studio' ? grapheD : THEME === 'aurelie' || (THEME === 'studio' && K.contour)
         ? '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad];[2:v]fps=30,format=gray,scale=720:1280,split=2[m][m2];[m2]dilation,dilation,dilation,dilation,dilation,dilation,dilation,dilation,dilation[md];color=c=white:s=720x1280:r=30,format=rgba[w];[w][md]alphamerge[ct];[ad][ct]overlay=0:0:shortest=1[adc];[b][m]alphamerge[p];[adc][p]overlay=0:0:eof_action=pass[o]'
         : '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad];[2:v]fps=30,format=gray,scale=720:1280[m];[b][m]alphamerge[p];[ad][p]overlay=0:0:eof_action=pass[o]',
       '-map', '[o]', '-map', '0:a', '-c:v', 'libx264', '-crf', '16', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-c:a', 'copy', '-t', TOT.toFixed(3), fond])
@@ -1170,7 +1202,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       for (let i = 0; i < nT; i++) { const f = f0 + i, t = f / FPS, k = kFVat(t), fr = (kFV < 1 ? (1 - k) / (1 - kFV) : 0), w = Math.round(720 * k / 2) * 2, h = Math.round(1280 * k / 2) * 2, x = Math.round(xFV * fr), y = Math.round(yFV * fr)
         const im = join(tr, 'b' + i + '.png'), out = join(tr, 't' + String(i).padStart(3, '0') + '.png'), m = piste[f] || noir, d = pistes.derriere[f] || vide
         lancer('ffmpeg', ['-y', '-v', 'error', '-ss', t.toFixed(3), '-i', base, '-frames:v', '1', im])
-        lancer('ffmpeg', ['-y', '-v', 'error', '-i', im, '-i', d, '-i', m, '-filter_complex', '[0]format=rgba,split=2[b0][b1];[2]format=gray,scale=720:1280,split=2[m][m2];[m2]' + Array(11).fill('dilation').join(',') + '[md];color=c=white:s=720x1280,format=rgba[w];[w][md]alphamerge,scale=' + w + ':' + h + '[ct];[b1][m]alphamerge,scale=' + w + ':' + h + '[p];[b0][1]overlay=0:0[x];[x][ct]overlay=' + x + ':' + y + ':shortest=1[x2];[x2][p]overlay=' + x + ':' + y + '[o]', '-map', '[o]', '-frames:v', '1', out])
+        lancer('ffmpeg', ['-y', '-v', 'error', '-i', im, '-i', d, '-i', m, '-filter_complex', '[0]format=rgba,split=2[b0][b1];[2]format=gray,scale=720:1280[mg];color=c=black:s=720x1280:d=0.04,format=gray,geq=lum=' + "'255*min(1,min(X,W-X)/90)'" + '[gf];[mg][gf]blend=all_mode=multiply:shortest=1,split=2[m][m2];[m2]' + Array(11).fill('dilation').join(',') + '[md];color=c=white:s=720x1280:d=0.04,format=rgba[w];[w][md]alphamerge,scale=' + w + ':' + h + '[ct];[b1][m]alphamerge,scale=' + w + ':' + h + '[p];[b0][1]overlay=0:0[x];' + (FV.contour ? '[x][ct]overlay=' + x + ':' + y + ':shortest=1[x2]' : '[ct]nullsink;[x]null[x2]') + ';[x2][p]overlay=' + x + ':' + y + '[o]', '-map', '[o]', '-frames:v', '1', out])
         liste.push(out) }
       const avecTr = join(st, 'collage-fond-tr.mp4')
       lancer('ffmpeg', ['-y', '-v', 'error', '-i', fond, '-framerate', String(FPS), '-i', join(tr, 't%03d.png'), '-filter_complex', '[1:v]setpts=PTS-STARTPTS+' + (f0 / FPS).toFixed(4) + '/TB[tr];[0:v][tr]overlay=0:0:eof_action=pass[o]', '-map', '[o]', '-map', '0:a', '-c:v', 'libx264', '-crf', '16', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-c:a', 'copy', avecTr])
