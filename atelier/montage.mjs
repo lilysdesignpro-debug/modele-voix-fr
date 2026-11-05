@@ -126,6 +126,7 @@ function lire(video, charte, nom) {
   if (cur) lignes.push(cur)
   const entete = [
     '# Sous-titres : « début en secondes | texte ». Corrige les mots, mets le mot fort entre *étoiles*.',
+    '# Attention aux mots qui se prononcent pareil (pause/pose, vers/vert/verre, ces/ses, a/à, et/est…) : choisis selon le sens de la phrase.',
     '# Étiquettes en fin de ligne : #ding (petit ding APRÈS la phrase), #montee (whoosh qui monte avant), #rien (pas de pop).',
     '# La dernière ligne « fin| » marque la fin du dernier sous-titre.',
   ]
