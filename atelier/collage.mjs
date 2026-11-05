@@ -32,7 +32,9 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   const FV = K.fondVert && (K.fondVert.images || []).length ? K.fondVert : null, kFV = FV ? Math.min(0.75, Math.max(0.4, FV.taille || 0.56)) : 1
   const wFV = Math.round(720 * kFV / 2) * 2, hFV = Math.round(1280 * kFV / 2) * 2, xFV = FV?.cote === 'droite' ? 720 - wFV - 20 : Math.round((720 - wFV) / 2), yFV = 1280 - hFV
   const visBrut = t => E.visages[Math.min(E.visages.length - 1, Math.max(0, Math.round(t * 10)))]
-  const vis = t => { const v = visBrut(t); return v && FV ? [v[0] * kFV + xFV, v[1] * kFV + yFV, v[2] * kFV + xFV, v[3] * kFV + yFV] : v }
+  const A0FV = FV ? tf(Math.min(...FV.images.map(I => I.t))) : 0, TRFV = 0.5
+  const kFVat = t => !FV || t < A0FV ? 1 : t >= A0FV + TRFV ? kFV : 1 - (1 - kFV) * (1 - Math.pow(1 - (t - A0FV) / TRFV, 3))
+  const vis = t => { const v = visBrut(t); if (!v || !FV) return v; const k = kFVat(t), f = kFV < 1 ? (1 - k) / (1 - kFV) : 0, x = xFV * f, y = yFV * f; return [v[0] * k + x, v[1] * k + y, v[2] * k + x, v[3] * k + y] }
   const visages = (a, b) => { const l = []; for (let t = a; t <= b; t += 0.1) { const v = vis(t); if (v) l.push(v) } return l }
   const hautTete = (a, b) => Math.min(...visages(a, b).map(v => v[1]), 1280)
   const basVisage = (a, b) => Math.max(...visages(a, b).map(v => v[3]), 0)
@@ -934,7 +936,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     const grille = n => n === 1 ? [[0, 0, 720, 1280]] : n === 2 ? [[0, 0, 360, 1280], [360, 0, 360, 1280]] : n === 3 ? [[0, 0, 720, 640], [0, 640, 360, 640], [360, 640, 360, 640]] : [[0, 0, 360, 640], [360, 0, 360, 640], [0, 640, 360, 640], [360, 640, 360, 640]]
     const pre = []
     const flou = src => '<div style="position:absolute;inset:-60px;background:url(' + src + ') center/cover;filter:blur(34px) brightness(.82) saturate(1.1)"></div>'
-    pre.push({ a: 0, b: TOT, calque: 'derriere', dessin: () => '<div style="position:absolute;inset:0;overflow:hidden;background:' + fondFV + '">' + (FV.fond || !segs[0] ? '' : flou(segs[0].srcs[0])) + '</div>' })
+    pre.push({ a: A0FV, b: TOT, calque: 'derriere', dessin: () => '<div style="position:absolute;inset:0;overflow:hidden;background:' + fondFV + '">' + (FV.fond || !segs[0] ? '' : flou(segs[0].srcs[0])) + '</div>' })
     for (const I of segs) {
       const cases = grille(Math.min(4, I.srcs.length))
       pre.push({ a: I.a, b: I.b, calque: 'derriere', dessin: t => { const q = doux((t - I.a) / 0.12)
@@ -1156,12 +1158,24 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       + '[b][m]alphamerge[p];[ad2][p]overlay=0:0:eof_action=pass[o]'
     lancer('ffmpeg', ['-y', '-v', 'error', '-i', base, '-f', 'concat', '-safe', '0', '-i', join(st, 'collage-derriere.txt'), '-f', 'concat', '-safe', '0', '-i', join(st, 'collage-masques.txt'), ...(DET.length ? plusD : []),
       '-filter_complex', FV ? (FVok
-        ? '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad0];[2:v]fps=30,format=gray,scale=720:1280,split=2[m][m2];[m2]' + Array(11).fill('dilation').join(',') + '[md];color=c=white:s=720x1280:r=30,format=rgba[w];[w][md]alphamerge,scale=' + wFV + ':' + hFV + '[ct];[b][m]alphamerge,scale=' + wFV + ':' + hFV + '[p];[ad0][ct]overlay=' + xFV + ':' + yFV + ':shortest=1[x];[x][p]overlay=' + xFV + ':' + yFV + ':eof_action=pass[o]'
+        ? '[0:v]split=3[a][b][bg];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad0];[2:v]fps=30,format=gray,scale=720:1280,' + "tmix=frames=3:weights='1 2 1',gblur=sigma=1.4,lut=c0='clip((val-96)*2.1,0,255)'" + ',split=3[m][m2][m3];[bg][m3]alphamerge[pg];[m2]' + Array(11).fill('dilation').join(',') + '[md];color=c=white:s=720x1280:r=30,format=rgba[w];[w][md]alphamerge,scale=' + wFV + ':' + hFV + '[ct];[b][m]alphamerge,scale=' + wFV + ':' + hFV + '[p];[ad0][pg]overlay=0:0:eof_action=pass:enable=lt(t\\,' + A0FV.toFixed(3) + ')[ad1];[ad1][ct]overlay=' + xFV + ':' + yFV + ':shortest=1:enable=gte(t\\,' + A0FV.toFixed(3) + ')[x];[x][p]overlay=' + xFV + ':' + yFV + ':eof_action=pass:enable=gte(t\\,' + A0FV.toFixed(3) + ')[o]'
         : '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad0];[b]scale=' + (wFV - 40) + ':' + (hFV - 70) + ',format=rgba,geq=r=\'r(X,Y)\':g=\'g(X,Y)\':b=\'b(X,Y)\':a=\'if(gt(hypot(max(abs(X-W/2)-(W/2-34),0),max(abs(Y-H/2)-(H/2-34),0)),34),0,255)\'[pip];color=c=white:s=' + (wFV - 28) + 'x' + (hFV - 58) + ':r=30,format=rgba,geq=r=255:g=255:b=255:a=\'if(gt(hypot(max(abs(X-W/2)-(W/2-40),0),max(abs(Y-H/2)-(H/2-40),0)),40),0,255)\'[cad];[ad0][cad]overlay=' + (xFV + 14) + ':' + (yFV + 20) + ':shortest=1[x];[x][pip]overlay=' + (xFV + 20) + ':' + (yFV + 26) + ':eof_action=pass[o]')
       : DET.length && THEME !== 'aurelie' && THEME !== 'studio' ? grapheD : THEME === 'aurelie' || THEME === 'studio'
         ? '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad];[2:v]fps=30,format=gray,scale=720:1280,split=2[m][m2];[m2]dilation,dilation,dilation,dilation,dilation,dilation,dilation,dilation,dilation[md];color=c=white:s=720x1280:r=30,format=rgba[w];[w][md]alphamerge[ct];[ad][ct]overlay=0:0:shortest=1[adc];[b][m]alphamerge[p];[adc][p]overlay=0:0:eof_action=pass[o]'
         : '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad];[2:v]fps=30,format=gray,scale=720:1280[m];[b][m]alphamerge[p];[ad][p]overlay=0:0:eof_action=pass[o]',
       '-map', '[o]', '-map', '0:a', '-c:v', 'libx264', '-crf', '16', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-c:a', 'copy', '-t', TOT.toFixed(3), fond])
+    if (FV && FVok) { // la transition : elle se réduit pendant que ses images arrivent
+      const tr = join(st, 'fv-transition'); rmSync(tr, { recursive: true, force: true }); mkdirSync(tr, { recursive: true })
+      const f0 = Math.round(A0FV * FPS), nT = Math.round(TRFV * FPS), liste = []
+      for (let i = 0; i < nT; i++) { const f = f0 + i, t = f / FPS, k = kFVat(t), fr = (kFV < 1 ? (1 - k) / (1 - kFV) : 0), w = Math.round(720 * k / 2) * 2, h = Math.round(1280 * k / 2) * 2, x = Math.round(xFV * fr), y = Math.round(yFV * fr)
+        const im = join(tr, 'b' + i + '.png'), out = join(tr, 't' + String(i).padStart(3, '0') + '.png'), m = piste[f] || noir, d = pistes.derriere[f] || vide
+        lancer('ffmpeg', ['-y', '-v', 'error', '-ss', t.toFixed(3), '-i', base, '-frames:v', '1', im])
+        lancer('ffmpeg', ['-y', '-v', 'error', '-i', im, '-i', d, '-i', m, '-filter_complex', '[0]format=rgba,split=2[b0][b1];[2]format=gray,scale=720:1280,split=2[m][m2];[m2]' + Array(11).fill('dilation').join(',') + '[md];color=c=white:s=720x1280,format=rgba[w];[w][md]alphamerge,scale=' + w + ':' + h + '[ct];[b1][m]alphamerge,scale=' + w + ':' + h + '[p];[b0][1]overlay=0:0[x];[x][ct]overlay=' + x + ':' + y + ':shortest=1[x2];[x2][p]overlay=' + x + ':' + y + '[o]', '-map', '[o]', '-frames:v', '1', out])
+        liste.push(out) }
+      const avecTr = join(st, 'collage-fond-tr.mp4')
+      lancer('ffmpeg', ['-y', '-v', 'error', '-i', fond, '-framerate', String(FPS), '-i', join(tr, 't%03d.png'), '-filter_complex', '[1:v]setpts=PTS-STARTPTS+' + (f0 / FPS).toFixed(4) + '/TB[tr];[0:v][tr]overlay=0:0:eof_action=pass[o]', '-map', '[o]', '-map', '0:a', '-c:v', 'libx264', '-crf', '16', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-c:a', 'copy', avecTr])
+      if (existsSync(avecTr)) fond = avecTr
+    }
   }
 
   // ── Le médaillon : sa vidéo recadrée sur le visage, dans un cercle, sur le papier ──
