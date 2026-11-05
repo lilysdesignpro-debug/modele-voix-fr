@@ -830,7 +830,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   for (const L of K.listes || []) {
     if (L.type === 'notes') { // la to-do d'appli et ses 4 looks, dessinées par listes.mjs
       const Lm = listeNotes(L, { clamp, doux, rebond, esc, couleurs: { coche: (K.couleurs || {}).coche || coul.mot || C?.motFort?.couleur || '#F25C9A' } }); if (!Lm) continue
-      const t0 = tf(L.t), b = Math.min(TOT - 0.1, t0 + Lm.duree), y = clamp(basVisage(t0, b) + 50, 430, 1280 - 290 - Lm.hauteur)
+      const t0 = tf(L.t), b = Math.min(TOT - 0.1, t0 + Lm.duree), y = FV ? clamp(hautTete(t0, b) - Lm.hauteur - 30, 110, 1280 - 290 - Lm.hauteur) : clamp(basVisage(t0, b) + 50, 430, 1280 - 290 - Lm.hauteur)
       el.push({ a: t0, b, calque: 'devant', zone: 'geant', dessin: t => '<div style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)).toFixed(2) + '">' + Lm.dessin(t - t0, Math.round(y)) + '</div>' })
       sons.push(...Lm.sons(t0).map(x => ({ ...x, vol: Math.min(x.vol, 0.09) }))); continue
     }
@@ -877,8 +877,8 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     const Em = effet(E, { clamp, doux, rebond, esc, dossier: dir, couleurs: { marqueur: E.couleur || '#FFE14D', contour: '#2b2416', feutre: coul.mot || C?.motFort?.couleur || '#E8613C', decor } })
     if (!Em) continue
     const t0 = tf(E.t), b = Math.min(TOT - 0.1, t0 + Em.duree), haut = E.type === 'choc' || E.type === 'commentaires'
-    const yHaut = hautTete(t0, b) - Em.hauteur - 24, y = haut && yHaut >= 110 ? yHaut : clamp(basVisage(t0, b) + 50, 430, 1280 - 290 - Em.hauteur)
-    const yP = Em.place ? clamp(hautTete(t0, b) + 40, 200, 1280 - 300 - Em.hauteur) : null
+    const yHaut = hautTete(t0, b) - Em.hauteur - 24, y = (haut || FV) && yHaut >= 110 ? yHaut : clamp(basVisage(t0, b) + 50, 430, 1280 - 290 - Em.hauteur)
+    const yP = Em.place ? clamp(FV ? hautTete(t0, b) - Em.hauteur - 20 : hautTete(t0, b) + 40, FV ? 110 : 200, 1280 - 300 - Em.hauteur) : null
     el.push({ a: t0, b, calque: 'devant', zone: 'geant', dessin: t => '<div style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)).toFixed(2) + '">' + Em.dessin(t - t0, Math.round(yP ?? y)) + '</div>' })
     sons.push(...Em.sons(t0))
   }
