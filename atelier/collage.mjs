@@ -17,6 +17,7 @@ import { zones as zonesPlateforme } from './marges.mjs'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
+import { liste as listeNotes } from './listes.mjs'
 import { effet, POLICES_EFFETS, couleurDecor } from './effets.mjs'
 import { etoileGonflee, etoileTrait, etoileBlanche, nuage } from './decor.mjs'
 
@@ -827,6 +828,12 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
 
   // 7 bis. LISTES ANIMÉES : quand elle énumère (« 3 erreurs », « mes étapes »), au lieu d'une liste à cocher
   for (const L of K.listes || []) {
+    if (L.type === 'notes') { // la to-do d'appli et ses 4 looks, dessinées par listes.mjs
+      const Lm = listeNotes(L, { clamp, doux, rebond, esc, couleurs: { coche: (K.couleurs || {}).coche || coul.mot || C?.motFort?.couleur || '#F25C9A' } }); if (!Lm) continue
+      const t0 = tf(L.t), b = Math.min(TOT - 0.1, t0 + Lm.duree), y = clamp(basVisage(t0, b) + 50, 430, 1280 - 290 - Lm.hauteur)
+      el.push({ a: t0, b, calque: 'devant', zone: 'geant', dessin: t => '<div style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)).toFixed(2) + '">' + Lm.dessin(t - t0, Math.round(y)) + '</div>' })
+      sons.push(...Lm.sons(t0).map(x => ({ ...x, vol: Math.min(x.vol, 0.09) }))); continue
+    }
     const t0 = tf(L.t), items = (L.items || []).slice(0, 5), n = items.length; if (!n) continue
     const pas = L.type === 'ticket' ? 0.45 : 0.6, b = Math.min(TOT - 0.1, t0 + (L.duree ?? Math.max(3.5, 1.2 + n * pas + 1.6)))
     const hauteur = { ticket: 130 + n * 44, etiqueteuse: 40 + n * 74, postit: n > 3 ? 420 : 220, tampon: 150 + n * 50 }[L.type] || 300

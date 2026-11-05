@@ -706,7 +706,7 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
   for (const [k, L] of (P.listes || []).entries()) {
     const borne = (x, a, b) => Math.max(a, Math.min(b, x)), dx = x => 1 - Math.pow(1 - borne(x, 0, 1), 3)
     const rb = x => { x = borne(x, 0, 1); const c = 1.4; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2) }
-    const Lm = listeAnimee(L, { clamp: borne, doux: dx, rebond: rb, esc: x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;'), couleurs: { accent, etiquette: '#D62B2B', tampon: accent, ...(P.couleursListe || {}) } })
+    const Lm = listeAnimee(L, { clamp: borne, doux: dx, rebond: rb, esc: x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;'), couleurs: { accent, coche: accent, etiquette: '#D62B2B', tampon: accent, ...(P.couleursListe || {}) } })
     if (!Lm) continue
     const t0 = nt(L.t), fin = Math.min(TOT, t0 + Lm.duree), y = Math.round(placer('liste', 760, Lm.hauteur, t0, fin) - Lm.hauteur / 2)
     const IPS = 15, nImg = Math.ceil(Lm.anim * IPS)

@@ -1,11 +1,11 @@
 {
- "version": "202611051329",
+ "version": "202611051333",
  "modeEmploi": 2,
  "fichiers": {
   "assembler.mjs": "d6e4e2627383400a9f0f3a06bc069cb70e4c9632467e0cc3a45549adce79a44a",
   "chartes/modele.json": "9c4118330751cc2b5b391ceaa8a1fa3db887e5ffa67fb0bb457d3629b5d352ce",
   "coach.mjs": "d3984710c67707a9ad40141bfd6d18d4c0286c0e02ae1e77199287cd2f0d1ced",
-  "collage.mjs": "8dea656e80394598389dc7c732f7871cd32a275e43dd50e8b71aee2b688ad46a",
+  "collage.mjs": "026ef3260bd6392c361f42875820166af6546d06279387fe6dba85d87be41b05",
   "declinaisons.mjs": "717f82305a09a2873941ce6f3b7ceebd92d1012d33bffe3d70206aaa6b1ecd84",
   "decor.mjs": "37c36fd797af9e0cd3cf3d952c1d3d1a30a69c9c4c0378d55c17e89bb8480fc5",
   "defi.mjs": "a995dc8ccdd539163b4e60dcee2a0d2019184b2520c7bbc703e3ebc2e14fb961",
@@ -21,7 +21,7 @@
   "listes.mjs": "d9df0bae0964c2dd5fd29bd1922c333cbcd267467840e4f934a3b290ead3137e",
   "marges.mjs": "6672934028c7a36689779fb1ebd58dd127e5265b2b7500ed09c3ca22389e77b6",
   "mettre-a-jour.mjs": "916e4d202a0747a791d1844d022e87740df7d6d2d70449767279aa579582a348",
-  "montage.mjs": "abad34e0602af534687fdd2cec69215a7c78d5e516a03f7d506cc28027942cd5",
+  "montage.mjs": "d6e13df16eb0ec5d9187849ef26254711f382dc86025a160445d270b2eb253a2",
   "polices/Alice-400.woff2": "5b965140642abe6952917a3c3ca293fabfaf7a69b6759f205098df4294c2a350",
   "polices/Anton-400.woff2": "d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
   "polices/ArchivoBlack-400.woff2": "25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
