@@ -28,7 +28,10 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   const { TOT, HOOK } = E, K = P.collage || {}
   const coul = { ...COUL, ...(K.couleurs || {}) }
   const tf = t => E.temps[Math.min(E.temps.length - 1, Math.max(0, Math.round(t / 0.05)))] // temps d'origine → temps final
-  const vis = t => E.visages[Math.min(E.visages.length - 1, Math.max(0, Math.round(t * 10)))]
+  const FV = K.fondVert && (K.fondVert.images || []).length ? K.fondVert : null, kFV = FV ? Math.min(0.75, Math.max(0.4, FV.taille || 0.56)) : 1
+  const wFV = Math.round(720 * kFV / 2) * 2, hFV = Math.round(1280 * kFV / 2) * 2, xFV = FV?.cote === 'droite' ? 720 - wFV - 20 : Math.round((720 - wFV) / 2), yFV = 1280 - hFV
+  const visBrut = t => E.visages[Math.min(E.visages.length - 1, Math.max(0, Math.round(t * 10)))]
+  const vis = t => { const v = visBrut(t); return v && FV ? [v[0] * kFV + xFV, v[1] * kFV + yFV, v[2] * kFV + xFV, v[3] * kFV + yFV] : v }
   const visages = (a, b) => { const l = []; for (let t = a; t <= b; t += 0.1) { const v = vis(t); if (v) l.push(v) } return l }
   const hautTete = (a, b) => Math.min(...visages(a, b).map(v => v[1]), 1280)
   const basVisage = (a, b) => Math.max(...visages(a, b).map(v => v[3]), 0)
@@ -870,6 +873,72 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     sons.push(...Em.sons(t0))
   }
 
+  // 7 sexies. Les effets détourés : son décor change, elle devient papier, un trait de feutre la dessine, une spirale l'aspire
+  const detourTient = (a, b) => { // la silhouette est-elle assez stable pour un effet détouré ?
+    const d = join(st, 'garde-' + a.toFixed(2)); rmSync(d, { recursive: true, force: true })
+    spawnSync('node', [join(ICI, 'detourage', 'detourer.mjs'), join(st, 'base-av.mp4'), a.toFixed(3), b.toFixed(3), d], { stdio: 'ignore' })
+    const o = spawnSync('ffmpeg', ['-v', 'error', '-i', join(d, 'masque-%04d.png'), '-vf', 'scale=36:64', '-f', 'rawvideo', '-pix_fmt', 'gray', '-'], { maxBuffer: 1 << 26 }).stdout
+    const n = o ? Math.floor(o.length / 2304) : 0; if (n < 10) return { ok: false, pourquoi: 'détourage impossible' }
+    const im = k => { const r = []; for (let i = 0; i < 2304; i++) r.push(o[k * 2304 + i] > 128); return r }
+    let prec = im(0), ious = [], aires = []
+    let bords = 0
+    for (let k = 1; k < n; k++) { const c = im(k); let I = 0, U = 0, A = 0; for (let i = 0; i < 2304; i++) { if (c[i] && prec[i]) I++; if (c[i] || prec[i]) U++; if (c[i]) A++ } ious.push(U ? I / U : 0); aires.push(A / 2304); prec = c
+      for (let y = 0; y < 30; y++) for (const x of [0, 1, 2, 33, 34, 35]) if (c[y * 36 + x]) bords++ } // le haut du corps touche le bord : coupée, ou bout de décor pris pour elle
+    bords /= n - 1
+    ious.sort((x, y) => x - y); const med = ious[Math.floor(ious.length / 2)], bas = ious[Math.floor(ious.length * 0.1)], aire = aires.reduce((x, y) => x + y, 0) / aires.length
+    if (aire < 0.06) return { ok: false, pourquoi: 'on la voit à peine à ce moment-là' }
+    if (med < 0.975 || bas < 0.92) return { ok: false, pourquoi: 'elle bouge trop à ce moment-là (stabilité ' + Math.round(med * 100) + ' %)' }
+    if (bords > 6) return { ok: false, pourquoi: 'sa silhouette touche le bord de l’image (bras levés, ou un bout de décor pris pour elle)' }
+    return { ok: true }
+  }
+  const DET = (K.detours || []).map(D => { const a = tf(D.t), b = Math.min(TOT - 0.1, a + (D.duree || 2.5)); return { ...D, a, b } })
+    .filter(D => { const g = D.forcer ? { ok: true } : detourTient(D.a, D.b); if (!g.ok) console.log('⚠️ EFFET RETIRÉ : « ' + D.type + ' » à ' + D.t + ' s, ' + g.pourquoi + ' : image normale gardée'); return g.ok })
+  const sigD = coul.mot || C?.motFort?.couleur || '#C0182B'
+  const imgD = f => { const p = f && (f.includes(':') || f.startsWith('/') ? f : join(dir, f)); if (!p || !existsSync(p)) return null; return 'data:image/' + (p.toLowerCase().endsWith('png') ? 'png' : 'jpeg') + ';base64,' + readFileSync(p).toString('base64') }
+  for (const D of DET) {
+    const { a, b } = D, c1 = D.couleur || sigD, src = D.type === 'fond' ? imgD(D.image) : null
+    const ent = t => doux((t - a) / 0.18) * (1 - doux((t - (b - 0.18)) / 0.18))
+    if (D.type === 'fond') el.push({ a, b, calque: 'derriere', dessin: t => '<div style="position:absolute;inset:0;opacity:' + ent(t).toFixed(2) + ';background:' + (src ? 'url(' + src + ') center/cover' : 'radial-gradient(circle at 50% 38%,' + c1 + ' 0%,' + c1 + 'cc 45%,#1b1416 100%)') + '"></div>' })
+    if (D.type === 'papier') {
+      el.push({ a, b, calque: 'derriere', dessin: t => '<div style="position:absolute;inset:0;opacity:' + ent(t).toFixed(2) + ';background:#C9A27A"><svg width="720" height="1280" style="position:absolute;inset:0"><filter id="kr"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="3" seed="4"/><feColorMatrix values="0 0 0 0 .35  0 0 0 0 .24  0 0 0 0 .12  0 0 0 .45 0"/></filter><rect width="720" height="1280" filter="url(#kr)"/></svg></div>' })
+      el.push({ a, b, calque: 'devant', dessin: t => { const v = vis(t); if (!v) return ''; const o = ent(t).toFixed(2), y = Math.round(v[3] + 120)
+        const sc = (x, r) => '<div style="position:absolute;left:' + x + 'px;top:' + y + 'px;width:130px;height:40px;background:rgba(245,236,214,.82);transform:rotate(' + r + 'deg);box-shadow:0 2px 6px rgba(0,0,0,.18);opacity:' + o + '"></div>'
+        return sc(Math.round(v[0] - 150), -24) + sc(Math.round(v[2] + 20), 22) } })
+    }
+    if (D.type === 'dessin') el.push({ a, b, calque: 'derriere', dessin: () => '<i></i>' }) // rien derrière : juste de quoi la détourer
+    if (D.type === 'vertige') el.push({ a, b, calque: 'derriere', dessin: t => { const u = t - a, v = vis(t), cx = v ? Math.round((v[0] + v[2]) / 2) : 360, cy = v ? Math.round((v[1] + v[3]) / 2) : 520
+      return '<div style="position:absolute;inset:0;opacity:' + ent(t).toFixed(2) + ';background:#15101a;overflow:hidden"><div style="position:absolute;left:' + (cx - 1100) + 'px;top:' + (cy - 1100) + 'px;width:2200px;height:2200px;border-radius:50%;transform:rotate(' + Math.round(u * 140) + 'deg) scale(' + (1 + u * 0.35).toFixed(3) + ');background:repeating-conic-gradient(from 0deg,' + c1 + ' 0deg 15deg,#FBF3EA 15deg 30deg);-webkit-mask:radial-gradient(circle,transparent 0,#000 3%)"></div>'
+        + '<div style="position:absolute;inset:0;background:radial-gradient(circle at ' + cx + 'px ' + cy + 'px,rgba(21,16,26,0) 0,rgba(21,16,26,.15) 35%,rgba(21,16,26,.85) 75%)"></div></div>' } })
+    sons.push({ t: a, fam: 'whoosh', vol: 0.07 })
+  }
+
+  // 7 septies. Le fond vert : ses images derrière elle
+  let FVok = false
+  if (FV) {
+    let nFV = 0
+    const imgF = f => { const p = f && (f.includes(':') || f.startsWith('/') ? f : join(dir, f)); if (!p || !existsSync(p)) return null
+      const cd = spawnSync('ffmpeg', ['-v', 'info', '-i', p, '-vf', 'cropdetect=limit=28:round=2:skip=0', '-frames:v', '3', '-f', 'null', '-'], { encoding: 'utf8' }).stderr || '', m = [...cd.matchAll(/crop=(\d+):(\d+):(\d+):(\d+)/g)].pop()
+      const sortieI = join(st, 'fv-' + (nFV++) + '.jpg'); spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', p, '-vf', (m ? 'crop=' + m.slice(1).join(':') + ',' : '') + "scale='min(1080,iw)':-2", '-q:v', '3', sortieI])
+      return existsSync(sortieI) ? 'data:image/jpeg;base64,' + readFileSync(sortieI).toString('base64') : null }
+    const fondFV = FV.fond || '#d9d4cf', segs = FV.images.map((I, k, l) => ({ ...I, a: tf(I.t), b: l[k + 1] ? tf(l[k + 1].t) : TOT, srcs: [].concat(I.src || []).map(imgF).filter(Boolean) })).filter(I => I.srcs.length)
+    const grille = n => n === 1 ? [[0, 0, 720, 1280]] : n === 2 ? [[0, 0, 360, 1280], [360, 0, 360, 1280]] : n === 3 ? [[0, 0, 720, 640], [0, 640, 360, 640], [360, 640, 360, 640]] : [[0, 0, 360, 640], [360, 0, 360, 640], [0, 640, 360, 640], [360, 640, 360, 640]]
+    const pre = []
+    const flou = src => '<div style="position:absolute;inset:-60px;background:url(' + src + ') center/cover;filter:blur(34px) brightness(.82) saturate(1.1)"></div>'
+    pre.push({ a: 0, b: TOT, calque: 'derriere', dessin: () => '<div style="position:absolute;inset:0;overflow:hidden;background:' + fondFV + '">' + (FV.fond || !segs[0] ? '' : flou(segs[0].srcs[0])) + '</div>' })
+    for (const I of segs) {
+      const cases = grille(Math.min(4, I.srcs.length))
+      pre.push({ a: I.a, b: I.b, calque: 'derriere', dessin: t => { const q = doux((t - I.a) / 0.12)
+        return cases.map(([x, y, w, h], k) => '<div style="position:absolute;left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;overflow:hidden;opacity:' + q.toFixed(2) + ';box-shadow:inset 0 0 0 2px #fff">' + flou(I.srcs[k]) + '<div style="position:absolute;inset:0;background:url(' + I.srcs[k] + ') center/' + (cases.length === 1 ? 'contain' : 'cover') + ' no-repeat"></div></div>').join('') } })
+      if ((I.etiquettes || []).length) el.push({ a: I.a, b: I.b, calque: 'devant', dessin: t => { const q = clamp(rebond((t - I.a - 0.15) / 0.3), 0, 1.08)
+        return cases.map(([x, y, w], k) => I.etiquettes[k] ? '<div style="position:absolute;left:' + (x + 18) + 'px;top:' + (y + (y ? 18 : 110)) + 'px;max-width:' + (w - 36) + 'px;padding:9px 16px;border-radius:12px;background:#fff;color:#151515;font:700 26px/1.15 Poppins,sans-serif;box-shadow:0 6px 16px rgba(0,0,0,.3);transform:scale(' + q.toFixed(3) + ');transform-origin:left top">' + esc(I.etiquettes[k]) + '</div>' : '').join('') } })
+      sons.push({ t: I.a, fam: 'clic', vol: 0.06 })
+    }
+    el.unshift(...pre)
+    const ech = [0.12, 0.5, 0.85].map(f => Math.max(0.2, TOT * f)).map(a => [a, Math.min(TOT - 0.1, a + 2)])
+    const g = FV.forcer ? { ok: true } : ech.map(([a, b]) => detourTient(a, b)).find(r => !r.ok) || { ok: true }
+    FVok = g.ok; if (!FVok) console.log('⚠️ FOND VERT : détourage trop fragile (' + g.pourquoi + ') : elle passe dans une fenêtre aux coins arrondis')
+  }
+
   // 8. La fin. Pop : « commente » et le mot-clé qui respire, en rond gonflé. Éditorial : « commente » en italique et
   //    le mot-clé entre guillemets, en flou vers net. Collage : le mot-clé se tape dans une barre de commentaire.
   if (K.fin?.motCle && THEME === 'doux') {
@@ -1024,16 +1093,31 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   if (unies.length) {
     const dt = join(st, 'collage-detour'); rmSync(dt, { recursive: true, force: true }); mkdirSync(dt, { recursive: true })
     const piste = new Array(N + 2).fill(null)
-    for (const [k, [x, y]] of unies.entries()) {
+    for (const [k, [x, y]] of (FV && !FVok ? [] : unies.entries())) {
       const d = join(dt, `f${k}`)
       spawnSync('node', [join(ICI, 'detourage', 'detourer.mjs'), base, x.toFixed(3), y.toFixed(3), d], { stdio: 'inherit' })
       readdirSync(d).filter(z => z.startsWith('masque-')).sort().forEach((m, i) => { const fr = Math.round(x * FPS) + i; if (fr < piste.length) piste[fr] = join(d, m) })
     }
     const noir = join(st, 'masque-noir.png'); lancer('ffmpeg', ['-y', '-v', 'error', '-f', 'lavfi', '-i', 'color=c=black:s=720x1280', '-frames:v', '1', '-pix_fmt', 'gray', noir])
     rle(piste.slice(0, N).map(m => m || noir), 'collage-masques.txt')
+    const dansD = (f, types) => DET.some(D => types.includes(D.type) && D.contour !== false && f / FPS >= D.a && f / FPS < D.b)
+    const avecB = DET.some(D => D.type !== 'dessin' && D.contour !== false), avecC = DET.some(D => D.type === 'dessin')
+    if (avecB) rle(piste.slice(0, N).map((m, f) => (dansD(f, ['fond', 'papier', 'vertige']) && m) || noir), 'collage-contour-blanc.txt')
+    if (avecC) rle(piste.slice(0, N).map((m, f) => (dansD(f, ['dessin']) && m) || noir), 'collage-contour-trait.txt')
+    const colTrait = (DET.find(D => D.type === 'dessin')?.couleur || sigD).replace('#', '0x')
     fond = join(st, 'collage-fond.mp4')
-    lancer('ffmpeg', ['-y', '-v', 'error', '-i', base, '-f', 'concat', '-safe', '0', '-i', join(st, 'collage-derriere.txt'), '-f', 'concat', '-safe', '0', '-i', join(st, 'collage-masques.txt'),
-      '-filter_complex', THEME === 'aurelie' || THEME === 'studio'
+    const plusD = [...(avecB ? ['-f', 'concat', '-safe', '0', '-i', join(st, 'collage-contour-blanc.txt')] : []), ...(avecC ? ['-f', 'concat', '-safe', '0', '-i', join(st, 'collage-contour-trait.txt')] : [])]
+    const dil = n => Array(n).fill('dilation').join(',')
+    const grapheD = '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad0];[2:v]fps=30,format=gray,scale=720:1280[m];'
+      + (THEME === 'aurelie' || THEME === 'studio' ? '' : '')
+      + (avecB ? '[3:v]fps=30,format=gray,scale=720:1280,' + dil(9) + '[mb];color=c=white:s=720x1280:r=30,format=rgba[wb];[wb][mb]alphamerge[cb];[ad0][cb]overlay=0:0:shortest=1[ad1];' : '[ad0]null[ad1];')
+      + (avecC ? '[' + (avecB ? 4 : 3) + ':v]fps=30,format=gray,scale=720:1280,split=2[t1][t2];[t1]' + dil(15) + '[e1];[t2]' + dil(8) + '[e2];color=c=' + colTrait + ':s=720x1280:r=30,format=rgba[wc];[wc][e1]alphamerge[c1];[ad1]split=2[ad1a][ad1b];[ad1a][c1]overlay=0:0:shortest=1[x1];[ad1b]format=rgba[ad1r];[ad1r][e2]alphamerge[inner];[x1][inner]overlay=0:0:shortest=1[ad2];' : '[ad1]null[ad2];')
+      + '[b][m]alphamerge[p];[ad2][p]overlay=0:0:eof_action=pass[o]'
+    lancer('ffmpeg', ['-y', '-v', 'error', '-i', base, '-f', 'concat', '-safe', '0', '-i', join(st, 'collage-derriere.txt'), '-f', 'concat', '-safe', '0', '-i', join(st, 'collage-masques.txt'), ...(DET.length ? plusD : []),
+      '-filter_complex', FV ? (FVok
+        ? '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad0];[2:v]fps=30,format=gray,scale=720:1280,split=2[m][m2];[m2]' + Array(11).fill('dilation').join(',') + '[md];color=c=white:s=720x1280:r=30,format=rgba[w];[w][md]alphamerge,scale=' + wFV + ':' + hFV + '[ct];[b][m]alphamerge,scale=' + wFV + ':' + hFV + '[p];[ad0][ct]overlay=' + xFV + ':' + yFV + ':shortest=1[x];[x][p]overlay=' + xFV + ':' + yFV + ':eof_action=pass[o]'
+        : '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad0];[b]scale=' + (wFV - 40) + ':' + (hFV - 70) + ',format=rgba,geq=r=\'r(X,Y)\':g=\'g(X,Y)\':b=\'b(X,Y)\':a=\'if(gt(hypot(max(abs(X-W/2)-(W/2-34),0),max(abs(Y-H/2)-(H/2-34),0)),34),0,255)\'[pip];color=c=white:s=' + (wFV - 28) + 'x' + (hFV - 58) + ':r=30,format=rgba,geq=r=255:g=255:b=255:a=\'if(gt(hypot(max(abs(X-W/2)-(W/2-40),0),max(abs(Y-H/2)-(H/2-40),0)),40),0,255)\'[cad];[ad0][cad]overlay=' + (xFV + 14) + ':' + (yFV + 20) + ':shortest=1[x];[x][pip]overlay=' + (xFV + 20) + ':' + (yFV + 26) + ':eof_action=pass[o]')
+      : DET.length && THEME !== 'aurelie' && THEME !== 'studio' ? grapheD : THEME === 'aurelie' || THEME === 'studio'
         ? '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad];[2:v]fps=30,format=gray,scale=720:1280,split=2[m][m2];[m2]dilation,dilation,dilation,dilation,dilation,dilation,dilation,dilation,dilation[md];color=c=white:s=720x1280:r=30,format=rgba[w];[w][md]alphamerge[ct];[ad][ct]overlay=0:0:shortest=1[adc];[b][m]alphamerge[p];[adc][p]overlay=0:0:eof_action=pass[o]'
         : '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad];[2:v]fps=30,format=gray,scale=720:1280[m];[b][m]alphamerge[p];[ad][p]overlay=0:0:eof_action=pass[o]',
       '-map', '[o]', '-map', '0:a', '-c:v', 'libx264', '-crf', '16', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-c:a', 'copy', '-t', TOT.toFixed(3), fond])
