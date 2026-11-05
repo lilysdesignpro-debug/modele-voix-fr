@@ -20,7 +20,7 @@ import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { habillage } from './habillages.mjs'
 import { liste as listeAnimee, POLICES_LISTES } from './listes.mjs'
-import { effet as effetPonctuel, POLICES_EFFETS } from './effets.mjs'
+import { effet as effetPonctuel, POLICES_EFFETS, couleurDecor } from './effets.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
 const PROJETS = join(ICI, 'projets')
@@ -378,7 +378,7 @@ async function monter(nom) {
   const page = await nav.newPage(); await page.setViewport({ width: 720, height: 1280 })
   const face = (p) => `@font-face{font-family:'${p.famille}';font-weight:${p.poids};src:url(data:font/${p.fichier.split('.').pop().toLowerCase()};base64,${readFileSync(join(ICI, 'polices', p.fichier)).toString('base64')})}`
   const S = C.sousTitres, F = C.motFort, T = C.titre, E = C.etiquette
-  const css = `${face(C.polices.texte)}${face(C.polices.fort)}${face(C.polices.titre)}${face({ fichier: 'Caveat-700.woff2', famille: 'Main', poids: 700 })}${face({ fichier: 'DMSerifDisplay-400.woff2', famille: 'Serif', poids: 400 })}${POLICES_LISTES.map(([fichier, famille, poids]) => face({ fichier, famille, poids })).join('')}${POLICES_EFFETS.filter(([, f]) => f !== 'Carnet').map(([fichier, famille, poids]) => face({ fichier, famille, poids })).join('')}
+  const css = `${face(C.polices.texte)}${face(C.polices.fort)}${face(C.polices.titre)}${face({ fichier: 'Caveat-700.woff2', famille: 'Main', poids: 700 })}${face({ fichier: 'DMSerifDisplay-400.woff2', famille: 'Serif', poids: 400 })}${POLICES_LISTES.map(([fichier, famille, poids]) => face({ fichier, famille, poids })).join('')}${POLICES_EFFETS.filter(([, f]) => f !== 'Carnet').map(([fichier, famille, poids, style]) => face({ fichier, famille, poids, style })).join('')}
 html,body{margin:0;width:720px;height:1280px;background:transparent}
 .fort{font-family:'${C.polices.fort.famille}',cursive;font-weight:${C.polices.fort.poids};color:${F.couleur};letter-spacing:${F.espacement};text-transform:${F.majuscules ? 'uppercase' : 'none'};${F.contour ? `-webkit-text-stroke:${F.contourEpaisseur}px ${F.contour};paint-order:stroke fill;` : ''}${F.fond ? `background:${F.fond};padding:0 14px 2px;border-radius:3px;` : ''}display:inline-block;transform:rotate(${F.rotation}deg);text-shadow:none;line-height:1}
 .st{position:absolute;left:${Math.max(S.marge, 48)}px;right:${Math.max(S.marge, 96)}px;transform:translateY(-50%);text-align:center;font-family:'${C.polices.texte.famille}',sans-serif;font-weight:${C.polices.texte.poids};font-size:${S.taille}px;line-height:1.22;color:${S.couleur};letter-spacing:${S.espacement};text-transform:${S.majuscules ? 'uppercase' : 'none'};text-shadow:${S.ombre}${S.couleur && /^#f|^#e|^#d|white|#fff/i.test(S.couleur) ? ', 0 0 1px rgba(0,0,0,.9), 1px 1px 0 rgba(0,0,0,.35), -1px -1px 0 rgba(0,0,0,.35)' : ''}}
@@ -720,7 +720,8 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
   for (const [k, E] of (P.effets || []).entries()) {
     const borne = (x, a, b) => Math.max(a, Math.min(b, x)), dx = x => 1 - Math.pow(1 - borne(x, 0, 1), 3)
     const rb = x => { x = borne(x, 0, 1); const c = 1.4; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2) }
-    const Em = effetPonctuel(E, { clamp: borne, doux: dx, rebond: rb, esc: x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;'), dossier: dir, couleurs: { marqueur: E.couleur || '#FFE14D', contour: '#2b2416', feutre: accent } })
+    const decor = E.type === 'duo' && (!E.couleur || E.couleur === 'auto') ? couleurDecor(spawnSync('ffmpeg', ['-v', 'error', '-ss', String(E.t), '-i', join(dir, 'source.mp4'), '-frames:v', '1', '-vf', 'scale=36:64', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-']).stdout, null) : null
+    const Em = effetPonctuel(E, { clamp: borne, doux: dx, rebond: rb, esc: x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;'), dossier: dir, couleurs: { marqueur: E.couleur || '#FFE14D', contour: '#2b2416', feutre: accent, decor } })
     if (!Em) continue
     const t0 = nt(E.t), fin = Math.min(TOT, t0 + Em.duree), haut = E.type === 'choc' || E.type === 'commentaires'
     const y = Math.round(placer('effet', haut ? 260 : 780, Em.hauteur, t0, fin) - Em.hauteur / 2)

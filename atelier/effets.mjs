@@ -5,9 +5,41 @@
 //   avantapres    : deux de SES images empilées, « avant » et « après »
 // effet(E, outils) → { hauteur, duree, anim, dessin(dt, y), sons(t0) } ; `y` = le haut de l'effet dans l'image.
 import { readFileSync, existsSync } from 'node:fs'
-export const POLICES_EFFETS = [['GloriaHallelujah-400.woff2', 'Carnet', 400], ['Poppins-600.woff2', 'Poppins', 600], ['Caveat-700.woff2', 'Annot', 700]]
+export const POLICES_EFFETS = [['Sacramento-400.woff2', 'DuoSac', 400], ['Jost-300.woff2', 'DuoJost', 300], ['BebasNeue-400.woff2', 'DuoBebas', 400], ['Gloock-400.woff2', 'DuoGloock', 400], ['ArchivoBlack-400.woff2', 'DuoArchivo', 400], ['Anton-400.woff2', 'Anton', 400], ['Satisfy-400.woff2', 'Script', 400], ['Cormorant-italique.woff2', 'DouxI', 500, 'italic'], ['Fraunces-900.woff2', 'Gros', 900], ['Caveat-700.woff2', 'Annot', 700], ['InstrumentSerif-italique.woff2', 'Didot', 400, 'italic'], ['GloriaHallelujah-400.woff2', 'Carnet', 400], ['Poppins-600.woff2', 'Poppins', 600], ['Caveat-700.woff2', 'Annot', 700]]
 
 const image = f => { if (!f || !existsSync(f)) return null; const ext = f.split('.').pop().toLowerCase(); return `data:image/${ext === 'jpg' ? 'jpeg' : ext};base64,${readFileSync(f).toString('base64')}` }
+
+// LES RECETTES DE DUOS : g = la grosse (famille, graisse, taille pour 10 lettres, interligne, casse, nom réel),
+// f = la fine, et comment elle se pose : « dessus » chevauche le haut et le bas, « traverse » passe au milieu,
+// « autour » au-dessus et en dessous, « biais » en travers.
+export const DUOS = {
+  affiche:  { g: ['DuoBebas', 400, 190, 0.8, 'upper', 'Bebas Neue', 0.4], f: ['DuoSac', 400, 78, 'none', 'Sacramento'], pose: 'dessus' },
+  bloc:     { g: ['DuoArchivo', 400, 100, 1, 'upper', 'Archivo Black', 0.78], f: ['DuoSac', 400, 68, 'none', 'Sacramento'], pose: 'autour' },
+  magazine: { g: ['DuoGloock', 400, 150, 1, 'lower', 'Gloock', 0.52], f: ['DuoJost', 300, 32, 'upper', 'Jost'], pose: 'traverse' },
+  eclat:    { g: ['Anton', 400, 170, 0.86, 'upper', 'Anton', 0.47], f: ['Script', 400, 80, 'none', 'Satisfy'], pose: 'biais' },
+  douceur:  { g: ['DouxI', 500, 150, 0.9, 'lower', 'Cormorant italique', 0.4], f: ['DuoJost', 300, 30, 'upper', 'Jost'], pose: 'autour' },
+  retro:    { g: ['Gros', 900, 130, 0.9, 'lower', 'Fraunces', 0.58], f: ['Annot', 700, 62, 'none', 'Caveat'], pose: 'dessus' },
+  editorial:{ g: ['DuoGloock', 400, 130, 0.95, 'upper', 'Gloock', 0.72], f: ['Didot', 400, 62, 'none', 'Instrument italique'], pose: 'autour' },
+}
+// La couleur du décor : l'image en 36 x 64 (rgb), le cadre du visage à exclure (peau, cheveux) ; on garde les couleurs
+// franches mais pas criardes, on prend la teinte la plus présente, et on la règle pour qu'elle se lise.
+export function couleurDecor(rgb, visage) {
+  if (!rgb || rgb.length < 36 * 64 * 3) return null
+  const seaux = new Map()
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 36; x++) {
+    if (visage && x * 20 > visage[0] - 60 && x * 20 < visage[2] + 60 && y * 20 > visage[1] - 80 && y * 20 < visage[3] + 260) continue
+    const i = (y * 36 + x) * 3, r = rgb[i] / 255, g = rgb[i + 1] / 255, b = rgb[i + 2] / 255
+    const M = Math.max(r, g, b), m = Math.min(r, g, b), l = (M + m) / 2, d = M - m; if (d < 0.12) continue
+    const s = d / (1 - Math.abs(2 * l - 1)); if (s < 0.32 || l < 0.22 || l > 0.8) continue
+    let h = M === r ? ((g - b) / d) % 6 : M === g ? (b - r) / d + 2 : (r - g) / d + 4; h = (h * 60 + 360) % 360
+    if (h >= 8 && h <= 50 && s < 0.62) continue
+    const k = Math.round(h / 24) % 15, o = seaux.get(k) || { n: 0, h: 0, s: 0 }; o.n++; o.h += h; o.s += s; seaux.set(k, o)
+  }
+  const top = [...seaux.values()].sort((a, b) => b.n - a.n)[0]; if (!top || top.n < 12) return null
+  const h = top.h / top.n, s = Math.min(0.72, Math.max(0.45, top.s / top.n)), l = 0.5
+  const f = n => { const k = (n + h / 30) % 12, a = s * Math.min(l, 1 - l); return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))) }
+  return '#' + [f(0), f(8), f(4)].map(v => v.toString(16).padStart(2, '0')).join('')
+}
 
 export function effet(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) {
   const chemin = f => f && (f.includes(':') || f.startsWith('/') ? f : dossier + '/' + f)
@@ -51,6 +83,36 @@ export function effet(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) {
       dessin: (dt, y) => [[av, E.labelAvant || 'AVANT', 0], [ap, E.labelApres || '*APRÈS*', 1]].map(([src, lab, k]) => { const p = doux((dt - k * 0.5) / 0.3); if (p <= 0) return ''
         return '<div style="position:absolute;left:' + (360 - W - 10 + k * (W + 20)) + 'px;top:' + y + 'px;width:' + W + 'px;height:' + H + 'px;border-radius:14px;overflow:hidden;box-shadow:0 10px 24px rgba(0,0,0,.35);opacity:' + p + ';transform:translateY(' + ((1 - p) * 20).toFixed(0) + 'px);background:url(' + src + ') center/cover"><div style="position:absolute;left:12px;top:10px;font:400 30px/1 Carnet,cursive;text-transform:uppercase;color:' + couleurs.marqueur + ';-webkit-text-stroke:5px ' + couleurs.contour + ';paint-order:stroke fill">' + esc(lab) + '</div></div>' }).join(''),
       sons: t0 => [{ t: t0, fam: 'photo', vol: 0.08 }, { t: t0 + 0.5, fam: 'photo', vol: 0.08 }] }
+  }
+  if (E.type === 'duo') {
+    const R = DUOS[E.recette] || DUOS.affiche, grand = String(E.grand || '').trim(); if (!grand) return null
+    const casse = (t, c) => c === 'upper' ? t.toUpperCase() : c === 'lower' ? t.toLowerCase() : t
+    const taille = ls => Math.min(R.g[2], 540 / (R.g[6] * Math.max(...ls.map(l => [...l].length))))
+    let lignesG = E.lignes || [grand]
+    if (!E.lignes && grand.includes(' ') && taille([grand]) < R.g[2] * 0.62) { const m = grand.split(/\s+/); let best = null
+      for (let k = 1; k < m.length; k++) { const c = [m.slice(0, k).join(' '), m.slice(k).join(' ')]; if (!best || taille(c) > taille(best)) best = c } lignesG = best }
+    lignesG = lignesG.map(l => casse(l, R.g[4]))
+    const zG = Math.round(clamp(taille(lignesG), 56, R.g[2]))
+    const hG = Math.round(zG * R.g[3] * lignesG.length), zF = R.f[2], col = E.couleur && E.couleur !== 'auto' ? E.couleur : (couleurs.decor || couleurs.feutre)
+    const fine = E.fine || '#FBF3EA', halo = 'text-shadow:0 0 2px rgba(30,10,15,.85),0 0 10px rgba(30,10,15,.5)'
+    const dessus = E.dessus ? casse(E.dessus, R.f[3]) : '', dessous = E.dessous ? casse(E.dessous, R.f[3]) : ''
+    const autour = R.pose === 'autour', hauteur = hG + (autour ? (dessus ? zF * 0.8 : 0) + (dessous ? zF * 0.9 : 0) : zF * 0.5) + 20
+    const ecr = (t, dt, d0, z, extra) => { const q = clamp((dt - d0) / 0.55, 0, 1) // la fine s'écrit de gauche à droite
+      return '<div style="font:' + R.f[1] + ' ' + z + 'px/1 ' + R.f[0] + ';color:' + fine + ';' + (R.f[3] === 'upper' ? 'letter-spacing:.5em;padding-left:.5em;' : '') + halo + ';clip-path:inset(-20% ' + ((1 - q) * 100).toFixed(1) + '% -20% -5%);' + (extra || '') + '">' + esc(t) + '</div>' }
+    return { hauteur: Math.round(hauteur), anim: 1.6, duree: E.duree ?? 3.2,
+      dessin: (dt, y) => { const p = clamp(rebond(dt / 0.35), 0, 1.08), yG = autour && dessus ? zF * 0.8 : 0
+        let h = '<div style="position:absolute;left:0;right:0;top:' + y + 'px;text-align:center">'
+        h += '<div style="position:absolute;left:0;right:0;top:' + yG + 'px;font:' + R.g[1] + ' ' + zG + 'px/' + R.g[3] + ' ' + R.g[0] + ';color:' + col + ';letter-spacing:-.02em;transform:scale(' + p.toFixed(3) + ');filter:drop-shadow(0 6px 14px rgba(0,0,0,.25))">' + lignesG.map(esc).join('<br>') + '</div>'
+        const pos = (top, txt, d0, extra) => txt ? '<div style="position:absolute;left:0;right:0;top:' + Math.round(top) + 'px">' + ecr(txt, dt, d0, txt === dessous && R.pose !== 'traverse' ? Math.round(zF * 1.1) : zF, extra) + '</div>' : ''
+        if (R.pose === 'dessus') h += pos(-zF * 0.45, dessus, 0.25) + pos(hG - zF * 0.55, dessous, 0.6)
+        else if (R.pose === 'traverse') h += pos(hG / 2 - zF / 2, dessus || dessous, 0.3)
+        else if (R.pose === 'biais') h += pos(hG / 2 - zF * 0.6, dessus || dessous, 0.3, 'transform:rotate(-7deg)')
+        else h += pos(0, dessus, 0.2) + pos(yG + hG - 4, dessous, 0.55)
+        if (E.etiquettes) { const q = clamp((dt - 0.9) / 0.3, 0, 1), chip = (x, yy, t) => '<div style="position:absolute;left:' + x + 'px;top:' + Math.round(yy) + 'px;padding:11px 24px;border-radius:14px;background:#1d1b1e;border:3px solid #fff;color:#fff;font:600 25px/1 Poppins,sans-serif;box-shadow:0 6px 16px rgba(0,0,0,.35);opacity:' + q + ';transform:scale(' + (0.8 + 0.2 * q).toFixed(2) + ')">' + esc(t) + '</div>'
+          const fl = d => '<svg style="position:absolute;left:0;top:0;overflow:visible;opacity:' + q + '" width="720" height="10"><path d="' + d + '" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" style="filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))"/></svg>'
+          h += chip(60, -100, R.g[5]) + fl('M150 -44 Q 120 -10 150 ' + Math.round(yG + 10)) + chip(420, hauteur + 10, R.f[4]) + fl('M500 ' + Math.round(hauteur + 8) + ' Q 530 ' + Math.round(hauteur - 30) + ' 505 ' + Math.round(hauteur - 50)) }
+        return h + '</div>' },
+      sons: t0 => [{ t: t0, fam: 'pop', vol: 0.07 }, ...(E.etiquettes ? [{ t: t0 + 0.9, fam: 'clic', vol: 0.06 }] : [])] }
   }
   return null
 }

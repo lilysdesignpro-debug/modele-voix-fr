@@ -17,7 +17,7 @@ import { zones as zonesPlateforme } from './marges.mjs'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { effet, POLICES_EFFETS } from './effets.mjs'
+import { effet, POLICES_EFFETS, couleurDecor } from './effets.mjs'
 import { etoileGonflee, etoileTrait, etoileBlanche, nuage } from './decor.mjs'
 
 const FPS = 30
@@ -240,7 +240,8 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     const finA = K.fin?.motCle ? tf(K.fin.t ?? TOT - 3.5) : TOT
     el.push({ a: HOOK, b: finA, calque: 'devant', dessin: t => {
       const k = mots.findIndex((m, i) => t >= m.t && t < (mots[i + 1]?.t ?? m.fin)); if (k < 0) return ''
-      const w = mots[k]; if (t > w.fin + 0.25) return ''
+      const w = mots[k]; if (t > w.fin + 0.25) return '' // muet
+      if (el.some(e => e.zone === 'geant' && t >= e.a && t < e.b)) return ''
       const p = phrases[w.ip], y = clamp(basVisage(p.a, p.b) + 110, 640, 960), q0A = clamp((t - w.t) / 0.08, 0, 1), r = 0.72 + 0.28 * clamp(rebond((t - w.t) / 0.18), 0, 1.15)
       const z = w.fort ? 108 : 84, txt = esc(w.w.replace(/[,.;:!?»]+$/, ''))
       return '<div style="position:absolute;left:40px;right:80px;top:' + (y - z / 2) + 'px;text-align:center;white-space:nowrap;font:' + fA(PM, z) + ';color:' + (w.fort ? PALETTE.rouille : PALETTE.creme) + ';-webkit-text-stroke:' + traitA(PM, w.fort ? 10 : 8) + 'px ' + (w.fort ? PALETTE.creme : PALETTE.brun) + ';paint-order:stroke fill;opacity:' + q0A.toFixed(2) + ';transform:scale(' + r.toFixed(3) + ');text-shadow:0 4px 12px rgba(60,20,0,.35)">' + txt + '</div>'
@@ -859,7 +860,9 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   // 7 ter. Les effets ponctuels (effets.mjs) : la phrase-choc et les commentaires vont au-dessus de sa tête, la
   //         capture et l'avant/après sous son visage ; jamais sur son visage.
   for (const E of K.effets || []) {
-    const Em = effet(E, { clamp, doux, rebond, esc, dossier: dir, couleurs: { marqueur: E.couleur || '#FFE14D', contour: '#2b2416', feutre: coul.mot || C?.motFort?.couleur || '#E8613C' } })
+    const decor = E.type === 'duo' && (!E.couleur || E.couleur === 'auto') ? couleurDecor(spawnSync('ffmpeg', ['-v', 'error', '-ss', tf(E.t).toFixed(2), '-i', join(st, 'base-av.mp4'), '-frames:v', '1', '-vf', 'scale=36:64', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-']).stdout, vis(tf(E.t))) : null
+    if (decor) console.log('Couleur du décor pour « ' + E.grand + ' » : ' + decor)
+    const Em = effet(E, { clamp, doux, rebond, esc, dossier: dir, couleurs: { marqueur: E.couleur || '#FFE14D', contour: '#2b2416', feutre: coul.mot || C?.motFort?.couleur || '#E8613C', decor } })
     if (!Em) continue
     const t0 = tf(E.t), b = Math.min(TOT - 0.1, t0 + Em.duree), haut = E.type === 'choc' || E.type === 'commentaires'
     const yHaut = hautTete(t0, b) - Em.hauteur - 24, y = haut && yHaut >= 110 ? yHaut : clamp(basVisage(t0, b) + 50, 430, 1280 - 290 - Em.hauteur)
@@ -915,7 +918,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   // ── Rendu des deux calques, image par image (une image identique n'est dessinée qu'une fois) ──
   const b64 = f => readFileSync(join(ICI, 'polices', f)).toString('base64')
   const face = (f, fam, w = 400, s = 'normal') => `@font-face{font-family:'${fam}';font-weight:${w};font-style:${s};src:url(data:font/woff2;base64,${b64(f)})}`
-  const css = face('Fraunces-900.woff2', 'Gros', 900) + face('ReenieBeanie-400.woff2', 'Main', 500) + face('CourierPrime-700.woff2', 'Machine', 700)
+  const css = POLICES_EFFETS.map(([f, fam, w, st]) => face(f, fam, w, st || 'normal')).join('') + face('Fraunces-900.woff2', 'Gros', 900) + face('ReenieBeanie-400.woff2', 'Main', 500) + face('CourierPrime-700.woff2', 'Machine', 700)
     + face('GloriaHallelujah-400.woff2', 'Carnet', 400) + face('SpaceMono-700.woff2', 'Mono', 700) + face('Poppins-600.woff2', 'Poppins', 600)
     + face('Montserrat-900.woff2', 'Rond', 900) + face('Fraunces-italique.woff2', 'Ital', 400, 'italic') + face('Poppins-800.woff2', 'Edito', 800) + face('Fredoka-700.woff2', 'Fred', 700)
     + face('Anton-400.woff2', 'Anton', 400) + face('Caveat-700.woff2', 'Annot', 700) + face('Cormorant-600.woff2', 'Doux', 600) + face('Cormorant-italique.woff2', 'DouxI', 500, 'italic') + face('Inter-500.woff2', 'DidotT', 400) + face('InstrumentSerif-italique.woff2', 'Didot', 400, 'italic') + face('Bricolage-800.woff2', 'DidotG', 800) + face('DMSerifDisplay-400.woff2', 'Display', 400) + face('Satisfy-400.woff2', 'Script', 400) + face('CinzelDecorative-700.woff2', 'Cinzel', 700) + face('Poppins-500.woff2', 'ChicS', 500)
