@@ -13,6 +13,7 @@
 // Les chartes vivent dans chartes/<nom>.json, les sons dans sons/, les polices
 // dans polices/. Tout se passe sur l'ordinateur : la vidéo ne part nulle part.
 import { spawnSync } from 'node:child_process'
+import { zones as zonesPlateforme, dessinZones } from './marges.mjs'
 import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync, readdirSync, rmSync } from 'node:fs'
 import { join, dirname, basename } from 'node:path'
 import { homedir } from 'node:os'
@@ -877,8 +878,9 @@ function verifier(video, dir, raccourci = false) {
   console.log(`\nContrôle : image ${dv.toFixed(2)} s / son ${da.toFixed(2)} s · ${mots.length} mots entendus sur ${avant} à l'origine`)
   console.log(`Fin entendue : « …${fin} »`)
   const planche = video.replace(/\.mp4$/, '-planche.jpg')
-  lancer('ffmpeg', ['-y', '-v', 'error', '-i', video, '-vf', `fps=12/${Math.max(1, dv).toFixed(2)},scale=180:-1,tile=6x2`, '-frames:v', '1', planche])
-  if (existsSync(planche)) console.log(`Planche de contrôle : ${planche} (12 images : à regarder avant de la montrer)`)
+  let plat; try { plat = JSON.parse(readFileSync(join(dir, 'projet.json'), 'utf8')).plateforme } catch {}
+  lancer('ffmpeg', ['-y', '-v', 'error', '-i', video, '-vf', `fps=12/${Math.max(1, dv).toFixed(2)},scale=720:1280,${dessinZones(zonesPlateforme(plat))},scale=180:-1,tile=6x2`, '-frames:v', '1', planche])
+  if (existsSync(planche)) console.log(`Planche de contrôle : ${planche} (12 images, en rouge ce que l'appli recouvre : à regarder avant de la montrer)`)
   if (Math.abs(dv - da) > 0.15) console.log('⚠️  image et son n\'ont pas la même durée : synchro à vérifier')
   if (!raccourci && mots.length < avant * 0.9) console.log('⚠️  il manque des mots : écouter avant de montrer')
   if (trous.length) console.log('⚠️  silence de plus de 3 s à ' + trous.map(([a]) => a.toFixed(1) + ' s').join(', '))

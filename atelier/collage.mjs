@@ -13,6 +13,7 @@
 //  - collage.fin        : { t, motCle }             le mot-clé se tape dans une barre de commentaire.
 // Tous les temps sont ceux de la vidéo d'origine, comme le reste de projet.json.
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync, existsSync } from 'node:fs'
+import { zones as zonesPlateforme } from './marges.mjs'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -240,9 +241,9 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     el.push({ a: HOOK, b: finA, calque: 'devant', dessin: t => {
       const k = mots.findIndex((m, i) => t >= m.t && t < (mots[i + 1]?.t ?? m.fin)); if (k < 0) return ''
       const w = mots[k]; if (t > w.fin + 0.25) return ''
-      const p = phrases[w.ip], y = clamp(basVisage(p.a, p.b) + 110, 640, 960), r = clamp(rebond((t - w.t) / 0.18), 0, 1.15)
+      const p = phrases[w.ip], y = clamp(basVisage(p.a, p.b) + 110, 640, 960), q0A = clamp((t - w.t) / 0.08, 0, 1), r = 0.72 + 0.28 * clamp(rebond((t - w.t) / 0.18), 0, 1.15)
       const z = w.fort ? 108 : 84, txt = esc(w.w.replace(/[,.;:!?»]+$/, ''))
-      return '<div style="position:absolute;left:40px;right:80px;top:' + (y - z / 2) + 'px;text-align:center;white-space:nowrap;font:' + fA(PM, z) + ';color:' + (w.fort ? PALETTE.rouille : PALETTE.creme) + ';-webkit-text-stroke:' + traitA(PM, w.fort ? 10 : 8) + 'px ' + (w.fort ? PALETTE.creme : PALETTE.brun) + ';paint-order:stroke fill;transform:scale(' + r.toFixed(3) + ');text-shadow:0 4px 12px rgba(60,20,0,.35)">' + txt + '</div>'
+      return '<div style="position:absolute;left:40px;right:80px;top:' + (y - z / 2) + 'px;text-align:center;white-space:nowrap;font:' + fA(PM, z) + ';color:' + (w.fort ? PALETTE.rouille : PALETTE.creme) + ';-webkit-text-stroke:' + traitA(PM, w.fort ? 10 : 8) + 'px ' + (w.fort ? PALETTE.creme : PALETTE.brun) + ';paint-order:stroke fill;opacity:' + q0A.toFixed(2) + ';transform:scale(' + r.toFixed(3) + ');text-shadow:0 4px 12px rgba(60,20,0,.35)">' + txt + '</div>'
     } })
     // une ou deux feuilles qui tombent près du mot fort
     for (const w of mots.filter(m => m.fort && m.t > HOOK && m.t < finA)) {
@@ -925,6 +926,18 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   const vide = join(st, 'collage-vide.png')
   await page.evaluate(() => { document.getElementById('s').innerHTML = '' }); await page.screenshot({ path: vide, omitBackground: true })
   mkdirSync(join(st, 'collage'), { recursive: true })
+  // MARGES : les zones que l'appli recouvre ; un texte qui y déborde est ramené dedans avant d'être dessiné
+  const ZM = zonesPlateforme(P.plateforme)
+  const ranger = () => page.evaluate(Z => { for (const c of document.getElementById('s').children) {
+    const w = document.createTreeWalker(c, NodeFilter.SHOW_TEXT); let n, L = 1e9, T = 1e9, R = -1e9, B = -1e9
+    while ((n = w.nextNode())) { if (!n.textContent.trim() || n.parentElement.closest('svg')) continue
+      const r = document.createRange(); r.selectNodeContents(n); for (const q of r.getClientRects()) { if (q.width < 3 || q.height < 3) continue; L = Math.min(L, q.left); T = Math.min(T, q.top); R = Math.max(R, q.right); B = Math.max(B, q.bottom) } }
+    if (R < 0 || B - T > 1280 - Z.haut - Z.bas) continue
+    let dx = 0, dy = 0
+    if (B > 1280 - Z.bas) dy = 1280 - Z.bas - B; else if (T < Z.haut) dy = Z.haut - T
+    if (R > 720 - Z.droite && B + dy > Z.droiteDe && R - L <= 720 - Z.droite - Z.cote) dx = 720 - Z.droite - R
+    else if (R - L <= 720 - 2 * Z.cote) { if (L < Z.cote) dx = Z.cote - L; else if (R > 720 - Z.cote) dx = 720 - Z.cote - R }
+    if (dx || dy) c.style.translate = Math.round(dx) + 'px ' + Math.round(dy) + 'px' } }, ZM)
   // CONTROLE_VISUEL : ce que chaque texte devient à l'écran, mesuré dans le navigateur
   const alertes = new Map(), alerte = (cle, msg, t) => { const a = alertes.get(cle); if (a) a.n++; else alertes.set(cle, { msg, t, n: 1 }) }
   const lum = c => { const v = (c.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(x => +x / 255); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2] }
@@ -942,7 +955,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     if (f % Math.round(FPS / 2) === 0 && t > 0.3 && t < TOT - 0.2) { // une image toutes les 0,5 s
       const boites = []
       for (const calque of ['derriere', 'devant']) { const html = el.filter(e => e.calque === calque && t >= e.a && t < e.b).map(e => e.dessin(t)).join(''); if (!html) continue
-        await page.evaluate(x => { document.getElementById('s').innerHTML = x }, html); for (const b of await mesurer()) boites.push({ ...b, calque }) }
+        await page.evaluate(x => { document.getElementById('s').innerHTML = x }, html); if (calque === 'devant') await ranger(); for (const b of await mesurer()) boites.push({ ...b, calque }) }
       const v = vis(t), fond = boites.some(b => b.z >= 28 && !b.deco) ? fondA(t) : null, ts = t.toFixed(1) + ' s'
       const vus = new Map()
       for (const b of boites) {
@@ -951,7 +964,10 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
           if (b.calque === 'devant' && part > 0.25) alerte('visage:' + mot, 'texte sur son visage (« ' + mot + ' »)', ts)
           if (b.calque === 'derriere' && part > 0.6) alerte('cache:' + mot, 'titre caché derrière sa tête (« ' + mot + ' »)', ts) }
         if (b.z >= 20 && (b.x < 6 || b.x + b.w > 714)) alerte('bord:' + mot, 'texte coupé au bord de l\'image (« ' + mot + ' »)', ts)
-        if (b.z >= 22 && b.y + b.h > 1280 - 170) alerte('legende:' + mot, 'texte dans la zone de la légende Instagram, en bas (« ' + mot + ' »)', ts)
+        if (b.calque === 'devant' && b.z >= 22) {
+          if (b.y + b.h > 1280 - ZM.bas + 4) alerte('legende:' + mot, 'texte sous la légende et le nom (' + ZM.nom + '), en bas (« ' + mot + ' »)', ts)
+          else if (b.y < ZM.haut - 4) alerte('haut:' + mot, 'texte sous les onglets du haut (' + ZM.nom + ') (« ' + mot + ' »)', ts)
+          else if (b.x + b.w > 720 - ZM.droite + 4 && b.y + b.h > ZM.droiteDe) alerte('icones:' + mot, 'texte sous les icônes de droite (' + ZM.nom + ') (« ' + mot + ' »)', ts) }
         if (fond && b.z >= 28 && !b.deco) { let S = 0, k = 0
           for (let yy = Math.max(0, Math.floor(b.y / 10)); yy < Math.min(128, Math.ceil((b.y + b.h) / 10)); yy++) for (let xx = Math.max(0, Math.floor(b.x / 10)); xx < Math.min(72, Math.ceil((b.x + b.w) / 10)); xx++) { S += fond[yy * 72 + xx]; k++ }
           if (k && Math.abs(lum(b.c) - S / k / 255) < 0.22) alerte('contraste:' + mot, 'texte peu lisible, de la même clarté que le fond (« ' + mot + ' »)', ts) }
@@ -965,6 +981,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       if (!cache.has(h)) {
         const fichier = join(st, 'collage', `${h}.png`)
         await page.evaluate(x => { document.getElementById('s').innerHTML = x }, html)
+        if (calque === 'devant') await ranger()
         await page.screenshot({ path: fichier, omitBackground: true }); cache.set(h, fichier)
       }
       pistes[calque].push(cache.get(h))
