@@ -227,7 +227,8 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   // la feuille d'automne (érable), dessinée une fois ; teinte au choix
   const feuille = (x, y, z, rot, couleur, o = 1) => '<svg style="position:absolute;left:' + x + 'px;top:' + y + 'px;opacity:' + o + ';transform:rotate(' + rot + 'deg);filter:drop-shadow(0 3px 6px rgba(60,20,0,.35))" width="' + z + '" height="' + z + '" viewBox="0 0 100 100"><path d="M50 4 L58 26 L74 16 L70 38 L92 34 L80 50 L96 60 L72 64 L78 84 L58 72 L52 96 L48 96 L42 72 L22 84 L28 64 L4 60 L20 50 L8 34 L30 38 L26 16 L42 26 Z" fill="' + couleur + '"/><path d="M50 30 L50 96" stroke="rgba(0,0,0,.25)" stroke-width="2"/></svg>'
   // automne : les polices changent d'une vidéo à l'autre (tirées de son nom de projet), ou celles qu'elle choisit (collage.polices)
-  const POLICES_AUTOMNE = { titre: { fraunces: [900, 'Gros,serif', 1], dmserif: [400, 'Display,serif', 0.95], anton: [400, 'Anton,sans-serif', 1.25], bricolage: [800, 'DidotG,sans-serif', 1], montserrat: [900, 'Rond,sans-serif', 0.95] }, mots: { caveat: [700, 'Annot,cursive', 1], gloria: [400, 'Carnet,cursive', 0.8], fredoka: [700, 'Fred,sans-serif', 0.85], reenie: [500, 'Main,cursive', 1.15] }, script: { satisfy: [400, 'Script,cursive', 1], caveat: [700, 'Annot,cursive', 1.1], instrument: [400, 'Didot,serif', 1.05, 'italic'] } }
+  const POLICES_AUTOMNE = { titre: { fraunces: [900, 'Gros,serif', 1, , 0.8], dmserif: [400, 'Display,serif', 0.95, , 0.45], anton: [400, 'Anton,sans-serif', 1.25, , 0.6], bricolage: [800, 'DidotG,sans-serif', 1, , 0.7], montserrat: [900, 'Rond,sans-serif', 0.95, , 0.75] }, mots: { caveat: [700, 'Annot,cursive', 1, , 0.55], gloria: [400, 'Carnet,cursive', 0.8, , 0.6], fredoka: [700, 'Fred,sans-serif', 0.85, , 0.8], reenie: [500, 'Main,cursive', 1.15, , 0.6] }, script: { satisfy: [400, 'Script,cursive', 1, , 0.6], caveat: [700, 'Annot,cursive', 1.1, , 0.55], instrument: [400, 'Didot,serif', 1.05, 'italic', 0.55] } }
+  const traitA = (p, px) => Math.max(2, Math.round(px * (p[4] ?? 1))) // contour proportionné : fin sur une police fine
   const hNom = [...String(nom || P.titre || '')].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7)
   const choixA = (g, i) => { const l = Object.keys(POLICES_AUTOMNE[g]), v = String(K.polices?.[g] || '').toLowerCase(); return POLICES_AUTOMNE[g][l.includes(v) ? v : l[(hNom >>> (i * 4)) % l.length]] }
   const PT = choixA('titre', 0), PM = choixA('mots', 1), PS = choixA('script', 2)
@@ -241,7 +242,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       const w = mots[k]; if (t > w.fin + 0.25) return ''
       const p = phrases[w.ip], y = clamp(basVisage(p.a, p.b) + 110, 640, 960), r = clamp(rebond((t - w.t) / 0.18), 0, 1.15)
       const z = w.fort ? 108 : 84, txt = esc(w.w.replace(/[,.;:!?»]+$/, ''))
-      return '<div style="position:absolute;left:40px;right:80px;top:' + (y - z / 2) + 'px;text-align:center;white-space:nowrap;font:' + fA(PM, z) + ';color:' + (w.fort ? PALETTE.rouille : PALETTE.creme) + ';-webkit-text-stroke:' + (w.fort ? 10 : 8) + 'px ' + (w.fort ? PALETTE.creme : PALETTE.brun) + ';paint-order:stroke fill;transform:scale(' + r.toFixed(3) + ');text-shadow:0 4px 12px rgba(60,20,0,.35)">' + txt + '</div>'
+      return '<div style="position:absolute;left:40px;right:80px;top:' + (y - z / 2) + 'px;text-align:center;white-space:nowrap;font:' + fA(PM, z) + ';color:' + (w.fort ? PALETTE.rouille : PALETTE.creme) + ';-webkit-text-stroke:' + traitA(PM, w.fort ? 10 : 8) + 'px ' + (w.fort ? PALETTE.creme : PALETTE.brun) + ';paint-order:stroke fill;transform:scale(' + r.toFixed(3) + ');text-shadow:0 4px 12px rgba(60,20,0,.35)">' + txt + '</div>'
     } })
     // une ou deux feuilles qui tombent près du mot fort
     for (const w of mots.filter(m => m.fort && m.t > HOOK && m.t < finA)) {
@@ -464,9 +465,9 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       const sortie = 1 - clamp((t - (HOOK - 0.3)) / 0.3, 0, 1), pD = doux((t - aD) / 0.4), pG = clamp(rebond((t - aG) / 0.3), 0, 1.12), pQ = doux((t - aQ) / 0.45)
       const etoile = (x, y, n) => '<svg style="position:absolute;left:' + x + 'px;top:' + y + 'px;opacity:' + Math.min(1, pG) + '" width="' + n + '" height="' + n + '" viewBox="0 0 24 24"><path d="M12 1.5l3 7.2 7.6.6-5.8 5 1.8 7.4L12 17.8 5.4 21.7l1.8-7.4-5.8-5 7.6-.6z" fill="#fff"/></svg>'
       return '<div style="position:absolute;left:0;right:0;top:' + y0 + 'px;text-align:center;opacity:' + sortie + '">'
-        + (petite ? '<div style="font:' + fA(PS, 44) + ';line-height:54px;color:' + PALETTE.creme + ';-webkit-text-stroke:5px ' + PALETTE.brun + ';paint-order:stroke fill;opacity:' + pD + ';text-shadow:0 2px 10px rgba(60,20,0,.6)">' + esc(petite) + '</div>' : '')
-        + '<div style="white-space:nowrap;font:' + fA(PT, tG) + ';text-transform:uppercase;letter-spacing:-0.01em;color:' + PALETTE.creme + ';-webkit-text-stroke:9px ' + PALETTE.brun + ';paint-order:stroke fill;transform:scale(' + pG.toFixed(3) + ');text-shadow:0 6px 16px rgba(60,20,0,.4)">' + esc(T.grand) + '</div>'
-        + (T.queue ? '<div style="font:' + fA(PS, 58) + ';line-height:70px;color:' + PALETTE.rouille + ';-webkit-text-stroke:6px ' + PALETTE.creme + ';paint-order:stroke fill;opacity:' + pQ + '">' + esc(T.queue) + '</div>' : '')
+        + (petite ? '<div style="font:' + fA(PS, 44) + ';line-height:54px;color:' + PALETTE.creme + ';-webkit-text-stroke:' + traitA(PS, 5) + 'px ' + PALETTE.brun + ';paint-order:stroke fill;opacity:' + pD + ';text-shadow:0 2px 10px rgba(60,20,0,.6)">' + esc(petite) + '</div>' : '')
+        + '<div style="white-space:nowrap;font:' + fA(PT, tG) + ';text-transform:uppercase;letter-spacing:-0.01em;color:' + PALETTE.creme + ';-webkit-text-stroke:' + traitA(PT, 9) + 'px ' + PALETTE.brun + ';paint-order:stroke fill;transform:scale(' + pG.toFixed(3) + ');text-shadow:0 6px 16px rgba(60,20,0,.4)">' + esc(T.grand) + '</div>'
+        + (T.queue ? '<div style="font:' + fA(PS, 58) + ';line-height:70px;color:' + PALETTE.rouille + ';-webkit-text-stroke:' + traitA(PS, 6) + 'px ' + PALETTE.creme + ';paint-order:stroke fill;opacity:' + pQ + ';text-shadow:0 2px 10px rgba(60,20,0,.45)">' + esc(T.queue) + '</div>' : '')
         + etoile(90, petite ? 30 : -10, 26) + etoile(600, (petite ? 54 : 0) + tG * 0.7, 20) + etoile(120, hBloc - 20, 16) + '</div>'
     } })
     sons.push({ t: Math.max(0.05, aG), fam: 'pop', vol: 0.08 })
@@ -474,7 +475,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   if (K.fin?.motCle && THEME === 'automne') {
     const t0 = tf(K.fin.t ?? TOT - 3.5), mot = K.fin.motCle, y = clamp(basVisage(t0, TOT) + 40, 600, 860)
     el.push({ a: t0, b: TOT, calque: 'devant', zone: 'poitrine', dessin: t => { const p = doux((t - t0) / 0.5), r = clamp(rebond((t - t0 - 0.2) / 0.3), 0, 1.1)
-      return '<div style="position:absolute;left:60px;right:104px;top:' + y + 'px;text-align:center;opacity:' + p + '"><div style="font:' + fA(PS, 50) + ';color:' + PALETTE.creme + ';-webkit-text-stroke:5px ' + PALETTE.brun + ';paint-order:stroke fill;text-shadow:0 2px 10px rgba(60,20,0,.6)">écris-moi</div>'
+      return '<div style="position:absolute;left:60px;right:104px;top:' + y + 'px;text-align:center;opacity:' + p + '"><div style="font:' + fA(PS, 50) + ';color:' + PALETTE.creme + ';-webkit-text-stroke:' + traitA(PS, 5) + 'px ' + PALETTE.brun + ';paint-order:stroke fill;text-shadow:0 2px 10px rgba(60,20,0,.6)">écris-moi</div>'
         + '<div style="display:inline-block;margin-top:10px;background:' + PALETTE.rouille + ';color:' + PALETTE.creme + ';font:' + fA(PT, Math.round(Math.min(84, 520 / (mot.length * 0.62)))) + ';line-height:1.1;text-transform:uppercase;padding:12px 30px 16px;border-radius:14px;transform:rotate(-2deg) scale(' + r.toFixed(3) + ');box-shadow:0 10px 24px rgba(60,20,0,.35)">' + esc(mot) + '</div></div>' } })
     sons.push({ t: t0 + 0.2, fam: 'pop', vol: 0.08 })
   }
