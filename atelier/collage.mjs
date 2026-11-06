@@ -28,6 +28,7 @@ const COUL = { beurre: '#F4EC9C', tomate: '#D9473A', bordeaux: '#3B1424', papier
 export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, verifier, ICI }) {
   const st = join(dir, 'rendu'), E = JSON.parse(readFileSync(join(st, 'collage-entree.json'), 'utf8'))
   const { TOT, HOOK } = E, K = P.collage || {}
+  const HOOK_ST = (K.titre?.grand || String(P.titre || '').replace(/[*/s]/g, '')) ? HOOK : 0 // sans hook, pas de silence au début
   if (K.bandes !== false) { const rb = remplirBandes(join(st, 'base-av.mp4'), { lancer }); if (rb.segments.length) console.log('Bandes noires remplies : ' + rb.segments.length + ' passage(s), sans les légendes coupées') }
   const coul = { ...COUL, ...(K.couleurs || {}) }
   const tf = t => E.temps[Math.min(E.temps.length - 1, Math.max(0, Math.round(t / 0.05)))] // temps d'origine → temps final
@@ -139,7 +140,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   // la phrase entière, écrite à la main, en bas (le mot à mot ne se lisait pas, dit Aurélie)
   // Le bas (880 à 980) leur est réservé : rien d'autre ne s'y pose. Le *mot fort* prend la couleur beurre.
   el.push({ a: 0, b: TOT, calque: 'devant', dessin: t => {
-    if (t < HOOK || dansMed(t)) return ''
+    if (t < HOOK_ST || el.some(e => e.parle && t >= e.a && t < e.b) || dansMed(t)) return ''
     const p = phrases.find(p => t >= p.a && t < p.b); if (!p) return ''
     const html = esc(p.txt).replace(/\*([^*]+)\*/g, `<span style="display:inline-block;font:900 54px/1 Gros,serif;letter-spacing:-0.02em;color:${coul.beurre};-webkit-text-stroke:0;transform:rotate(-3deg) translateY(-4px);margin:0 4px">$1</span>`)
     const enBas = basVisage(p.a, p.b) < 870
@@ -149,7 +150,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   if (THEME === 'typo') {
   // typo : les sous-titres restent sobres (la phrase entière, en petit gras), c'est le mot fort qui fait le spectacle
   el.push({ a: 0, b: TOT, calque: 'devant', dessin: t => {
-    if (t < HOOK || el.some(e => e.zone === 'geant' && t >= e.a && t < e.b)) return ''
+    if (t < HOOK_ST || el.some(e => e.parle && t >= e.a && t < e.b) || el.some(e => e.zone === 'geant' && t >= e.a && t < e.b)) return ''
     const p = phrases.find(p => t >= p.a && t < p.b); if (!p) return ''
     const html = esc(p.txt).replace(/\*([^*]+)\*/g, `<span style="color:${PALETTE.mot}">$1</span>`)
     const enBas = basVisage(p.a, p.b) < 870
@@ -161,7 +162,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   // affichée jusqu'à la suivante : on la lit en entier. Le *mot fort* en bleu, plus gros, entre deux étoiles jaunes.
   const OUTILS = /^(le|la|les|l'|un|une|des|de|du|d'|et|ou|à|au|aux|en|dans|sur|pour|par|que|qui|qu'|ce|c'|ça|je|j'|tu|il|elle|on|nous|vous|ils|elles|me|m'|te|t'|se|s'|ne|n'|pas|mon|ma|mes|ton|ta|tes|son|sa|ses|est|a|y)$/i
   el.push({ a: 0, b: TOT, calque: 'devant', dessin: t => {
-    if (t < HOOK || dansMed(t) || GEANTS_POP.some(([a, b]) => t >= a && t < b)) return ''
+    if (t < HOOK_ST || el.some(e => e.parle && t >= e.a && t < e.b) || dansMed(t) || GEANTS_POP.some(([a, b]) => t >= a && t < b)) return ''
     const p = phrases.find(p => t >= p.a && t < p.b); if (!p) return ''
     const ici = mots.filter(m => m.ip === phrases.indexOf(p)), dits = ici.filter(m => t >= m.t)
     if (!dits.length) return ''
@@ -180,7 +181,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   // la légende de magazine : un filet fin, puis la phrase en Didone (Bodoni), le *mot fort* en italique.
   // TOUJOURS en bas (zone réservée) : plus rien ne peut s'y chevaucher. Elle se tait quand une citation la dit déjà.
   el.push({ a: 0, b: TOT, calque: 'devant', dessin: t => {
-    if (t < HOOK || dansMed(t) || el.some(e => e.zone === 'citation' && t >= e.a && t < e.b)) return ''
+    if (t < HOOK_ST || el.some(e => e.parle && t >= e.a && t < e.b) || dansMed(t) || el.some(e => e.zone === 'citation' && t >= e.a && t < e.b)) return ''
     const p = phrases.find(p => t >= p.a && t < p.b); if (!p) return ''
     const pv = doux((t - p.a) / 0.2)
     const html = esc(p.txt).replace(/\*([^*]+)\*/g, `<span style="font:italic 400 48px/1 Didot,serif;color:${PALETTE.rose}">$1</span>`)
@@ -196,7 +197,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   const accent = THEME === 'witchy' ? PALETTE.or : coul.mot || C?.motFort?.couleur || '#E8B4A0'
   const finCarte = K.fin?.motCle ? tf(K.fin.t ?? TOT - 3.5) : TOT
   el.push({ a: 0, b: TOT, calque: 'devant', dessin: t => {
-    if (t < HOOK || el.some(e => e.duo && t >= e.a && t < e.b)) return ''
+    if (t < HOOK_ST || el.some(e => e.parle && t >= e.a && t < e.b) || el.some(e => e.duo && t >= e.a && t < e.b)) return ''
     const p = phrases.find(p => t >= p.a && t < p.b); if (!p) return ''
     // pendant la carte « écris-moi », ses dernières phrases restent sous-titrées, juste sous la carte
     if (THEME === 'witchy' && dansMed(t)) return '' // la carte de tarot porte la phrase
@@ -349,7 +350,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   const dansPhoto = t => PHOTOS.some(ph => t >= ph.a && t < ph.b)
   if (THEME === 'aurelie') {
     el.push({ a: 0, b: TOT, calque: 'devant', dessin: t => {
-      if (t < HOOK || dansPhoto(t) || el.some(e => e.zone === 'geant' && t >= e.a && t < e.b)) return '' // le titre géant sur la poitrine dit déjà la phrase
+      if (t < HOOK_ST || el.some(e => e.parle && t >= e.a && t < e.b) || dansPhoto(t) || el.some(e => e.zone === 'geant' && t >= e.a && t < e.b)) return '' // le titre géant sur la poitrine dit déjà la phrase
       const p = phrases.find(p => t >= p.a && t < p.b); if (!p) return ''
       const html = esc(p.txt).replace(/\*([^*]+)\*/g, `<span style="font:italic 400 1.5em/0.85 Didot,serif;letter-spacing:0;color:${AUR.bordeaux};-webkit-text-stroke:7px #fff;paint-order:stroke fill;text-shadow:none">$1</span>`)
       const y = clamp(basVisage(p.a, p.b) + 26, 560, 860)
@@ -891,7 +892,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     const t0 = tf(E.t), b = Math.min(TOT - 0.1, t0 + Em.duree), haut = E.type === 'choc' || E.type === 'commentaires'
     const yHaut = hautTete(t0, b) - Em.hauteur - 24, y = (haut || FV) && yHaut >= 110 ? yHaut : clamp(basVisage(t0, b) + 50, 430, 1280 - 290 - Em.hauteur)
     const yP = Em.place ? clamp(FV ? hautTete(t0, b) - Em.hauteur - 20 : hautTete(t0, b) + 40, FV ? 110 : 200, 1280 - 300 - Em.hauteur) : null
-    el.push({ a: t0, b, calque: 'devant', zone: 'geant', duo: E.type === 'duo', dessin: t => '<div style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)).toFixed(2) + '">' + Em.dessin(t - t0, Math.round(yP ?? y)) + '</div>' })
+    el.push({ a: t0, b, calque: 'devant', zone: 'geant', duo: E.type === 'duo', parle: E.type === 'duo' || E.type === 'choc', dessin: t => '<div style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)).toFixed(2) + '">' + Em.dessin(t - t0, Math.round(yP ?? y)) + '</div>' })
     sons.push(...Em.sons(t0))
   }
 

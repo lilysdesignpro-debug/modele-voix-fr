@@ -24,6 +24,8 @@ import { effet as effetPonctuel, POLICES_EFFETS, couleurDecor } from './effets.m
 
 const ICI = dirname(fileURLToPath(import.meta.url))
 const PROJETS = join(ICI, 'projets')
+// L'outil est personnel : le nom de l'élève à qui Aurélie l'a offert s'affiche à chaque montage (proprietaire.json, jamais mis à jour ni publié).
+try { const PR = JSON.parse(readFileSync(join(ICI, 'proprietaire.json'), 'utf8')); console.log(`Outil personnel de ${PR.nom} (n° ${PR.cle}), offert par Aurélie BARON @madamefaitdubizz. Merci de ne pas le partager.`) } catch {}
 
 // ── Réglages validés. Chaque valeur vient d'une correction d'Aurélie. ─────────
 const BLANC_MIN = 0.3      // on ne coupe que les vrais blancs
