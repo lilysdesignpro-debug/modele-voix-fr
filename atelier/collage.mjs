@@ -1045,16 +1045,24 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   mkdirSync(join(st, 'collage'), { recursive: true })
   // MARGES : les zones que l'appli recouvre ; un texte qui y déborde est ramené dedans avant d'être dessiné
   const ZM = zonesPlateforme(P.plateforme)
-  const ranger = () => page.evaluate(Z => { for (const c of document.getElementById('s').children) {
-    const w = document.createTreeWalker(c, NodeFilter.SHOW_TEXT); let n, L = 1e9, T = 1e9, R = -1e9, B = -1e9
-    while ((n = w.nextNode())) { if (!n.textContent.trim() || n.parentElement.closest('svg')) continue
-      const r = document.createRange(); r.selectNodeContents(n); for (const q of r.getClientRects()) { if (q.width < 3 || q.height < 3) continue; L = Math.min(L, q.left); T = Math.min(T, q.top); R = Math.max(R, q.right); B = Math.max(B, q.bottom) } }
-    if (R < 0 || B - T > 1280 - Z.haut - Z.bas) continue
+  // (06/11) un texte trop LARGE pour la zone visible rétrécit (il ne déborde plus jamais dans les bords que les téléphones
+  // rognent) ; les titres de derrière (calque "derriere") ne sont que tenus entre les bords, ils peuvent rester sous les icônes.
+  const ranger = (derriere = false) => page.evaluate((Z, derriere) => { for (const c of document.getElementById('s').children) {
+    const boite = () => { const w = document.createTreeWalker(c, NodeFilter.SHOW_TEXT); let n, L = 1e9, T = 1e9, R = -1e9, B = -1e9
+      while ((n = w.nextNode())) { if (!n.textContent.trim() || n.parentElement.closest('svg')) continue
+        const r = document.createRange(); r.selectNodeContents(n); for (const q of r.getClientRects()) { if (q.width < 3 || q.height < 3) continue; L = Math.min(L, q.left); T = Math.min(T, q.top); R = Math.max(R, q.right); B = Math.max(B, q.bottom) } }
+      return [L, T, R, B] }
+    let [L, T, R, B] = boite()
+    if (R < 0) continue
+    const larg = 720 - 2 * Z.cote
+    if (R - L > larg) { const e = c.getBoundingClientRect(), k = larg / (R - L)
+      c.style.transformOrigin = Math.round((L + R) / 2 - e.left) + 'px ' + Math.round((T + B) / 2 - e.top) + 'px'
+      c.style.scale = String(Math.round(k * 1000) / 1000); [L, T, R, B] = boite() }
     let dx = 0, dy = 0
-    if (B > 1280 - Z.bas) dy = 1280 - Z.bas - B; else if (T < Z.haut) dy = Z.haut - T
-    if (R > 720 - Z.droite && B + dy > Z.droiteDe && R - L <= 720 - Z.droite - Z.cote) dx = 720 - Z.droite - R
-    else if (R - L <= 720 - 2 * Z.cote) { if (L < Z.cote) dx = Z.cote - L; else if (R > 720 - Z.cote) dx = 720 - Z.cote - R }
-    if (dx || dy) c.style.translate = Math.round(dx) + 'px ' + Math.round(dy) + 'px' } }, ZM)
+    if (!derriere && B - T <= 1280 - Z.haut - Z.bas) { if (B > 1280 - Z.bas) dy = 1280 - Z.bas - B; else if (T < Z.haut) dy = Z.haut - T }
+    if (!derriere && R > 720 - Z.droite && B + dy > Z.droiteDe && R - L <= 720 - Z.droite - Z.cote) dx = 720 - Z.droite - R
+    else if (R - L <= larg + 1) { if (L < Z.cote) dx = Z.cote - L; else if (R > 720 - Z.cote) dx = 720 - Z.cote - R }
+    if (dx || dy) c.style.translate = Math.round(dx) + 'px ' + Math.round(dy) + 'px' } }, ZM, derriere)
   // CONTROLE_VISUEL : ce que chaque texte devient à l'écran, mesuré dans le navigateur
   const alertes = new Map(), alerte = (cle, msg, t) => { const a = alertes.get(cle); if (a) a.n++; else alertes.set(cle, { msg, t, n: 1 }) }
   const lum = c => { const v = (c.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(x => +x / 255); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2] }
@@ -1103,7 +1111,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     if (f % Math.round(FPS / 2) === 0 && t > 0.3 && t < TOT - 0.2) { // une image toutes les 0,5 s
       const boites = []
       for (const calque of ['derriere', 'devant']) { const html = el.filter(e => e.calque === calque && t >= e.a && t < e.b).map(e => e.dessin(t)).join(''); if (!html) continue
-        await page.evaluate(x => { document.getElementById('s').innerHTML = x }, html); if (calque === 'devant') await ranger(); for (const b of await mesurer()) boites.push({ ...b, calque }) }
+        await page.evaluate(x => { document.getElementById('s').innerHTML = x }, html); await ranger(calque === 'derriere'); for (const b of await mesurer()) boites.push({ ...b, calque }) }
       const v = vis(t), fond = boites.some(b => b.z >= 28 && !b.deco) ? fondA(t) : null, ts = t.toFixed(1) + ' s'
       const vus = new Map()
       for (const b of boites) {
@@ -1112,6 +1120,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
           if (b.calque === 'devant' && part > 0.25) alerte('visage:' + mot, 'texte sur son visage (« ' + mot + ' »)', ts)
           if (b.calque === 'derriere' && part > 0.6) alerte('cache:' + mot, 'titre caché derrière sa tête (« ' + mot + ' »)', ts) }
         if (b.z >= 20 && (b.x < 6 || b.x + b.w > 714)) alerte('bord:' + mot, 'texte coupé au bord de l\'image (« ' + mot + ' »)', ts)
+        else if (b.z >= 20 && (b.x < ZM.cote - 4 || b.x + b.w > 720 - ZM.cote + 4)) alerte('cote:' + mot, 'texte dans les bords que certains téléphones coupent (« ' + mot + ' »)', ts)
         if (b.calque === 'devant' && b.z >= 22) {
           if (b.y + b.h > 1280 - ZM.bas + 4) alerte('legende:' + mot, 'texte sous la légende et le nom (' + ZM.nom + '), en bas (« ' + mot + ' »)', ts)
           else if (b.y < ZM.haut - 4) alerte('haut:' + mot, 'texte sous les onglets du haut (' + ZM.nom + ') (« ' + mot + ' »)', ts)
@@ -1129,7 +1138,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       if (!cache.has(h)) {
         const fichier = join(st, 'collage', `${h}.png`)
         await page.evaluate(x => { document.getElementById('s').innerHTML = x }, html)
-        if (calque === 'devant') await ranger()
+        await ranger(calque === 'derriere')
         await page.screenshot({ path: fichier, omitBackground: true }); cache.set(h, fichier)
       }
       pistes[calque].push(cache.get(h))

@@ -17,10 +17,11 @@ export function zones(p) {
     droiteDe: Math.min(...l.map(z => z.droiteDe)), cote: Math.max(...l.map(z => z.cote)), nom: l.length > 1 ? 'Instagram, TikTok et Facebook' : ({ instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook' })[k] }
 }
 // le calque rouge des zones, pour la planche de contrôle (filtre ffmpeg sur une image 720 x 1280)
-export const dessinZones = Z => [
-  `drawbox=x=0:y=0:w=720:h=${Z.haut}:color=red@0.22:t=fill`,
-  `drawbox=x=0:y=${1280 - Z.bas}:w=720:h=${Z.bas}:color=red@0.22:t=fill`,
-  `drawbox=x=${720 - Z.droite}:y=${Z.droiteDe}:w=${Z.droite}:h=${1280 - Z.bas - Z.droiteDe}:color=red@0.22:t=fill`,
-  `drawbox=x=0:y=${Z.haut}:w=${Z.cote}:h=${1280 - Z.haut - Z.bas}:color=orange@0.18:t=fill`,
-  `drawbox=x=${720 - Z.cote}:y=${Z.haut}:w=${Z.cote}:h=${Z.droiteDe - Z.haut}:color=orange@0.18:t=fill`,
+// (06/11) dessinées en RVB : sur l'image vidéo (YUV) le rouge transparent sortait opaque et cachait la vidéo
+export const dessinZones = Z => 'format=rgb24,' + [
+  `drawbox=x=0:y=0:w=720:h=${Z.haut}:color=red@0.30:t=fill`,
+  `drawbox=x=0:y=${1280 - Z.bas}:w=720:h=${Z.bas}:color=red@0.30:t=fill`,
+  `drawbox=x=${720 - Z.droite}:y=${Z.droiteDe}:w=${Z.droite}:h=${1280 - Z.bas - Z.droiteDe}:color=red@0.30:t=fill`,
+  `drawbox=x=0:y=${Z.haut}:w=${Z.cote}:h=${1280 - Z.haut - Z.bas}:color=orange@0.30:t=fill`,
+  `drawbox=x=${720 - Z.cote}:y=${Z.haut}:w=${Z.cote}:h=${Z.droiteDe - Z.haut}:color=orange@0.30:t=fill`,
 ].join(',')
