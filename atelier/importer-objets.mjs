@@ -7,17 +7,20 @@
 //   node importer-objets.mjs grille <nom>                  → objets-perso/<nom>-grille.png (quadrillage tous les 50 px)
 //   node importer-objets.mjs bord <nom> x,y x,y …          → le bord avant d'une boîte / le V d'une enveloppe (de gauche à droite)
 //   node importer-objets.mjs fente <nom> y x0 x1           → la fente d'un appareil instantané (en pixels)
+//   node importer-objets.mjs rond <nom> [cx cy r]          → le rond d'une tasse vue de dessus (mot-tasse) : trouvé tout seul, ou donné en pixels
 //   node importer-objets.mjs liste                         → ce qu'elle a déjà
 import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync, readdirSync, rmSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
+import { mesurerRond } from './rond.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url)), PERSO = join(ICI, 'objets-perso'), FM = join(PERSO, 'mesures.json')
 mkdirSync(PERSO, { recursive: true })
 const ff = a => execFileSync('ffmpeg', ['-y', '-v', 'error', ...a])
 const taille = f => execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'stream=width,height', '-of', 'csv=p=0', f]).toString().trim().split(',').map(Number)
+const FR = join(PERSO, 'ronds.json'), ronds = () => existsSync(FR) ? JSON.parse(readFileSync(FR, 'utf8')) : {}
 const mesures = () => existsSync(FM) ? JSON.parse(readFileSync(FM, 'utf8')) : {}
 const fichier = n => { const f = join(PERSO, n.replace(/\.png$/, '') + '.png'); if (!existsSync(f)) throw new Error('objet introuvable : ' + n); return f }
 const [cmd, ...args] = process.argv.slice(2)
@@ -85,7 +88,18 @@ else if (cmd === 'bord' || cmd === 'fente') {
   ff(['-i', f, '-vf', boites.join(','), join(PERSO, nom + '-controle.png')])
   console.log(`OK mesure enregistrée. Vérifie objets-perso/${nom}-controle.png : la ligne rouge doit suivre ${cmd === 'bord' ? 'le bord avant (tout ce qui est au-dessus reste visible)' : 'la fente'}.`)
 }
-else if (cmd === 'liste') {
-  const M = mesures(); for (const f of readdirSync(PERSO).filter(f => f.endsWith('.png') && !/(-grille|-controle|^planche)\.png$|^planche/.test(f))) console.log(f.replace('.png', ''), M[f.replace('.png', '')] ? '(mesuré)' : '')
+else if (cmd === 'rond') {
+  // le plus grand cercle plein dans l'objet : le bord de la tasse, ou sa soucoupe (distance exacte au transparent)
+  const nom = args[0], f = fichier(nom), [W, H] = taille(f), R = ronds(); let rond
+  if (args.length >= 4) rond = args.slice(1, 4).map(Number)
+  else { rond = mesurerRond(f); if (!rond) throw new Error('PAS_TRANSPARENT') }
+  if (rond.some(isNaN) || rond[2] < 5) throw new Error('rond : cx cy r (en pixels)')
+  R[nom] = rond; writeFileSync(FR, JSON.stringify(R, null, 1))
+  const [cx, cy, r] = rond, N = Math.max(24, Math.round(r / 3))
+  ff(['-i', f, '-vf', Array.from({ length: N }, (_, i) => `drawbox=x=${Math.round(cx + r * Math.cos(i / N * 2 * Math.PI)) - 2}:y=${Math.round(cy + r * Math.sin(i / N * 2 * Math.PI)) - 2}:w=5:h=5:color=red:t=fill`).join(','), join(PERSO, nom + '-controle.png')])
+  console.log(`OK rond enregistré [${rond.join(', ')}]. Vérifie objets-perso/${nom}-controle.png : le cercle rouge doit suivre le bord de la tasse (ou de sa soucoupe). Sinon : node importer-objets.mjs grille ${nom}, puis rond ${nom} cx cy r.`)
 }
-else console.log('commandes : decouper <page.png> | nommer <import-NN> <nom> | grille <nom> | bord <nom> x,y … | fente <nom> y x0 x1 | liste')
+else if (cmd === 'liste') {
+  const M = mesures(); for (const f of readdirSync(PERSO).filter(f => f.endsWith('.png') && !/(-grille|-controle|^planche)\.png$|^planche/.test(f))) console.log(f.replace('.png', ''), M[f.replace('.png', '')] || ronds()[f.replace('.png', '')] ? '(mesuré)' : '')
+}
+else console.log('commandes : decouper <page.png> | nommer <import-NN> <nom> | grille <nom> | bord <nom> x,y … | fente <nom> y x0 x1 | rond <nom> [cx cy r] | liste')

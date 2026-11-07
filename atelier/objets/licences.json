@@ -340,5 +340,50 @@
   "titre": null,
   "auteur": null,
   "detoure": "2026-11-07"
+ },
+ "cafe-creme.png": {
+  "licence": "cc0",
+  "source": "stocksnap",
+  "page": "https://stocksnap.io/photo/coffee-cup-VS5KJKKI33",
+  "url": "https://cdn.stocksnap.io/img-thumbs/960w/VS5KJKKI33.jpg",
+  "titre": "Coffee Cup",
+  "auteur": "Jeffrey Betts",
+  "detoure": "2026-11-07"
+ },
+ "cafe-noir-verre.png": {
+  "licence": "cc0",
+  "source": "rawpixel",
+  "page": "https://www.rawpixel.com/image/5921481/photo-image-public-domain-coffee-free",
+  "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvcHg3MDIwNDMtaW1hZ2Uta3d2eGlvNWIuanBn.jpg",
+  "titre": "Free flat lay black coffee",
+  "auteur": null,
+  "detoure": "2026-11-07"
+ },
+ "cappuccino-soucoupe.png": {
+  "licence": "cc0",
+  "source": "rawpixel",
+  "page": "https://www.rawpixel.com/image/3283268/free-photo-image-coffee-art-beverage",
+  "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvdXB3azYxNzEzMjUwLXdpa2ltZWRpYS1pbWFnZS1rb3diYmphbi5qcGc.jpg",
+  "titre": "overhead shot latte art white",
+  "auteur": null,
+  "detoure": "2026-11-07"
+ },
+ "latte-feuille.png": {
+  "licence": "cc0",
+  "source": "rawpixel",
+  "page": "https://www.rawpixel.com/image/3303533/free-photo-image-coffee-beverage-brown-background",
+  "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvdXB3azYxNzEzMjI5LXdpa2ltZWRpYS1pbWFnZS1rb3dxengxcC5qcGc.jpg",
+  "titre": "Aesthetic latte art background",
+  "auteur": null,
+  "detoure": "2026-11-07"
+ },
+ "espresso-soucoupe.png": {
+  "licence": "cc0",
+  "source": "wordpress",
+  "page": "https://wordpress.org/photos/photo/27165bdf93/",
+  "url": "https://pd.w.org/2024/02/27165bdf930f20113.56436503-2048x1365.jpg",
+  "titre": "Top view of a cup of coffee on a light wooden table",
+  "auteur": "Nilo Velez",
+  "detoure": "2026-11-07"
  }
 }

@@ -13,6 +13,7 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { mesurerRond } from './rond.mjs'
 const ICI_E = dirname(fileURLToPath(import.meta.url))
 // (06/11) les VRAIS objets photographiés et détourés, à la place des dessins (« trop fake ») : { src, l, h } ou null
 // (07/11) LES MESURES de chaque objet, prises au pixel sur SA photo (coordonnées en pixels de l'image) :
@@ -24,6 +25,8 @@ export const MESURES = {
   'coffre-bois': { bord: [[0, 221], [386, 221]] },
   'enveloppe-kraft-lettre': { bord: [[0, 365], [60, 412], [150, 487], [250, 570], [380, 640], [432, 632], [520, 616], [620, 533], [720, 454], [800, 399], [864, 350]] },
 }
+// (07/11) le rond des tasses vues de dessus de SON Canva (motTasse) : [x du centre, y du centre, rayon] en pixels de l'image
+export const RONDS = {}
 // au-dessus du bord (ce qui sort reste visible) : polygone en pixels de la page ; O = l'objet, x/y/l = où il est posé
 export const dessusDuBord = (O, x, y, l) => { const B = O.mesures.bord, s = l / O.l, P = ([a, b]) => (x + a * s).toFixed(1) + 'px ' + (y + b * s).toFixed(1) + 'px'
   return 'polygon(0px 0px,720px 0px,720px ' + (y + B.at(-1)[1] * s).toFixed(1) + 'px,' + B.slice().reverse().map(P).join(',') + ',0px ' + (y + B[0][1] * s).toFixed(1) + 'px)' }
@@ -36,7 +39,7 @@ export const objet = (...noms) => { const perso = lireJson(join(ICI_E, 'objets-p
   for (const n of noms) for (const d of process.env.MONTAGE_SANS_CANVA ? ['objets-perso', 'objets'] : ['objets-perso', 'objets-canva', 'objets']) { const f = join(ICI_E, d, n + '.png'); if (!existsSync(f)) continue
     // un objet libre porte le même nom que l'objet Canva qu'il remplace, mais PAS la même photo : ses mesures sont dans objets/mesures.json
     const mesures = d === 'objets-perso' ? perso[n] : d === 'objets' ? livres[n] : MESURES[n]; if ((MESURES[n] || livres[n]) && !mesures) continue
-    const b = readFileSync(f); return { nom: n, src: 'data:image/png;base64,' + b.toString('base64'), l: b.readUInt32BE(16), h: b.readUInt32BE(20), mesures } }
+    const b = readFileSync(f); return { nom: n, dossier: d, src: 'data:image/png;base64,' + b.toString('base64'), l: b.readUInt32BE(16), h: b.readUInt32BE(20), mesures } }
   return null }
 // sous le bord (la face avant de l'objet, à redessiner par-dessus) : polygone en % de l'image
 export const faceAvant = O => { const B = O.mesures.bord; return 'polygon(' + [...B.map(([a, b]) => (a / O.l * 100).toFixed(2) + '% ' + (b / O.h * 100).toFixed(2) + '%'), '100% 100%', '0% 100%'].join(',') + ')' }
@@ -85,6 +88,65 @@ export function effet2(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) 
           + '<span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;font:600 28px/1 Poppins,sans-serif;color:#1d1d1f">' + esc(txt.slice(0, n)) + '<span style="display:inline-block;width:3px;height:30px;margin-left:2px;vertical-align:-5px;background:' + acc + ';opacity:' + (fini ? (cli ? 1 : 0) : 1) + '"></span></span>'
           + '<span style="flex:none;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:' + (fini ? acc : '#d9d9de') + ';color:#fff;font:700 26px/1 Poppins,sans-serif;transform:scale(' + env.toFixed(3) + ')">↑</span></div>' },
       sons: t0 => [{ t: t0, fam: 'pop', vol: 0.05 }, { t: t0 + 0.35, fam: 'clavier', vol: 0.05, duree: Math.max(0.3, tFrappe - 0.4) }, { t: t0 + tFrappe + 0.05, fam: 'clic', vol: 0.07 }] }
+  }
+  // (07/11) objet : UN vrai objet (sa banque : latte, matcha, tasse, polaroid, calculatrice…) tombe à côté d'elle quand elle en parle,
+  // se pose avec un petit écrasement et son ombre de contact, flotte à peine, puis s'efface. { type: 'objet', t, nom: 'latte' } (nom ou liste de noms)
+  if (E.type === 'objet') {
+    const O = objet(...[].concat(E.nom || [])); if (!O) return null
+    const W = 300, H = 330, duree = E.duree ?? 2.8, POSE = 0.42 // posé en bas, du côté libre, comme sur la table (jamais en l'air à hauteur de tête)
+    return { hauteur: H, anim: 0.6, duree, place: E.surCote ? cote : undefined, // très gros plan : pas la place sous son visage, il se pose de côté, plus petit
+      dessin: (dt, y) => { const k = E.surCote ? clamp((E.largeur || W) / W, 0.45, 1) : 1, w = W * k, h = (H - 34) * k, x = cote === 'droite' ? 720 - w - 24 : 24
+        const f = Math.min(w / O.l, h / O.h), lo = O.l * f, ho = O.h * f, xo = x + (w - lo) / 2, sol = y + 6 + h
+        const q = clamp(dt / POSE, 0, 1), chute = (1 - q * q) * -(sol + 40 - y), u = dt - POSE
+        const ecrase = u > 0 && u < 0.28 ? Math.sin(u / 0.28 * Math.PI) * Math.exp(-u * 6) * 0.14 : 0, flotte = u > 0.3 ? Math.sin((u - 0.3) * 2.4) * 2.5 : 0
+        const sortie = clamp((dt - (duree - 0.35)) / 0.35, 0, 1), rot = (1 - q) * (cote === 'droite' ? 14 : -14), proche = clamp(q * 1.2, 0, 1)
+        return '<div style="position:absolute;left:' + (xo + lo * 0.12).toFixed(1) + 'px;top:' + (sol - 10).toFixed(1) + 'px;width:' + (lo * 0.76).toFixed(1) + 'px;height:20px;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.38),transparent);opacity:' + (proche * (1 - sortie)).toFixed(2) + ';transform:scaleX(' + (0.6 + 0.4 * proche + ecrase).toFixed(3) + ')"></div>'
+          + '<img src="' + O.src + '" style="position:absolute;left:' + xo.toFixed(1) + 'px;top:' + (sol - ho + chute + flotte).toFixed(1) + 'px;width:' + lo.toFixed(1) + 'px;transform-origin:50% 100%;transform:rotate(' + rot.toFixed(1) + 'deg) scale(' + (1 + ecrase - 0.25 * sortie).toFixed(3) + ',' + (1 - ecrase - 0.25 * sortie).toFixed(3) + ');opacity:' + (1 - sortie).toFixed(2) + ';filter:drop-shadow(0 10px 14px rgba(0,0,0,.28))">' },
+      sons: t0 => [{ t: t0 + POSE - 0.02, fam: 'pop', vol: 0.06 }] }
+  }
+  // (07/11) motTasse : un mot en géant dont le O est une VRAIE tasse vue de dessus (« POSSIBLE », « MOINS DE SCROLL »…).
+  // { type: 'motTasse', t, texte: 'possible', nom: 'matcha-latte', transition: 'pose' | 'glisse' | 'tourne' | 'zoom', lettre: 3 }
+  //   pose : la tasse est posée dans le trou du mot, d'en haut (elle descend vers la table, son ombre se resserre)
+  //   glisse : elle arrive de côté en tournant sur elle-même, comme poussée sur une table, et s'arrête pile
+  //   tourne : le O est d'abord une lettre, qui pivote et devient la tasse
+  //   zoom : la tasse remplit l'écran (vue d'au-dessus) puis rétrécit dans le mot, les lettres arrivent autour
+  // Le rond de la tasse (son bord, ou sa soucoupe) est mesuré au pixel : objets/ronds.json (outil rond), sinon centre de l'image.
+  if (E.type === 'motTasse') {
+    const txt = String(E.texte || '').trim().toUpperCase(); if (!txt) return null
+    const iO = E.lettre ?? txt.indexOf('O'); if (iO < 0 || txt[iO] !== 'O') return null // pas de O : pas de tasse
+    const O = objet(...[].concat(E.nom || ['matcha-latte', 'tasse-1', 'latte'])); if (!O) return null
+    const R = (O.dossier === 'objets' ? lireJson(join(ICI_E, 'objets', 'ronds.json')) : O.dossier === 'objets-perso' ? lireJson(join(ICI_E, 'objets-perso', 'ronds.json')) : RONDS)[O.nom] || mesurerRond(join(ICI_E, O.dossier, O.nom + '.png')) || [O.l / 2, O.h / 2, Math.min(O.l, O.h) * 0.47] // une tasse importée par l'élève se mesure toute seule : elle n'a rien à faire
+    const mode = ['pose', 'zoom'].includes(E.transition) ? E.transition : 'pose', duree = E.duree ?? 2.8 // (07/11) Aurélie garde pose et zoom ; glisse et tourne refusées (le code reste, jamais choisi)
+    const larg = [...txt].reduce((w, c) => w + (c === ' ' ? 0.28 : 'MW'.includes(c) ? 1.0 : 'IJ1'.includes(c) ? 0.38 : 'O'.includes(c) ? 0.8 : 0.74), 0), z = Math.round(Math.min(150, 600 / larg)), lux = couleurs.skin === 'luxe', col = E.couleur || (lux ? '#E3C38A' : accent) // largeur réelle des lettres (Montserrat Black) : le mot tient dans l'écran, même penché
+    const D = z * 0.78, s = D / (2 * R[2]) // diamètre du rond = un O de la police (Montserrat Black : 0,78 em de large)
+    const debutL = mode === 'zoom' ? 0.5 : 0, arrive = { pose: 0.32, glisse: 0.38, tourne: 0.75, zoom: 0 }[mode], fin = { pose: 0.42, glisse: 0.55, tourne: 0.35, zoom: 0.55 }[mode]
+    const ressort = u => u >= 1 ? 1 : 1 - Math.exp(-6 * u) * Math.cos(u * 9.5) * (1 - u) // arrive avec un petit dépassement, puis se cale
+    return { hauteur: Math.round(z * 1.1 + 24), anim: arrive + fin, duree,
+      dessin: (dt, y) => {
+        const lettres = [...txt].map((c, k) => { if (k === iO) return null
+          const p = clamp(rebond((dt - debutL - Math.abs(k - iO) * 0.035) / 0.28), 0, 1.1)
+          return '<span style="display:inline-block;opacity:' + clamp(p * 2, 0, 1).toFixed(2) + ';transform:translateY(' + ((1 - Math.min(p, 1)) * z * 0.25).toFixed(1) + 'px) scale(' + (0.6 + 0.4 * p).toFixed(3) + ')">' + (c === ' ' ? '&nbsp;' : esc(c)) + '</span>' })
+        const u = clamp((dt - arrive) / fin, 0, 1), vit = Math.max(0, dt - arrive - fin), vie = Math.sin(vit * 1.6) * 2 // vivante une fois posée : elle pivote à peine
+        let tasse = '', lettreO = ''
+        const lI = O.l * s, hI = O.h * s, img = (tr, op, ombre) => '<img src="' + O.src + '" style="position:absolute;left:' + (D / 2 - R[0] * s).toFixed(1) + 'px;top:' + (D / 2 - R[1] * s).toFixed(1) + 'px;width:' + lI.toFixed(1) + 'px;height:' + hI.toFixed(1) + 'px;max-width:none;transform-origin:' + (R[0] * s).toFixed(1) + 'px ' + (R[1] * s).toFixed(1) + 'px;transform:' + tr + ';opacity:' + op + ';filter:drop-shadow(' + ombre + ')">'
+        if (mode === 'pose' && dt >= arrive) { const e = ressort(u), h = 1 - Math.min(1, e) // h : hauteur au-dessus de la table
+          tasse = img('rotate(' + (h * 18 + vie).toFixed(2) + 'deg) scale(' + (1 + 0.55 * h - Math.max(0, e - 1) * 0.5).toFixed(3) + ')', clamp(u * 4, 0, 1).toFixed(2), (4 + 26 * h).toFixed(1) + 'px ' + (6 + 30 * h).toFixed(1) + 'px ' + (5 + 16 * h).toFixed(1) + 'px rgba(40,20,10,' + (0.32 - 0.12 * h).toFixed(2) + ')') }
+        if (mode === 'glisse' && dt >= arrive) { const e = 1 - Math.pow(1 - u, 3), r = 1 - e, dir = iO < txt.length / 2 ? 1 : -1 // freinée par la table, sans rebond ; elle traverse l'écran depuis le côté le plus loin du O (sinon on ne la voit pas arriver)
+          tasse = img('translateX(' + (dir * r * 760).toFixed(1) + 'px) rotate(' + (dir * r * 220 + vie).toFixed(1) + 'deg)', '1', '4px 6px 5px rgba(40,20,10,.32)') }
+        if (mode === 'tourne') { const a = clamp((dt - arrive) / (fin * 0.45), 0, 1), b = clamp((dt - arrive - fin * 0.45) / (fin * 0.55), 0, 1)
+          if (a < 1) lettreO = '<span style="position:absolute;inset:0;display:grid;place-items:end center;line-height:0.74;transform:perspective(600px) rotateY(' + (a * 90).toFixed(1) + 'deg);opacity:' + clamp((dt - 0.05) / 0.2, 0, 1).toFixed(2) + '">O</span>'
+          else tasse = img('perspective(600px) rotateY(' + ((1 - ressort(b)) * -90).toFixed(1) + 'deg) rotate(' + vie.toFixed(2) + 'deg)', '1', '4px 6px 5px rgba(40,20,10,.32)') }
+        if (mode === 'zoom') { const e = doux(clamp(dt / fin, 0, 1)), g = 1100 / D, k = g + (1 - g) * e, flou = clamp((k * D / (2 * R[2]) - 1.15) * 2.2, 0, 7) * (1 - e) // au départ, le rond fait la largeur de l'écran ; une photo plus petite que ça est floutée par le mouvement, jamais pixelisée
+          tasse = img('scale(' + k.toFixed(3) + ') rotate(' + ((1 - e) * -40 + vie).toFixed(1) + 'deg)', clamp(dt / 0.12, 0, 1).toFixed(2), (4 + 30 * (1 - e)).toFixed(1) + 'px ' + (6 + 40 * (1 - e)).toFixed(1) + 'px ' + (5 + 20 * (1 - e)).toFixed(1) + 'px rgba(40,20,10,.3)) blur(' + (flou / k).toFixed(2) + 'px') }
+        const trou = '<span style="display:inline-block;position:relative;width:' + (z * 0.78).toFixed(1) + 'px;height:' + (z * 0.72).toFixed(1) + 'px;margin:0 ' + (z * 0.01).toFixed(1) + 'px;vertical-align:' + (-z * 0.012).toFixed(1) + 'px">'
+          + '<span style="position:absolute;left:' + ((z * 0.78 - D) / 2).toFixed(1) + 'px;top:' + ((z * 0.72 - D) / 2).toFixed(1) + 'px;width:' + D.toFixed(1) + 'px;height:' + D.toFixed(1) + 'px">' + tasse + '</span>' + lettreO + '</span>'
+        return '<div style="position:absolute;left:0;right:0;top:' + y + 'px;text-align:center;white-space:nowrap;transform:rotate(-4deg)">'
+          + '<div style="display:inline-block;font:900 ' + z + 'px/1 Rond,Poppins,sans-serif;color:' + col + ';-webkit-text-stroke:' + Math.round(z / 14) + 'px #fff;paint-order:stroke fill;text-shadow:0 10px 30px rgba(0,0,0,.25)">'
+          + lettres.slice(0, iO).join('') + trou + lettres.slice(iO + 1).join('') + '</div></div>' },
+      sons: t0 => mode === 'glisse' ? [{ t: t0 + arrive - 0.05, fam: 'whoosh', vol: 0.06 }, { t: t0 + arrive + fin * 0.6, fam: 'clic', vol: 0.06 }]
+        : mode === 'zoom' ? [{ t: t0, fam: 'whoosh', vol: 0.06 }, { t: t0 + fin, fam: 'pop', vol: 0.06 }]
+        : mode === 'tourne' ? [{ t: t0 + 0.05, fam: 'pop', vol: 0.05 }, { t: t0 + arrive, fam: 'whoosh', vol: 0.05 }]
+        : [{ t: t0 + 0.05, fam: 'pop', vol: 0.05 }, { t: t0 + arrive + fin * 0.55, fam: 'clic', vol: 0.07 }] }
   }
   // motGeant : le mot-clé de fin en géant, en biais, contour blanc, qui claque puis respire
   if (E.type === 'motGeant') {

@@ -332,6 +332,27 @@ Pendant un effet, les mots géants se taisent. Regarde une image du résultat : 
   glissent sur une corde à linge : ⛔ refusé par Aurélie le 06/11, ne le propose pas), `eventail` (elles sortent d'une boîte en éventail) :
   `{ "type": "polaroids", "t": 6, "images": ["photo1.jpg", "photo2.jpg"] }`. Quand elle parle de souvenirs, de
   clientes (avec leur accord), de ses créations, de ses résultats.
+- **Un vrai objet qui arrive quand elle en parle** : `{ "type": "objet", "t": 7, "nom": "latte" }`. Quand elle DIT
+  « mon café », « mon matcha », « ma tasse », mets `t` sur ce mot : l'objet tombe à côté d'elle, du côté libre,
+  se pose en bas comme sur une table (petit écrasement, ombre), puis s'efface. En très gros plan, il se met
+  tout seul sur le côté, plus petit : jamais sur son visage. Noms livrés : `latte`, `matcha-latte`,
+  `cafe-glace-1`, `cafe-glace-2`, `tasse-1` (grains de café), `tasse-2` (tasse bleue), `cafe-creme`,
+  `cafe-noir-verre`, `cappuccino-soucoupe`, `latte-feuille`, `espresso-soucoupe` (+ ses objets à elle, section 11).
+  Un ou deux par vidéo, seulement sur un mot qu'elle prononce.
+- **Le mot-tasse** : un mot en géant dont le O est une VRAIE tasse vue de dessus. Validé par Aurélie le 07/11.
+  `{ "type": "motTasse", "t": 4, "texte": "possible", "nom": "latte-feuille", "transition": "pose" }`
+  - `texte` : SON mot, celui qu'elle dit à ce moment-là, et il doit contenir un O (« possible », « 3 mois »,
+    « organisation », « on commence »). Le premier O devient la tasse ; pour un autre O : `"lettre": 5` (position, en partant de 0).
+  - `transition` : **`pose`** (la tasse est posée d'en haut dans le trou du mot, son ombre se resserre) ou
+    **`zoom`** (la tasse remplit l'écran vue d'au-dessus, puis rétrécit dans le mot pendant que les lettres
+    arrivent). ⛔ Rien d'autre : la glisse et la lettre qui pivote ont été refusées.
+  - `nom`, les tasses vues de dessus : `latte-feuille` (latte, feuille dessinée), `cafe-creme` (café au lait),
+    `cappuccino-soucoupe` (cappuccino sur soucoupe), `espresso-soucoupe` (espresso sur soucoupe),
+    `matcha-latte` (matcha), `tasse-1` (grains de café). Ou une tasse vue de dessus de SON Canva (section 11).
+    `cafe-noir-verre` se lit mal comme un O (verre invisible sur fond clair) : garde-le pour l'effet `objet`.
+  - Le rond de chaque tasse est déjà mesuré au pixel : elle s'emboîte toute seule à la taille des lettres,
+    et la taille du mot s'adapte pour qu'il tienne dans l'écran. Tu n'as rien à régler.
+  - Un ou deux par vidéo, sur un mot fort, de préférence quand il est question de café, de pause, de routine.
 - ⛔ **Jamais d'objet dessiné derrière elle** (machine à écrire, panneau routier) : refusés par Aurélie le 06/11 (« trop fake »).
 - **La vidéo dans la vidéo** : `{ "type": "extrait", "t": 14, "video": "autre-prise.mp4", "debut": 3, "duree": 4, "etiquette": "ma routine en vrai" }` :
   SON extrait (une 2e prise, une B-roll de son produit ou de ses mains, ou un reel qu'elle a le droit de montrer : le sien,
@@ -586,6 +607,11 @@ Elle utilise SES éléments avec SA licence Canva : tu ne lui proposes jamais de
    `appareil-instantane` (polaroid), `coffre-bois` (coffre), `boite-bois` (boîte ou caisse ouverte),
    `boite-carton` (carton ouvert), `enveloppe-kraft-lettre` (enveloppe ouverte), `postit-jaune` (post-it).
    Pour les autres, un nom libre en minuscules avec des tirets (`etoile-jaune`, `fleche-rose`…).
+   **Ses tasses vues de dessus** (pour le mot-tasse) : un nom libre (`ma-tasse-rose`, `mon-chai`…), et c'est tout :
+   leur rond se mesure tout seul au montage. Si une tasse se cale mal dans le O (le cercle ne suit pas son bord),
+   `node importer-objets.mjs rond <nom>` puis regarde `objets-perso/<nom>-controle.png` ; pour corriger à la main :
+   `node importer-objets.mjs grille <nom>`, puis `node importer-objets.mjs rond <nom> cx cy r` (centre et rayon en pixels).
+   Seules les tasses vraiment vues de dessus font un beau O : une tasse de profil, propose-la plutôt pour l'effet `objet`.
 3. Un CONTENANT (appareil, coffre, boîte, enveloppe) doit être MESURÉ, sinon il est ignoré (sans son bord,
    rien ne peut en sortir proprement) :
    - `node importer-objets.mjs grille <nom>` puis regarde `objets-perso/<nom>-grille.png` (traits bleus tous
