@@ -870,11 +870,13 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
 
   // 7 bis. LISTES ANIMÉES : quand elle énumère (« 3 erreurs », « mes étapes »), au lieu d'une liste à cocher
   for (const L of LUXE ? [] : K.listes || []) { // en luxe, les listes passent par effets2 (listeLuxe)
-    if (L.type === 'notes') { // la to-do d'appli et ses 4 looks, dessinées par listes.mjs
-      const Lm = listeNotes(L, { clamp, doux, rebond, esc, couleurs: { coche: (K.couleurs || {}).coche || coul.mot || C?.motFort?.couleur || '#F25C9A' } }); if (!Lm) continue
-      const t0 = tf(L.t), b = Math.min(TOT - 0.1, t0 + Lm.duree), y = FV ? clamp(hautTete(t0, b) - Lm.hauteur - 30, 110, 1280 - 290 - Lm.hauteur) : clamp(basVisage(t0, b) + 50, 430, 1280 - 290 - Lm.hauteur)
+    // (07/11) ticket, étiqueteuse, post-it et tampon passent AUSSI par listes.mjs (versions réalistes validées par Aurélie) :
+    // avant, le collage gardait ses propres copies anciennes, et les élèves en style collage ne voyaient pas les corrections.
+    if (['notes', 'ticket', 'etiqueteuse', 'postit', 'tampon'].includes(L.type)) { // dessinées par listes.mjs, partagé avec le moteur classique
+      const Lm = listeNotes(L, { clamp, doux, rebond, esc, couleurs: { ...PALETTE_LISTE, coche: (K.couleurs || {}).coche || coul.mot || C?.motFort?.couleur || '#F25C9A' } }); if (!Lm) continue
+      const t0 = tf(L.t), b = Math.min(TOT - 0.1, t0 + Lm.duree), y = L.type !== 'notes' ? clamp(basVisage(t0, b) + 60, 430, 1280 - 290 - Lm.hauteur) : FV ? clamp(hautTete(t0, b) - Lm.hauteur - 30, 110, 1280 - 290 - Lm.hauteur) : clamp(basVisage(t0, b) + 50, 430, 1280 - 290 - Lm.hauteur)
       el.push({ a: t0, b, calque: 'devant', zone: 'geant', parle: true, dessin: t => '<div style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)).toFixed(2) + '">' + Lm.dessin(t - t0, Math.round(y)) + '</div>' })
-      sons.push(...Lm.sons(t0).map(x => ({ ...x, vol: Math.min(x.vol, 0.09) }))); continue
+      sons.push(...Lm.sons(t0).map(x => L.type === 'tampon' && x.fam === 'pop' ? { ...x, fam: 'tampon' } : L.type === 'notes' ? { ...x, vol: Math.min(x.vol, 0.09) } : x)); continue
     }
     const t0 = tf(L.t), items = (L.items || []).slice(0, 5), n = items.length; if (!n) continue
     const pas = L.type === 'ticket' ? 0.45 : 0.6, b = Math.min(TOT - 0.1, t0 + (L.duree ?? Math.max(3.5, 1.2 + n * pas + 1.6)))

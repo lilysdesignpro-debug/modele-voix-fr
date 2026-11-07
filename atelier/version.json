@@ -1,12 +1,12 @@
 {
- "version": "202611071614",
+ "version": "202611072106",
  "modeEmploi": 2,
  "fichiers": {
   "assembler.mjs": "84e1e6ca777c949268496e12a701648cd62106dbd7f13d848de116963e6731dd",
   "bandes.mjs": "d886bca8cef5ab9fa391f653cc0fd15c25d4b1144078d424f98b1b1f5d6d7d65",
   "chartes/modele.json": "9c4118330751cc2b5b391ceaa8a1fa3db887e5ffa67fb0bb457d3629b5d352ce",
   "coach.mjs": "d3984710c67707a9ad40141bfd6d18d4c0286c0e02ae1e77199287cd2f0d1ced",
-  "collage.mjs": "bda868eada71bb3353227def790f3b8cfd03317d343d4957ce965f3b99323ab5",
+  "collage.mjs": "a60e3da1015e19f92d7e0b6e032fb91ee83a1fdd2b3673dc905b493cadd8b2d4",
   "declinaisons.mjs": "717f82305a09a2873941ce6f3b7ceebd92d1012d33bffe3d70206aaa6b1ecd84",
   "decor.mjs": "37c36fd797af9e0cd3cf3d952c1d3d1a30a69c9c4c0378d55c17e89bb8480fc5",
   "defi.mjs": "a995dc8ccdd539163b4e60dcee2a0d2019184b2520c7bbc703e3ebc2e14fb961",
@@ -23,7 +23,7 @@
   "effets2.mjs": "c6751c1e4746a831a4b5ace7aa9f2acb2a708652968daaa51a37284ca3decd3d",
   "habillages.mjs": "f360dccfa16fc036536a677a55db48dc1c852c2e5b7884fb61f22edba92b0734",
   "importer-objets.mjs": "152d6705a9f1d21e454c6ec51577a9f3cf1bcad641609c983fa6a92c09ed1406",
-  "listes.mjs": "d9df0bae0964c2dd5fd29bd1922c333cbcd267467840e4f934a3b290ead3137e",
+  "listes.mjs": "ff17e9a305511d331691ad8f156338b91be37a2e8a559ee15e7ec72cfa138bb7",
   "marges.mjs": "d1231909cc040fd2f3d459020eb0fbaf75dce9f73e3171c7e9ccb398cc08fb16",
   "mettre-a-jour.mjs": "5c8d749b5f60742efa0f5f76327c58eaaac85b72374fbebdf4ec1df47cdbab6e",
   "montage.mjs": "041b18e3bae59a1644bc5d148e02ceb0eff3b5aed71bb74d1e1fef55d7f9af8a",
