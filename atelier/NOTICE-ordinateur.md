@@ -353,6 +353,17 @@ Pendant un effet, les mots géants se taisent. Regarde une image du résultat : 
   - Le rond de chaque tasse est déjà mesuré au pixel : elle s'emboîte toute seule à la taille des lettres,
     et la taille du mot s'adapte pour qu'il tienne dans l'écran. Tu n'as rien à régler.
   - Un ou deux par vidéo, sur un mot fort, de préférence quand il est question de café, de pause, de routine.
+- **La capture pincée** : SES captures d'écran (son site, un message de cliente avec son accord, ses stats, son
+  Canva…) tenues par une vraie pince à dessin, à côté de sa tête. Validée par Aurélie le 07/11.
+  `{ "type": "pincee", "t": 8, "images": ["captures/a.png", "captures/b.png"], "pas": 2.2 }`
+  - Les captures vont dans `projets/<nom>/` (un sous-dossier `captures/` est pratique). De 1 à 6 ; elles se
+    remplacent toutes les `pas` secondes (l'ancienne glisse de la pince et tombe, la nouvelle s'y glisse).
+  - Elle se place toute seule du côté libre, à côté de la tête, jamais sur le visage ni au bord de l'écran.
+    Tu n'as rien à régler.
+  - Pour une capture de téléphone (très haute), ajoute `"ratio": 1.8` ; par défaut 1,25.
+  - Rien sur le coin par défaut : la pince suffit. Un petit objet de la banque (`"objet": "cafe-glace-1"`)
+    seulement si elle le demande.
+  - Quand elle dit « regarde », « mon site », « ce message », « mes chiffres ». ⛔ Jamais pendant le hook.
 - ⛔ **Jamais d'objet dessiné derrière elle** (machine à écrire, panneau routier) : refusés par Aurélie le 06/11 (« trop fake »).
 - **La vidéo dans la vidéo** : `{ "type": "extrait", "t": 14, "video": "autre-prise.mp4", "debut": 3, "duree": 4, "etiquette": "ma routine en vrai" }` :
   SON extrait (une 2e prise, une B-roll de son produit ou de ses mains, ou un reel qu'elle a le droit de montrer : le sien,
