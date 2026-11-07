@@ -317,7 +317,7 @@ Pendant un effet, les mots géants se taisent. Regarde une image du résultat : 
 **Les nouveaux effets** (dans `collage`, les 9 styles du moteur collage) :
 - **Le fil rouge** : quand elle annonce ses points (« numéro un… numéro deux… », « première étape… »), une carte
   revient à chaque point : une carte en verre dépoli (le décor flouté derrière), barre en segments façon stories,
-  les étapes faites cochées à sa couleur et barrées, la nouvelle qui sort du flou ("look": "carnet" dans filRouge = l'ancien bloc-notes) :
+  les étapes faites cochées à sa couleur et barrées, la nouvelle qui sort du flou ("look": "carnet" dans filRouge = l'ancien bloc-notes papier ; ⛔ demande-lui lequel des deux elle préfère) :
   `"filRouge": { "titre": "ma routine", "etapes": [{ "t": 12.4, "texte": "le sérum" }, { "t": 21, "texte": "le spray" }] }`
   (`t` = le moment où elle dit le numéro, 2 à 6 étapes de 1 à 4 mots, SES mots). Le plus fort pour la rétention :
   propose-le dès qu'elle numérote.
@@ -326,7 +326,9 @@ Pendant un effet, les mots géants se taisent. Regarde une image du résultat : 
 - **La feuille lignée** : `{ "t": 40, "type": "feuille", "titre": "par exemple", "lignes": ["…", "…"] }`, quand elle
   donne des exemples l'un après l'autre ; ils s'écrivent à la main, ligne après ligne.
 - **Ses chiffres** : `{ "type": "compteurs", "t": 8, "items": ["697", "798", "841"], "icone": "vues" }` (`vues`,
-  `abonnes` ou `coeur`) et `{ "type": "graphique", "t": 15, "titre": "Mes abonnés", "points": [120, 180, 260, 410], "valeur": "410" }`.
+  `abonnes` ou `coeur`). DEUX looks, les deux validés par Aurélie : par défaut le widget en verre dépoli (le chiffre défile d'une
+  valeur à l'autre, petites barres, pastille de hausse en % calculée sur SES chiffres) ; `"look": "cartes"` = les petites étiquettes
+  sombres qui s'empilent. ⛔ C'est ELLE qui choisit : décris-lui les deux et demande-lui laquelle (choix d'Aurélie). Et `{ "type": "graphique", "t": 15, "titre": "Mes abonnés", "points": [120, 180, 260, 410], "valeur": "410" }`.
   ⛔ Uniquement des chiffres qu'elle DIT dans sa vidéo ou qu'elle te donne : jamais inventés, jamais arrondis.
 - **Ses photos en mouvement** (SES photos, dans `projets/<nom>/`) : `polaroids` (elles sortent d'un appareil
   instantané et s'empilent), `pluie` (elles sortent d'une enveloppe et se posent autour d'elle), `corde` (elles

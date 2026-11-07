@@ -296,6 +296,36 @@ export function effet2(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) 
   }
 
   if (E.type === 'compteurs') {
+    // (07/11 soir) LOOK MODERNE par défaut (même esprit que le fil rouge validé) : widget de statistiques en verre dépoli,
+    // le chiffre DÉFILE d'une valeur à l'autre (SES vrais chiffres, dans l'ordre), petites barres qui poussent, et la hausse
+    // en pastille à SA couleur à la fin (seulement si les chiffres se lisent comme des nombres). "look": "cartes" = les anciennes cartes.
+    if (E.look !== 'cartes') {
+      const its = (E.items || []).slice(0, 6).map(x => typeof x === 'object' ? x : { n: String(x) }).filter(x => x.n); if (!its.length) return null
+      const lire = t => { const m = String(t).replace(/[\s  ]/g, '').match(/^(\d+(?:[.,]\d+)?)([kKmM])?$/); return m ? { v: parseFloat(m[1].replace(',', '.')) * (m[2] ? (/k/i.test(m[2]) ? 1e3 : 1e6) : 1), suf: m[2] ? m[2].toUpperCase() : '', dec: (m[1].split(/[.,]/)[1] || '').length } : null }
+      const nums = its.map(it => lire(it.n)), ok = nums.every(Boolean), n = its.length, pas = 0.6
+      const ecrire = (v, mod) => mod.suf ? (v / (mod.suf === 'K' ? 1e3 : 1e6)).toFixed(mod.dec).replace('.', ',') + ' ' + mod.suf : Math.round(v).toLocaleString('fr-FR').replace(/[  ]/g, ' ')
+      const hausse = ok && n > 1 && nums[0].v > 0 ? Math.round((nums[n - 1].v - nums[0].v) / nums[0].v * 100) : null
+      const ico = { vues: '<path d="M2 12 C 6 5, 18 5, 22 12 C 18 19, 6 19, 2 12 Z" fill="none" stroke="#fff" stroke-width="2.2"/><circle cx="12" cy="12" r="3.4" fill="#fff"/>',
+        abonnes: '<circle cx="12" cy="8" r="4" fill="#fff"/><path d="M4 21 C 4 15, 20 15, 20 21 Z" fill="#fff"/>',
+        coeur: '<path d="M12 21 C 4 14, 2 10, 5 6.5 C 8 3.5, 11 5, 12 7 C 13 5, 16 3.5, 19 6.5 C 22 10, 20 14, 12 21 Z" fill="#fff"/>' }[E.icone || 'vues'] || ''
+      const nomIco = E.titre || its[0].label || { vues: 'vues', abonnes: 'abonnés', coeur: "j'aime" }[E.icone || 'vues'] || ''
+      const Wm = E.sous ? 320 : Math.round(clamp(E.largeur || 300, 220, 300)), Hm = 214, xm = E.sous ? 360 - Wm / 2 : cote === 'droite' ? 720 - Wm - 34 : 34, duree = E.duree ?? Math.max(3.2, n * pas + 2)
+      const maxV = ok ? Math.max(...nums.map(x => x.v)) : 1, minV = ok ? Math.min(...nums.map(x => x.v)) * 0.6 : 0 // barres : l écart se voit (de 60 % du plus petit au plus grand)
+      return { hauteur: Hm, anim: 0.5 + n * pas + 0.6, duree, place: E.sous ? undefined : cote, cadre: y => ({ x: xm, y, l: Wm, h: Hm, r: 26 }),
+        dessin: (dt, y) => { const p = clamp(rebond(dt / 0.4), 0, 1.04), apparait = doux(dt / 0.3), u = (dt - 0.35) / pas, j = clamp(Math.floor(u), 0, n - 1), f = doux(clamp((u - j) / 0.75, 0, 1))
+          const cur = ok ? (j === 0 ? nums[0].v * doux(clamp(u / 0.75, 0, 1)) : nums[j - 1].v + (nums[j].v - nums[j - 1].v) * f) : 0
+          const txt = ok ? ecrire(cur, nums[j]) : its[clamp(Math.floor(Math.max(0, u)), 0, n - 1)].n
+          const zN = Math.max(34, Math.min(62, Math.floor((Wm - 44) / (0.66 * Math.max(...its.map((x, k) => (ok ? ecrire(nums[k].v, nums[k]) : x.n).length))))))
+          const barres = its.map((_, k) => { const h = ok ? 10 + 44 * (nums[k].v - minV) / Math.max(1e-9, maxV - minV) : 20 + k * 6, g = doux(clamp((u - k) / 0.5, 0, 1))
+            return '<div style="flex:none;width:30px;display:flex;align-items:flex-end;height:54px"><div style="width:100%;height:' + (h * g).toFixed(1) + 'px;border-radius:6px;background:' + (k === j ? accent : 'rgba(255,255,255,.32)') + '"></div></div>' }).join('')
+          const pH = hausse != null ? clamp(rebond((dt - (0.35 + n * pas)) / 0.3), 0, 1.1) : 0
+          return '<div style="position:absolute;left:' + xm + 'px;top:' + y + 'px;width:' + Wm + 'px;height:' + Hm + 'px;box-sizing:border-box;padding:18px 22px;border-radius:26px;background:linear-gradient(155deg,rgba(255,255,255,.20),rgba(255,255,255,.05) 45%,rgba(0,0,0,.10)),rgba(22,22,28,.40);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 0 0 1px rgba(255,255,255,.22),0 20px 44px rgba(0,0,0,.25);color:#fff;opacity:' + apparait.toFixed(2) + ';transform:translateY(' + ((1 - Math.min(1, p)) * 40).toFixed(1) + 'px) scale(' + (0.94 + 0.06 * p).toFixed(3) + ')">'
+            + '<div style="display:flex;justify-content:space-between;align-items:center;height:26px"><span style="display:flex;align-items:center;gap:8px;font:600 13px/1 Poppins,sans-serif;letter-spacing:.18em"><svg viewBox="0 0 24 24" width="20" height="20">' + ico + '</svg>' + esc(nomIco.toUpperCase()) + '</span>'
+            + (pH > 0 ? '<span style="font:700 14px/1 Poppins,sans-serif;background:' + accent + ';border-radius:999px;padding:6px 10px;transform:scale(' + pH.toFixed(3) + ')">' + (hausse >= 0 ? '+' : '') + hausse + ' %</span>' : '') + '</div>'
+            + '<div style="font:800 ' + zN + 'px/1 Poppins,sans-serif;letter-spacing:-.02em;margin:12px 0 10px;font-variant-numeric:tabular-nums;white-space:nowrap;text-shadow:0 2px 12px rgba(0,0,0,.25)">' + esc(txt) + '</div>'
+            + '<div style="display:flex;gap:10px;align-items:flex-end;border-bottom:1.5px solid rgba(255,255,255,.3);padding-bottom:4px">' + barres + '</div></div>' },
+        sons: t0 => [{ t: t0, fam: 'whoosh', vol: 0.05 }, ...its.map((_, k) => ({ t: t0 + 0.35 + k * pas, fam: 'clic', vol: 0.06 })), ...(hausse != null ? [{ t: t0 + 0.35 + n * pas, fam: 'pop', vol: 0.08 }] : [])] }
+    }
     const items = (E.items || []).slice(0, 5).map(x => typeof x === 'object' ? x : { n: String(x) }).filter(x => x.n); if (!items.length) return null
     const ico = { vues: '<path d="M2 12 C 6 5, 18 5, 22 12 C 18 19, 6 19, 2 12 Z" fill="none" stroke="#fff" stroke-width="2.2"/><circle cx="12" cy="12" r="3.4" fill="#fff"/>',
       abonnes: '<circle cx="12" cy="8" r="4" fill="#fff"/><path d="M4 21 C 4 15, 20 15, 20 21 Z" fill="#fff"/>',
