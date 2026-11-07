@@ -304,5 +304,41 @@
   "titre": null,
   "auteur": null,
   "detoure": "2026-11-07"
+ },
+ "latte.png": {
+  "licence": "cc0",
+  "source": "stocksnap",
+  "page": "https://stocksnap.io/photo/coffee-cafe-452RWQUM4W",
+  "url": "https://cdn.stocksnap.io/img-thumbs/960w/452RWQUM4W.jpg",
+  "titre": "Coffee Cafe",
+  "auteur": "Ross Parmly",
+  "detoure": "2026-11-07"
+ },
+ "cafe-glace-1.png": {
+  "licence": "cc0",
+  "source": "rawpixel",
+  "page": "https://www.rawpixel.com/image/5927750/photo-image-public-domain-wooden-coffee",
+  "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvZmY0MzgwLWltYWdlLWt3dnlrbDBsLmpwZw.jpg",
+  "titre": "Free iced coffee steel straw",
+  "auteur": null,
+  "detoure": "2026-11-07"
+ },
+ "cafe-glace-2.png": {
+  "licence": "cc0",
+  "source": "wordpress",
+  "page": "https://wordpress.org/photos/photo/4336618f4e/",
+  "url": "https://pd.w.org/2024/04/4336618f4e7a28171.67465428-2048x2048.jpg",
+  "titre": "Grass of iced coffee with drinking straw on a gray background",
+  "auteur": "Roberto Vazquez",
+  "detoure": "2026-11-07"
+ },
+ "matcha-latte.png": {
+  "licence": "cc0",
+  "source": "rawpixel",
+  "page": "https://www.rawpixel.com/image/5963400/free-public-domain-cc0-photo",
+  "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvcHgxMDgwNjgxLWltYWdlLWt3eXJmY3d3LmpwZw.jpg",
+  "titre": null,
+  "auteur": null,
+  "detoure": "2026-11-07"
  }
 }
