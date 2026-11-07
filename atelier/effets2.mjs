@@ -260,6 +260,23 @@ export function effet2(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) 
   if (E.type === 'filrouge') {
     const items = (E.items || []).slice(0, 6), k = Math.max(0, Math.min(items.length - 1, E.k || 0)); if (!items.length) return null
     const W = Math.round(E.largeur || 280), H = 96 + items.length * 46, duree = E.duree ?? 3.4
+    // (07/11 soir) VALIDÉ par Aurélie (« beaucoup mieux ») : c'est le look PAR DÉFAUT ; "look": "carnet" redonne l'ancien bloc-notes.
+    // LOOK MODERNE, dans l'esprit du luxe qu'Aurélie trouve « ultra moderne » mais à SES couleurs : verre dépoli
+    // (le décor flouté DESSOUS par ffmpeg via « cadre », comme le luxe ; sans flou, le verre fumé reste lisible), barre en segments
+    // façon stories, la liste à cocher gardée (« c'était bien aussi ») : pastilles rondes qui se remplissent, l'étape en cours sort du flou.
+    if (E.look !== 'carnet') { const n = items.length, Wm = E.sous ? 320 : Math.round(clamp(E.largeur || 300, 220, 300)), Hm = 92 + n * 52, fsM = Math.max(18, Math.min(26, Math.floor((Wm - 84) / (0.7 * Math.max(...items.map(x => String(x).length)))))), xm = E.sous ? 360 - Wm / 2 : cote === 'droite' ? 720 - Wm - 34 : 34
+      return { hauteur: Hm, anim: 1.5, duree, place: E.sous ? undefined : cote, cadre: y => ({ x: xm, y, l: Wm, h: Hm, r: 26 }),
+        dessin: (dt, y) => { const p = clamp(rebond(dt / 0.4), 0, 1.04), apparait = doux(dt / 0.3), rev = doux(clamp((dt - 0.4) / 0.5, 0, 1)), rempli = doux(clamp((dt - 0.35) / 0.9, 0, 1)), coche = clamp(rebond((dt - 1.15) / 0.3), 0, 1.1)
+          const seg = items.map((_, j) => '<div style="flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.25);overflow:hidden"><div style="height:100%;width:' + (j < k ? 100 : j === k ? (100 * rempli).toFixed(1) : 0) + '%;background:' + accent + ';border-radius:3px"></div></div>').join('')
+          const rond = (fait, z) => '<span style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;' + (fait ? 'background:' + accent + ';box-shadow:0 0 14px ' + accent + '88' : 'box-shadow:inset 0 0 0 2px rgba(255,255,255,.75)') + ';transform:scale(' + z.toFixed(3) + ')">' + (fait ? '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M5 12.5 L10 17 L19 7" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '') + '</span>'
+          return '<div style="position:absolute;left:' + xm + 'px;top:' + y + 'px;width:' + Wm + 'px;height:' + Hm + 'px;box-sizing:border-box;padding:20px 22px;border-radius:26px;background:linear-gradient(155deg,rgba(255,255,255,.20),rgba(255,255,255,.05) 45%,rgba(0,0,0,.10)),rgba(22,22,28,.40);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 0 0 1px rgba(255,255,255,.22),0 20px 44px rgba(0,0,0,.25);color:#fff;opacity:' + apparait.toFixed(2) + ';transform:translateY(' + ((1 - Math.min(1, p)) * 40).toFixed(1) + 'px) scale(' + (0.94 + 0.06 * p).toFixed(3) + ')">'
+            + '<div style="display:flex;justify-content:space-between;align-items:center;font:600 13px/1 Poppins,sans-serif;letter-spacing:.18em"><span>' + esc((E.titre || 'ma liste').toUpperCase()) + '</span><span style="color:#fff;background:' + accent + ';border-radius:999px;padding:5px 9px;letter-spacing:.04em">' + (k + 1) + '/' + n + '</span></div>'
+            + '<div style="display:flex;gap:5px;margin:14px 0 8px">' + seg + '</div>'
+            + items.map((it, j) => { const cours = j === k
+              return '<div style="display:flex;align-items:center;gap:14px;height:52px;font:600 ' + fsM + 'px/1.1 Poppins,sans-serif;text-shadow:0 1px 8px rgba(0,0,0,.25);opacity:' + (j < k ? 0.62 : cours ? rev : 0.5).toFixed(2) + (cours ? ';transform:translateY(' + ((1 - rev) * 14).toFixed(1) + 'px);filter:blur(' + ((1 - rev) * 6).toFixed(1) + 'px)' : '') + '">'
+                + rond(j < k || (cours && coche > 0), j < k ? 1 : cours && coche > 0 ? 0.6 + 0.4 * coche : 1) + '<span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis' + (j < k ? ';text-decoration:line-through;text-decoration-color:rgba(255,255,255,.5)' : '') + '">' + esc(it) + '</span></div>' }).join('') + '</div>' },
+        sons: t0 => [{ t: t0, fam: 'whoosh', vol: 0.05 }, { t: t0 + 1.15, fam: 'pop', vol: 0.08 }] }
+    }
     return { hauteur: H, anim: 1.4, duree, place: cote,
       dessin: (dt, y) => { const p = clamp(rebond(dt / 0.35), 0, 1.06), x = cote === 'droite' ? 720 - W - 34 : 34
         const ligne = (txt, j) => { const fait = j < k, cours = j === k, ec = cours ? clamp((dt - 0.45) / 0.7, 0, 1) : 1, coche = fait ? 1 : cours ? clamp((dt - 1.25) / 0.25, 0, 1) : 0

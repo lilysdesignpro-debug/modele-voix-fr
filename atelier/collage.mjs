@@ -950,7 +950,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
 
   // 7 ter. Les effets ponctuels (effets.mjs) : la phrase-choc et les commentaires vont au-dessus de sa tête, la
   //         capture et l'avant/après sous son visage ; jamais sur son visage.
-  const filR = K.filRouge && (K.filRouge.etapes || []).length ? K.filRouge.etapes.map((x, k, l) => ({ type: 'filrouge', t: x.t, k, items: l.map(y => y.texte), titre: K.filRouge.titre, duree: x.duree || K.filRouge.duree })) : []
+  const filR = K.filRouge && (K.filRouge.etapes || []).length ? K.filRouge.etapes.map((x, k, l) => ({ type: 'filrouge', t: x.t, k, items: l.map(y => y.texte), titre: K.filRouge.titre, look: K.filRouge.look, duree: x.duree || K.filRouge.duree })) : []
   const GEANT = K.fin?.geant && K.fin?.motCle ? [{ type: 'motGeant', t: K.fin.t ?? (TOT - 3.5), texte: K.fin.motCle, avant: K.fin.avant, duree: 60 }] : []
   for (let E of [...(K.effets || []), ...filR, ...GEANT, ...(LUXE ? (K.listes || []).map(L => ({ ...L, type: 'listeLuxe' })) : [])]) {
     if (E.type === 'extrait') { // la vidéo dans la vidéo : ses images, 15 par seconde, préparées ici
@@ -965,7 +965,9 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     if (['ecrans', 'etalonnage'].includes(E.type) && !E._images) { // une image d'elle à ce moment-là, pour ses 4 looks ou l'avant/après d'étalonnage
       const fI = join(st, 'look-' + Math.round(tf(E.t) * 100) + '.jpg'); spawnSync('ffmpeg', ['-v', 'error', '-y', '-ss', (tf(E.t) + 0.3).toFixed(2), '-i', join(st, 'base-av.mp4'), '-frames:v', '1', '-q:v', '3', fI]); E = { ...E, _images: existsSync(fI) ? [fI] : [] } }
     if (['telephone', 'filrouge', 'compteurs', 'polaroids', 'extrait', 'progression', 'horloge', 'prix', 'pluie', 'objet', 'pincee'].includes(E.type)) { const vs = visages(tf(E.t), tf(E.t) + (E.duree || 4)), g = vs.length ? Math.min(...vs.map(v => v[0])) : 230, d = vs.length ? 720 - Math.max(...vs.map(v => v[2])) : 230 // placeTel : du côté libre
-      const cote = E.cote || (g > d ? 'gauche' : 'droite'), libre = cote === 'gauche' ? g : d; E = { ...E, cote, largeur: E.largeur || (E.type === 'telephone' ? Math.max(170, Math.min(250, libre - 30)) : E.type === 'pincee' ? libre - 110 : E.type === 'polaroids' ? libre - 20 : undefined) } }
+      const cote = E.cote || (g > d ? 'gauche' : 'droite'), libre = cote === 'gauche' ? g : d; E = { ...E, cote, largeur: E.largeur || (E.type === 'telephone' ? Math.max(170, Math.min(250, libre - 30)) : E.type === 'pincee' ? libre - 110 : E.type === 'polaroids' ? libre - 20 : E.type === 'filrouge' ? libre - 54 : undefined) }
+      // (07/11) le fil rouge ne touche JAMAIS son visage : plus étroit s'il faut, et s'il n'y a vraiment pas la place à côté (gros plan), il passe sous son menton
+      if (E.type === 'filrouge' && E.largeur < 220) E = { ...E, sous: true } }
     if (E.type === 'objet' && basVisage(tf(E.t), tf(E.t) + (E.duree || 2.8)) + 50 > 1280 - 290 - 330) E = { ...E, surCote: true, largeur: E.largeur || (vs => vs.length ? (E.cote === 'gauche' ? Math.min(...vs.map(v => v[0])) : 720 - Math.max(...vs.map(v => v[2]))) - 20 : 200)(visages(tf(E.t), tf(E.t) + 3)) }
     // (07/11) la boîte de l'éventail va sous son visage ; en gros plan il n'y a pas la place : elle passe de côté, plus petite
     if (E.type === 'eventail' && !E.cote && basVisage(tf(E.t), tf(E.t) + (E.duree || 3.4)) + 50 > 1280 - 290 - 470) { const vs = visages(tf(E.t), tf(E.t) + (E.duree || 3.4)), g = vs.length ? Math.min(...vs.map(v => v[0])) : 230, d = vs.length ? 720 - Math.max(...vs.map(v => v[2])) : 230
@@ -977,7 +979,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     const t0 = tf(E.t), b = Math.min(TOT - 0.1, t0 + Em.duree), haut = ['choc', 'commentaires', 'chapitre', 'chat'].includes(E.type)
     const yHaut = hautTete(t0, b) - Em.hauteur - 24, y = (haut || FV) && yHaut >= 110 ? yHaut : clamp(basVisage(t0, b) + 50, 430, 1280 - 290 - Em.hauteur)
     const yP = Em.place ? clamp(FV ? hautTete(t0, b) - Em.hauteur - 20 : hautTete(t0, b) + 40, FV ? 110 : 200, 1280 - 300 - Em.hauteur) : null
-    el.push({ a: t0, b, calque: 'devant', zone: 'geant', duo: E.type === 'duo', parle: ['duo', 'choc', 'grille', 'feuille', 'listeLuxe', 'chat', 'motGeant', 'chapitre', 'fenetre', 'ecrans', 'etalonnage', 'timeline', 'dialogue'].includes(E.type), dessin: t => '<div class="' + (['filrouge', 'compteurs', 'graphique'].includes(E.type) ? 'libre' : '') + '" style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)).toFixed(2) + '">' + Em.dessin(t - t0, Math.round(yP ?? y)) + '</div>' })
+    el.push({ a: t0, b, calque: 'devant', zone: 'geant', duo: E.type === 'duo', parle: ['duo', 'choc', 'grille', 'feuille', 'listeLuxe', 'chat', 'motGeant', 'chapitre', 'fenetre', 'ecrans', 'etalonnage', 'timeline', 'dialogue'].includes(E.type) || (E.type === 'filrouge' && E.sous) /* (07/11) fil rouge sous le menton : les sous-titres se taisent */, dessin: t => '<div class="' + (['filrouge', 'compteurs', 'graphique'].includes(E.type) ? 'libre' : '') + '" style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)).toFixed(2) + '">' + Em.dessin(t - t0, Math.round(yP ?? y)) + '</div>' })
     if (Em.cadre) { const R = Em.cadre(Math.round(yP ?? y)); VERRES.push({ ...R, a: t0, b }) }
     sons.push(...Em.sons(t0))
   }

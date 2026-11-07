@@ -315,8 +315,9 @@ profil, son feed, sa page de vente, un post, un témoignage reçu…), puis une 
 Pendant un effet, les mots géants se taisent. Regarde une image du résultat : rien sur son visage.
 
 **Les nouveaux effets** (dans `collage`, les 9 styles du moteur collage) :
-- **Le fil rouge** : quand elle annonce ses points (« numéro un… numéro deux… », « première étape… »), un bloc-notes
-  revient à chaque point, coche les précédents et écrit le nouveau, avec un badge chiffre en étoile à sa couleur :
+- **Le fil rouge** : quand elle annonce ses points (« numéro un… numéro deux… », « première étape… »), une carte
+  revient à chaque point : une carte en verre dépoli (le décor flouté derrière), barre en segments façon stories,
+  les étapes faites cochées à sa couleur et barrées, la nouvelle qui sort du flou ("look": "carnet" dans filRouge = l'ancien bloc-notes) :
   `"filRouge": { "titre": "ma routine", "etapes": [{ "t": 12.4, "texte": "le sérum" }, { "t": 21, "texte": "le spray" }] }`
   (`t` = le moment où elle dit le numéro, 2 à 6 étapes de 1 à 4 mots, SES mots). Le plus fort pour la rétention :
   propose-le dès qu'elle numérote.
