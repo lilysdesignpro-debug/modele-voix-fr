@@ -121,7 +121,7 @@ export function effet2(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) 
     const D = z * 0.78, s = D / (2 * R[2]) // diamètre du rond = un O de la police (Montserrat Black : 0,78 em de large)
     const debutL = mode === 'zoom' ? 0.5 : 0, arrive = { pose: 0.32, glisse: 0.38, tourne: 0.75, zoom: 0 }[mode], fin = { pose: 0.42, glisse: 0.55, tourne: 0.35, zoom: 0.55 }[mode]
     const ressort = u => u >= 1 ? 1 : 1 - Math.exp(-6 * u) * Math.cos(u * 9.5) * (1 - u) // arrive avec un petit dépassement, puis se cale
-    return { hauteur: Math.round(z * 1.1 + 24), anim: arrive + fin, duree,
+    return { hauteur: Math.round(z * 1.1 + 24), anim: Math.max(arrive + fin, debutL + Math.max(iO, txt.length - 1 - iO) * 0.035 + 0.4) + 0.1, duree, // anim : jusqu'à la DERNIÈRE lettre posée (sinon l'image figée garde des lettres à moitié arrivées, ex. « 3 MOIS » sans le 3)
       dessin: (dt, y) => {
         const lettres = [...txt].map((c, k) => { if (k === iO) return null
           const p = clamp(rebond((dt - debutL - Math.abs(k - iO) * 0.035) / 0.28), 0, 1.1)
@@ -147,6 +147,35 @@ export function effet2(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) 
         : mode === 'zoom' ? [{ t: t0, fam: 'whoosh', vol: 0.06 }, { t: t0 + fin, fam: 'pop', vol: 0.06 }]
         : mode === 'tourne' ? [{ t: t0 + 0.05, fam: 'pop', vol: 0.05 }, { t: t0 + arrive, fam: 'whoosh', vol: 0.05 }]
         : [{ t: t0 + 0.05, fam: 'pop', vol: 0.05 }, { t: t0 + arrive + fin * 0.55, fam: 'clic', vol: 0.07 }] }
+  }
+  // (07/11) pincee : SES captures d'écran tenues par une vraie pince à dessin, au-dessus de sa tête. La 1re arrive d'en haut
+  // et se balance une seconde sur la pince ; les suivantes remplacent la précédente (qui tombe) toutes les `pas` secondes.
+  // Un petit objet de sa banque peut se poser sur le coin (café glacé, étoile…). Repris du reel de Taylor Slango, look à nous.
+  // { type: 'pincee', t, images: ['captures/a.png', 'captures/b.png'], pas: 2.2 }   (objet: 'cafe-glace-1' en option, rien par défaut : la pince suffit, choix d'Aurélie 07/11)
+  if (E.type === 'pincee') {
+    const ims = [].concat(E.images || []).slice(0, 6).map(f => image(chemin(f))).filter(Boolean); if (!ims.length) return null
+    const P = objet('pince-capture'), coin = E.objet ? objet(...[].concat(E.objet)) : null
+    const ratio = E.ratio || 1.25, W = Math.round(clamp(E.largeur || 280, 170, 300)), H = Math.round(W * ratio), pas = E.pas ?? 2.2 // à côté de sa tête, du côté libre (jamais sur son visage), comme chez Taylor
+    const lP = W * 0.34, hP = P ? lP * P.h / P.l : 0, mord = P ? hP * (394 / 499) : 0 // la mâchoire de la pince (mesurée au pixel) mord le haut de la capture
+    const duree = E.duree ?? Math.max(2.8, ims.length * pas + 0.6), haut = Math.round(mord)
+    return { hauteur: H + haut + 10, anim: 0.5, duree, place: cote,
+      dessin: (dt, y) => {
+        const x0 = cote === 'droite' ? 720 - W - 50 : 50, yC = y + haut, k = Math.min(ims.length - 1, Math.floor(Math.max(0, dt) / pas)), tk = dt - k * pas
+        const chute = doux(clamp(dt / 0.42, 0, 1)), dy = (1 - chute) * -(yC + H + 60)
+        const balance = (u, A) => u > 0 ? A * Math.exp(-3.2 * u) * Math.sin(u * 9) : 0 // le balancier qui s'amortit, autour de la pince
+        const th = balance(dt - 0.3, 6) + (k > 0 ? balance(tk, 3.5) : 0) + Math.sin(dt * 1.3) * 0.35
+        const carte = (src, extra) => '<div style="position:absolute;left:0;top:0;width:' + W + 'px;height:' + H + 'px;border-radius:14px;overflow:hidden;background:#fff url(' + src + ') center/cover;box-shadow:0 18px 34px rgba(0,0,0,.32),0 2px 6px rgba(0,0,0,.18);' + extra + '"></div>'
+        let cartes = ''
+        if (k > 0 && tk < 0.45) { const u = doux(tk / 0.45) // l'ancienne glisse hors de la pince et tombe
+          cartes += carte(ims[k - 1], 'transform-origin:50% 0;transform:translateY(' + (u * 260).toFixed(1) + 'px) rotate(' + (u * 9).toFixed(1) + 'deg);opacity:' + (1 - u).toFixed(2)) }
+        const entre = k > 0 ? doux(clamp(tk / 0.3, 0, 1)) : 1 // la nouvelle se glisse dans la pince par le haut
+        cartes += carte(ims[k], 'clip-path:inset(0 0 ' + ((1 - entre) * 100).toFixed(1) + '% 0 round 14px);transform:translateY(' + ((1 - entre) * -18).toFixed(1) + 'px)')
+        const pince = P ? '<img src="' + P.src + '" style="position:absolute;left:' + ((W - lP) / 2).toFixed(1) + 'px;top:' + (-mord).toFixed(1) + 'px;width:' + lP.toFixed(1) + 'px;max-width:none;filter:drop-shadow(0 4px 5px rgba(0,0,0,.35))">' : ''
+        let deco = ''
+        if (coin) { const q = clamp(rebond((dt - 0.55) / 0.3), 0, 1.1), lo = W * 0.36, ho = lo * coin.h / coin.l
+          if (dt > 0.55) deco = '<img src="' + coin.src + '" style="position:absolute;left:' + (cote === 'droite' ? Math.min(W - lo * 0.62, 720 - x0 - lo - 8) : Math.max(-lo * 0.38, 8 - x0)).toFixed(1) + 'px;top:' + (H - ho * 0.7).toFixed(1) + 'px;width:' + lo.toFixed(1) + 'px;max-width:none;transform:rotate(8deg) scale(' + q.toFixed(3) + ');transform-origin:50% 100%;filter:drop-shadow(0 8px 10px rgba(0,0,0,.3))">' }
+        return '<div style="position:absolute;left:' + x0.toFixed(1) + 'px;top:' + (yC + dy).toFixed(1) + 'px;width:' + W + 'px;height:' + H + 'px;transform-origin:50% ' + (-mord * 0.5).toFixed(1) + 'px;transform:rotate(' + th.toFixed(2) + 'deg)">' + cartes + pince + deco + '</div>' },
+      sons: t0 => [{ t: t0 + 0.38, fam: 'clic', vol: 0.08 }, ...ims.slice(1).map((_, i) => ({ t: t0 + (i + 1) * pas, fam: 'papier', vol: 0.07, duree: 0.4 })), ...(coin ? [{ t: t0 + 0.6, fam: 'pop', vol: 0.05 }] : [])] }
   }
   // motGeant : le mot-clé de fin en géant, en biais, contour blanc, qui claque puis respire
   if (E.type === 'motGeant') {

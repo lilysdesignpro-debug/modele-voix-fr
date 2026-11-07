@@ -239,9 +239,9 @@ async function monter(nom) {
   }
   // Pour chaque morceau : son zoom, et le centre du visage (le plan rapproché se cadre SUR le visage).
   const infos = segs.map(([a, b, k], i) => {
-    const L = style === 'prof' || style === 'carnet' ? null : longs.find(([x, y]) => a >= x - 0.05 && a < y)
-    const E = style === 'prof' || style === 'carnet' ? null : P.embarquer.find(([x, y]) => b > x && a < y)
-    const R = E ? 1 : rapproche(a, b, i) // jamais deux zooms empilés
+    const L = style === 'prof' || style === 'carnet' || P.fixe ? null : longs.find(([x, y]) => a >= x - 0.05 && a < y)
+    const E = style === 'prof' || style === 'carnet' || P.fixe ? null : P.embarquer.find(([x, y]) => b > x && a < y)
+    const R = E || P.fixe ? 1 : rapproche(a, b, i) // jamais deux zooms empilés ; « fixe » (les clones) : le cadre ne bouge jamais
     const bs = []; for (let u = a; u < b; u += 0.25) { const v = visageOrig(u); if (v) bs.push(v) }
     const med = q => { const l = bs.map(q).sort((x, y) => x - y); return l.length ? l[l.length >> 1] : null }
     const cx = med(v => (v[0] + v[2]) / 2), cy = med(v => (v[1] + v[3]) / 2), bas = med(v => v[3])
