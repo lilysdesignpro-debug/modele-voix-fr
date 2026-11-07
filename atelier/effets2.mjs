@@ -20,12 +20,9 @@ const ICI_E = dirname(fileURLToPath(import.meta.url))
 //   de gauche à droite : on ne voit ce qui sort QUE au-dessus de ce bord. Objets de Canva (les siens) ET libres de droits (ceux des clientes).
 export const MESURES = {
   'polaroid-1000': { fente: [0.885, 0.088, 0.928] },
-  'appareil-instantane': { fente: [0.91, 0.173, 0.912] },
   'boite-carton': { bord: [[0, 482], [60, 482], [236, 589], [250, 595], [725, 529]] },
-  'boite-bois': { bord: [[0, 128], [8, 128], [768, 228], [885, 90]] },
   'coffre-bois': { bord: [[0, 221], [386, 221]] },
   'enveloppe-kraft-lettre': { bord: [[0, 365], [60, 412], [150, 487], [250, 570], [380, 640], [432, 632], [520, 616], [620, 533], [720, 454], [800, 399], [864, 350]] },
-  'enveloppe-blanche': { bord: [[0, 272], [100, 272], [495, 658], [710, 690], [1165, 455], [1196, 455]] },
 }
 // au-dessus du bord (ce qui sort reste visible) : polygone en pixels de la page ; O = l'objet, x/y/l = où il est posé
 export const dessusDuBord = (O, x, y, l) => { const B = O.mesures.bord, s = l / O.l, P = ([a, b]) => (x + a * s).toFixed(1) + 'px ' + (y + b * s).toFixed(1) + 'px'
@@ -35,9 +32,10 @@ export const dessusDuBord = (O, x, y, l) => { const B = O.mesures.bord, s = l / 
 // objets-perso/mesures.json), puis objets-canva (ceux d'Aurélie, jamais livrés), puis objets (libres de droits, livrés).
 // Un contenant (boîte, enveloppe, appareil) importé SANS mesure est ignoré : sans son bord, rien ne pourrait en sortir proprement.
 const lireJson = f => { try { return JSON.parse(readFileSync(f, 'utf8')) } catch { return {} } }
-export const objet = (...noms) => { const perso = lireJson(join(ICI_E, 'objets-perso', 'mesures.json'))
+export const objet = (...noms) => { const perso = lireJson(join(ICI_E, 'objets-perso', 'mesures.json')), livres = lireJson(join(ICI_E, 'objets', 'mesures.json'))
   for (const n of noms) for (const d of process.env.MONTAGE_SANS_CANVA ? ['objets-perso', 'objets'] : ['objets-perso', 'objets-canva', 'objets']) { const f = join(ICI_E, d, n + '.png'); if (!existsSync(f)) continue
-    const mesures = d === 'objets-perso' ? perso[n] : MESURES[n]; if (MESURES[n] && !mesures) continue
+    // un objet libre porte le même nom que l'objet Canva qu'il remplace, mais PAS la même photo : ses mesures sont dans objets/mesures.json
+    const mesures = d === 'objets-perso' ? perso[n] : d === 'objets' ? livres[n] : MESURES[n]; if ((MESURES[n] || livres[n]) && !mesures) continue
     const b = readFileSync(f); return { nom: n, src: 'data:image/png;base64,' + b.toString('base64'), l: b.readUInt32BE(16), h: b.readUInt32BE(20), mesures } }
   return null }
 // sous le bord (la face avant de l'objet, à redessiner par-dessus) : polygone en % de l'image
