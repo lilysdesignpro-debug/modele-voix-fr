@@ -2,8 +2,9 @@
 // quand sa vidéo montre une image plus petite que l'écran (photo, tableau, capture posée sur du noir, souvent avec
 // une légende tapée dans la bande), l'outil le voit tout seul, garde SEULEMENT l'image (sans la bande ni la légende
 // coupée), l'agrandit au mieux et remplit l'écran avec la même image floutée. Aucune bande noire, aucun texte coupé.
-//   const r = remplirBandes(base, sortie, { lancer, FPS })  →  { segments: [{ a, b, box }] }  (box en 720 x 1280)
+//   const r = remplirBandes(base, sortie, { lancer, FPS })  →  { segments: [{ a, b, box }] }  (box en pixels de la vidéo de sortie, LARG x HAUT)
 import { spawnSync } from 'node:child_process'
+import { LARG, HAUT, px } from './echelle.mjs'
 import { existsSync, renameSync, rmSync } from 'node:fs'
 
 const W = 180, H = 320, IPS = 30 // l'analyse se fait sur une image réduite, CHAQUE image (en sautant des images, un éclair de bande passait entre deux tableaux)
@@ -47,18 +48,18 @@ export function remplirBandes(base, { lancer, FPS = 30 }) {
     else segs.push({ debut: k, fin: k, b: [...b] })
   }
   const garder = segs.filter(s => s.fin - s.debut >= 0).map(s => {
-    const sx = 720 / W, sy = 1280 / H, m = 4 // on rentre de 2 px d'analyse : pas de liseré noir
+    const sx = LARG / W, sy = HAUT / H, m = 4 // on rentre de 2 px d'analyse : pas de liseré noir
     const x = Math.round((s.b[0] + (s.b[0] ? m : 0)) * sx), y = Math.round((s.b[1] + m) * sy), w = Math.round((s.b[2] - (s.b[2] < W ? m : 0)) * sx) - x, h = Math.round((s.b[3] - m) * sy) - y
     return { a: s.debut / IPS, b: (s.fin + 1) / IPS, box: [x, y, Math.max(16, w - w % 2), Math.max(16, h - h % 2)] }
-  }).filter(s => s.box[2] > 60 && s.box[3] > 60)
+  }).filter(s => s.box[2] > px(60) && s.box[3] > px(60))
   // deux passages qui se suivent à moins de 0,3 s : on comble le trou (pas un seul éclair de bande entre deux images)
   for (let k = 1; k < garder.length; k++) if (garder[k].a - garder[k - 1].b < 0.2) { const aire = g => g.box[2] * g.box[3]; if (aire(garder[k]) <= aire(garder[k - 1])) garder[k].a = garder[k - 1].b; else garder[k - 1].b = garder[k].a } // le trou prend le cadre le plus serré
   if (!garder.length) return { segments: [] }
   // le graphe : pour chaque passage, l'image seule, agrandie au mieux, sur elle-même floutée
   let g = '[0:v]split=' + (garder.length + 1) + '[v0]' + garder.map((_, k) => '[s' + k + ']').join('') + ';', cur = 'v0'
   garder.forEach((s, k) => {
-    const [x, y, w, h] = s.box, ar = w / h, fw = ar > 720 / 1280 ? 720 : Math.round(1280 * ar / 2) * 2, fh = ar > 720 / 1280 ? Math.round(720 / ar / 2) * 2 : 1280
-    g += `[s${k}]crop=${w}:${h}:${x}:${y},split=2[c${k}][d${k}];[d${k}]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,gblur=sigma=28,eq=brightness=-0.06[f${k}];[c${k}]scale=${fw}:${fh}[i${k}];[f${k}][i${k}]overlay=(W-w)/2:(H-h)/2[r${k}];`
+    const [x, y, w, h] = s.box, ar = w / h, fw = ar > LARG / HAUT ? LARG : Math.round(HAUT * ar / 2) * 2, fh = ar > LARG / HAUT ? Math.round(LARG / ar / 2) * 2 : HAUT
+    g += `[s${k}]crop=${w}:${h}:${x}:${y},split=2[c${k}][d${k}];[d${k}]scale=${LARG}:${HAUT}:force_original_aspect_ratio=increase,crop=${LARG}:${HAUT},gblur=sigma=${px(28)},eq=brightness=-0.06[f${k}];[c${k}]scale=${fw}:${fh}:flags=lanczos[i${k}];[f${k}][i${k}]overlay=(W-w)/2:(H-h)/2[r${k}];`
       + `[${cur}][r${k}]overlay=0:0:enable='between(t,${(s.a - 0.004).toFixed(3)},${(s.b - 0.004).toFixed(3)})'[w${k}];`
     cur = 'w' + k
   })

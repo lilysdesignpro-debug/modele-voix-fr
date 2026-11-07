@@ -1,11 +1,12 @@
 // ASSEMBLER PLUSIEURS VIDÉOS EN UNE : pour celles qui filment phrase par phrase, plan par plan, à plusieurs endroits.
 //   node assembler.mjs <sortie.mp4> <video1> <video2> ...      (dans l'ordre de la vidéo finale)
-// Chaque morceau est remis au même format (vertical 720×1280, 30 images/s), son son mis au même volume que les
+// Chaque morceau est remis au même format (vertical 1080×1920 : la taille de sortie d'echelle.mjs, 30 images/s), son son mis au même volume que les
 // autres, et collé au suivant. La vidéo obtenue se monte ensuite comme une vidéo filmée d'un coup
 // (node montage.mjs lire <sortie.mp4> …) : les blancs du début et de la fin de chaque prise partent au montage.
 // Écrit aussi <sortie>.plans.json : où commence chaque morceau, pour savoir où sont les changements de plan.
 import { spawnSync } from 'node:child_process'
 import { writeFileSync, existsSync } from 'node:fs'
+import { CADRE } from './echelle.mjs'
 
 const [sortie, ...videos] = process.argv.slice(2)
 if (!sortie || videos.length < 1) { console.log('Usage : node assembler.mjs <sortie.mp4> <video1> <video2> ...'); process.exit(1) }
@@ -32,7 +33,7 @@ const egaliser = k => { const s = stats[k]; if (videos.length < 2 || !s || s.y =
 // chaque morceau : recadré en vertical (sans bandes noires), 30 i/s, son stéréo 48 kHz au même volume
 let f = '', debut = 0; const plans = []
 infos.forEach((x, k) => {
-  f += `[${k}:v]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,setsar=1,fps=30,format=yuv420p${egaliser(k)}[v${k}];`
+  f += `[${k}:v]scale=${CADRE}:force_original_aspect_ratio=increase:flags=lanczos,crop=${CADRE},setsar=1,fps=30,format=yuv420p${egaliser(k)}[v${k}];`
   f += x.son ? `[${k}:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000[a${k}];`
     : `anullsrc=r=48000:cl=stereo,atrim=0:${x.duree.toFixed(3)}[a${k}];`
   plans.push({ video: videos[k], debut: +debut.toFixed(3), duree: +x.duree.toFixed(3) }); debut += x.duree

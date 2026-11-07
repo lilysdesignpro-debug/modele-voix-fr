@@ -21,6 +21,8 @@ import { fileURLToPath } from 'node:url'
 import { habillage } from './habillages.mjs'
 import { liste as listeAnimee, POLICES_LISTES } from './listes.mjs'
 import { effet as effetPonctuel, POLICES_EFFETS, couleurDecor } from './effets.mjs'
+import { ECHELLE, CADRE, px, ENCODAGE } from './echelle.mjs'
+import { sonneur } from './sons-choix.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
 const PROJETS = join(ICI, 'projets')
@@ -61,13 +63,17 @@ async function ouvrirNavigateur() {
   try {
     const pup = (await import('puppeteer')).default
     const chrome = ['C:/Program Files/Google/Chrome/Application/chrome.exe', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'].find(existsSync)
-    return await pup.launch(chrome ? { executablePath: chrome } : {})
+    const nav = await pup.launch(chrome ? { executablePath: chrome } : {})
+    // la mise en page reste en 720 x 1280 (pixels CSS) ; chaque capture sort à l'échelle de sortie, nette (echelle.mjs)
+    const nouvelle = nav.newPage.bind(nav)
+    nav.newPage = async (...a) => { const p = await nouvelle(...a), sv = p.setViewport.bind(p); p.setViewport = v => sv({ ...v, deviceScaleFactor: ECHELLE }); return p }
+    return nav
   } catch {
     const { createRequire } = await import('node:module')
     const racine = spawnSync('npm', ['root', '-g'], { encoding: 'utf8' }).stdout.trim()
     const { chromium } = createRequire(join(racine, 'x.js'))('playwright')
     const nav = await chromium.launch({ executablePath: ['/usr/bin/google-chrome', '/usr/bin/chromium'].find(existsSync) })
-    return { newPage: async () => { const p = await nav.newPage(); p.setViewport = v => p.setViewportSize({ width: v.width, height: v.height }); return p }, close: () => nav.close() }
+    return { newPage: async () => { const p = await nav.newPage({ deviceScaleFactor: ECHELLE }); p.setViewport = v => p.setViewportSize({ width: v.width, height: v.height }); return p }, close: () => nav.close() }
   }
 }
 
@@ -225,7 +231,7 @@ async function monter(nom) {
   const rapproche = (a, b, i) => {
     if (lignesGrosPlan.some(t => t >= a - 0.05 && t < b)) return GROS_PLAN
     if ((P.rapprocher || []).some(([x, y]) => b > x && a < y)) return RAPPROCHE
-    if (a >= finHook && (P.style === 'doux' || P.style === 'confidence' || P.style === 'witchy' || P.style === 'chic')) return i % 2 ? RAPPROCHE : 1 // doux : de près, de loin, on s'assoit en face d'elle
+    if (a >= finHook && (P.style === 'doux' || P.style === 'confidence' || P.style === 'witchy' || P.style === 'chic' || P.style === 'luxe')) return i % 2 ? RAPPROCHE : 1 // doux : de près, de loin, on s'assoit en face d'elle
     if (a < finHook || style === 'prof' || style === 'doux' || style === 'carnet') return 1
     if (style === 'rythme') return lignesFortes.some(([t, fort]) => fort && t >= a - 0.05 && t < b) ? RAPPROCHE : 1
     if (style === 'energique') return i % 2 ? RAPPROCHE : 1
@@ -310,7 +316,7 @@ async function monter(nom) {
   // cocooning et matin lumineux ; les autres ont été refusées). Un léger halo lumineux adoucit l'ensemble.
   const AMBIANCES = { cocooning: ["curves=r='0/0.08 0.5/0.55 1/0.95':g='0/0.05 0.5/0.44 1/0.88':b='0/0.03 0.5/0.33 1/0.72',eq=saturation=0.95:gamma=0.92", 0.2], matin: ['eq=brightness=0.1:gamma=1.3:contrast=0.86:saturation=0.75,colortemperature=temperature=7500:mix=0.4', 0.28] }
   const amb = AMBIANCES[String(P.ambiance || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().split(/[\s-]+/)[0]]
-  const IMG = i => IMAGE + (amb ? `,format=rgb24,${amb[0]},format=gbrp,split[ha${i}][hb${i}];[hb${i}]gblur=sigma=24[hc${i}];[ha${i}][hc${i}]blend=all_mode=screen:all_opacity=${amb[1]},format=yuv420p` : '')
+  const IMG = i => IMAGE + (amb ? `,format=rgb24,${amb[0]},format=gbrp,split[ha${i}][hb${i}];[hb${i}]gblur=sigma=${px(24)}[hc${i}];[ha${i}][hc${i}]blend=all_mode=screen:all_opacity=${amb[1]},format=yuv420p` : '')
   let f = ''
   segs.forEach(([a, b, k], i) => {
     const { L, E, R, cx, cy } = infos[i]
@@ -319,9 +325,9 @@ async function monter(nom) {
       const lent = L ? `${ZOOM_LENT / (L[1] - L[0])}*(t+${(a - L[0]).toFixed(3)})` : '0'
       let emb = '0'
       if (E) { const u = `((${a.toFixed(3)}+t-${E[0]})/${(E[1] - E[0]).toFixed(3)})`; emb = `${EMBARQUE}*if(lt(${u},0),0,if(gt(${u},1),0,${u}*${u}*(3-2*${u})))` }
-      z = `,scale=w='2*trunc(1440*${R}*(1+${lent}+${emb}))':h=-2:eval=frame:flags=bicubic,crop=2880:5120:${R > 1 && cx != null ? `'max(0,min(iw-2880,${(cx * 4).toFixed(1)}*iw/2880-1440))':'max(0,min(ih-5120,${(cy * 4).toFixed(1)}*ih/5120-${(0.36 * 5120).toFixed(0)}))'` : '(iw-2880)/2:(ih-5120)*0.35'},scale=720:1280:flags=bicubic`
+      z = `,scale=w='2*trunc(1440*${R}*(1+${lent}+${emb}))':h=-2:eval=frame:flags=bicubic,crop=2880:5120:${R > 1 && cx != null ? `'max(0,min(iw-2880,${(cx * 4).toFixed(1)}*iw/2880-1440))':'max(0,min(ih-5120,${(cy * 4).toFixed(1)}*ih/5120-${(0.36 * 5120).toFixed(0)}))'` : '(iw-2880)/2:(ih-5120)*0.35'},scale=${CADRE}:flags=bicubic`
     }
-    const cadre = ',scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280' + IMG(i)
+    const cadre = `,scale=${CADRE}:force_original_aspect_ratio=increase${ECHELLE > 1 ? ':flags=lanczos' : ''},crop=${CADRE}` + IMG(i)
     if (k) { f += `[0:v]trim=${a}:${b},setpts=${k}*(PTS-STARTPTS)${cadre}${z},setsar=1,fps=30[v${i}];anullsrc=r=44100:cl=stereo,atrim=0:${((b - a) * k).toFixed(3)}[a${i}];`; return }
     f += `[0:v]trim=${a}:${b},setpts=PTS-STARTPTS${cadre}${z},setsar=1,fps=30[v${i}];[0:a]atrim=${a}:${b},asetpts=PTS-STARTPTS,aresample=44100,aformat=channel_layouts=stereo,afade=t=in:d=0.015,afade=t=out:st=${Math.max(0, b - a - 0.015).toFixed(3)}:d=0.015[a${i}];`
   })
@@ -387,7 +393,7 @@ async function monter(nom) {
 
   // Style « collage » : un autre moteur (collage.mjs) habille la vidéo. On lui passe la vidéo coupée et cadrée
   // (avec sa voix), les phrases relues, chaque mot entendu avec son temps, le visage, et la table des temps.
-  if (['collage', 'pop', 'editorial', 'doux', 'confidence', 'aurelie', 'typo', 'witchy', 'chic', 'automne', 'cosy', 'studio'].includes(P.style)) {
+  if (['collage', 'pop', 'editorial', 'doux', 'confidence', 'aurelie', 'typo', 'witchy', 'chic', 'luxe', 'automne', 'cosy', 'studio'].includes(P.style)) {
     const st = join(dir, 'rendu'); mkdirSync(st, { recursive: true })
     lancer('ffmpeg', ['-y', '-v', 'error', '-i', source, '-filter_complex', fSegments.replace(/;$/, ''), '-map', '[cv]', '-map', '[voix]', '-c:v', 'libx264', '-crf', '16', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', join(st, 'base-av.mp4')])
     const visages = []; for (let T = 0; T < TOT; T += 0.1) visages.push(visageFinal(T)?.map(Math.round) ?? null)
@@ -778,13 +784,12 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
   await nav.close()
   // 4. Sons : la banque choisie par Aurélie (sons/), rangée par familles ; chaque famille tourne pour varier.
   const SONS = readdirSync(join(ICI, 'sons')).filter(x => x.endsWith('.wav')).map(x => x.slice(0, -4))
-  const tours = {}
-  const son = fam => { const l = SONS.filter(x => x.startsWith(fam + '-') || x === fam); if (!l.length) return SONS[0]; tours[fam] = (tours[fam] ?? -1) + 1; return l[tours[fam] % l.length] }
+  const son = sonneur(SONS, P.sons, P.style) // (06/11) ses sons à elle : "sons" dans projet.json (pack, ou un son par famille) ; null = famille coupée
   const iPlus = 4 + SONS.length // la piste des petits plus vient après tous les sons
   const flous = (P.stickers || []).filter(s => s.flou).map(s => `between(t,${nt(s.t).toFixed(2)},${(nt(s.t) + (s.duree || 2)).toFixed(2)})`)
   if (process.env.MONTAGE_FLOUS) { console.log(flous); process.exit(0) }
   // givré : flou + un voile clair, pour que la carte se détache comme posée sur une vitre dépolie
-  if (flous.length) f += `[cv]boxblur=14:2:enable='${flous.join('+')}',eq=brightness=0.07:saturation=0.8:enable='${flous.join('+')}'[cvf];`
+  if (flous.length) f += `[cv]boxblur=${px(14)}:2:enable='${flous.join('+')}',eq=brightness=0.07:saturation=0.8:enable='${flous.join('+')}'[cvf];`
   // Passage en noir et blanc sur une phrase : `noirEtBlanc: [[début, fin]]` en temps d'origine.
   const nb = (P.noirEtBlanc || []).map(([x, y]) => `between(t,${nt(x).toFixed(2)},${nt(y).toFixed(2)})`)
   let base = flous.length ? 'cvf' : 'cv'
@@ -835,9 +840,9 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
     // Passe à part : mêlé au grand montage, le split + alphamerge bloquait ffmpeg sans un mot (9 h figé). Seul, 11 s.
     const flouP = PORTRAIT.map(([x, y]) => `between(t,${x.toFixed(2)},${y.toFixed(2)})`).join('+')
     let g = '[0:v]split=2[dx][dy];', fondD = 'dx'
-    if (flouP) { g += `[dx]boxblur=16:2:enable='${flouP}',eq=brightness=-0.04:enable='${flouP}'[dfl];`; fondD = 'dfl' }
+    if (flouP) { g += `[dx]boxblur=${px(16)}:2:enable='${flouP}',eq=brightness=-0.04:enable='${flouP}'[dfl];`; fondD = 'dfl' }
     if (TD) { g += `[${fondD}][2:v]overlay=0:0:enable='lt(t,${W.toFixed(3)})':shortest=1[dti];`; fondD = 'dti' }
-    g += `[1:v]fps=30,format=gray,scale=720:1280[dm];[dy][dm]alphamerge[dp];[${fondD}][dp]overlay=0:0:eof_action=pass[dto]`
+    g += `[1:v]fps=30,format=gray,scale=${CADRE}[dm];[dy][dm]alphamerge[dp];[${fondD}][dp]overlay=0:0:eof_action=pass[dto]`
     const detoure = join(st, 'detoure.mp4')
     lancer('ffmpeg', ['-y', '-v', 'error', '-i', join(st, 'base.mp4'), '-f', 'concat', '-safe', '0', '-i', join(st, 'masques.txt'), ...(TD ? ['-loop', '1', '-i', join(st, 'derriere.png')] : []),
       '-filter_complex', g, '-map', '[dto]', '-c:v', 'libx264', '-crf', '16', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', detoure])
@@ -873,6 +878,7 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
   // le clic tombe quand le mot rouge APPARAÎT (en mot à mot, c'est au milieu de la phrase, pas à son début)
   if (P.clicsMotsForts) subs.filter(s => s.a >= HOOK && s.txt.includes('*') && !plus.some(p => p.son && Math.abs(p.a - (s.tFort ?? s.a)) < 0.4)).forEach(s => ev.push([son('clic'), s.tFort ?? s.a, P.clicsMotsForts]))
   writeFileSync(join(dir, 'sons-places.txt'), ev.slice().sort((x, y) => x[1] - y[1]).map(([n, t]) => `${t.toFixed(1).padStart(5)} s  ${n}`).join(String.fromCharCode(10)) + String.fromCharCode(10))
+  ev.splice(0, ev.length, ...ev.filter(([n]) => n && SONS.includes(n))) // une famille coupée ou vide ne sonne pas
   ev.forEach(([n, t, v], j) => { const ms = Math.max(0, Math.round(t * 1000)); f += `[${4 + SONS.indexOf(n)}:a]adelay=${ms}|${ms},volume=${v}[s${j}];` })
   f += `[voix]${ev.map((_, j) => `[s${j}]`).join('')}amix=inputs=${ev.length + 1}:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100[ao]`
 
@@ -884,7 +890,7 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
   console.log(`${segs.length} morceaux · ${TOT.toFixed(1)} s (origine ${D.toFixed(1)} s) · ${subs.length} sous-titres · hook jusqu'à ${HOOK.toFixed(1)} s · ${ev.length} sons`)
   lancer('ffmpeg', ['-y', '-v', 'error', '-i', source, '-f', 'concat', '-safe', '0', '-i', join(st, 'liste.txt'), '-loop', '1', '-i', join(st, 'titre.png'), '-loop', '1', '-i', join(st, 'etiquette.png'),
     ...SONS.flatMap(s => ['-i', join(ICI, 'sons', s + '.wav')]), '-f', 'concat', '-safe', '0', '-i', join(st, 'plus.txt'), ...entreesTD, '-f', 'concat', '-safe', '0', '-i', join(st, 'plus-2.txt'), '-filter_complex', f, '-map', '[vo]', '-map', '[ao]', '-t', TOT.toFixed(3),
-    '-c:v', 'libx264', '-crf', '19', '-preset', 'fast', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', sortie])
+    ...ENCODAGE, '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', sortie])
   verifier(sortie, dir, RETIRER.length > 0)
   console.log(`\nVidéo : ${sortie}`)
 }

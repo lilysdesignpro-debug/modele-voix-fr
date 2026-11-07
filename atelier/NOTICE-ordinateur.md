@@ -227,7 +227,9 @@ pour la changer). Les autres types, plus « fait main », choisis selon le ton :
 `ticket` (ticket de caisse qui sort de l'imprimante, titre en haut : étapes, recette, bilan), `etiqueteuse`
 (bandes rouges imprimées une à une : affirmations courtes), `postit` (post-it de couleur collés un par un :
 idées, mots-clés) et `tampon` (liste papier puis un tampon qui frappe, `"tampon": "FAIT"` ou un mot à elle :
-objectif, défi). Une ou deux listes par vidéo au plus ; pendant une liste, les sous-titres et les mots géants
+objectif, défi), et, dans les 9 styles du moteur collage, `fiches` (des fiches qui sortent
+d'une boîte en bois, `"titre"` = l'étiquette de la boîte : recette, routine). ⛔ Jamais `bingo` (refusé par Aurélie le 06/11). Varie les types d'une vidéo à
+l'autre. Une ou deux listes par vidéo au plus ; pendant une liste, les sous-titres et les mots géants
 se taisent. Regarde une image du résultat : la liste ne doit jamais toucher son visage.
 
 **La constellation** (pop, collage, éditorial, typo, doux) : `"constellation": true` dans `collage` : pendant le hook,
@@ -312,6 +314,41 @@ profil, son feed, sa page de vente, un post, un témoignage reçu…), puis une 
   (une vidéo de formation), jamais dans une vidéo ordinaire.
 Pendant un effet, les mots géants se taisent. Regarde une image du résultat : rien sur son visage.
 
+**Les nouveaux effets** (dans `collage`, les 9 styles du moteur collage) :
+- **Le fil rouge** : quand elle annonce ses points (« numéro un… numéro deux… », « première étape… »), un bloc-notes
+  revient à chaque point, coche les précédents et écrit le nouveau, avec un badge chiffre en étoile à sa couleur :
+  `"filRouge": { "titre": "ma routine", "etapes": [{ "t": 12.4, "texte": "le sérum" }, { "t": 21, "texte": "le spray" }] }`
+  (`t` = le moment où elle dit le numéro, 2 à 6 étapes de 1 à 4 mots, SES mots). Le plus fort pour la rétention :
+  propose-le dès qu'elle numérote.
+- **La grille-formule** : `{ "t": 30, "type": "grille", "titre": "…", "lignes": [["Sujet", "…"], ["Angle", "…"], ["Format", "…"], ["Hook", "…"]] }`,
+  quand elle donne une méthode ou une formule en plusieurs cases ; les mots de droite s'écrivent case par case (SES mots).
+- **La feuille lignée** : `{ "t": 40, "type": "feuille", "titre": "par exemple", "lignes": ["…", "…"] }`, quand elle
+  donne des exemples l'un après l'autre ; ils s'écrivent à la main, ligne après ligne.
+- **Ses chiffres** : `{ "type": "compteurs", "t": 8, "items": ["697", "798", "841"], "icone": "vues" }` (`vues`,
+  `abonnes` ou `coeur`) et `{ "type": "graphique", "t": 15, "titre": "Mes abonnés", "points": [120, 180, 260, 410], "valeur": "410" }`.
+  ⛔ Uniquement des chiffres qu'elle DIT dans sa vidéo ou qu'elle te donne : jamais inventés, jamais arrondis.
+- **Ses photos en mouvement** (SES photos, dans `projets/<nom>/`) : `polaroids` (elles sortent d'un appareil
+  instantané et s'empilent), `pluie` (elles sortent d'une enveloppe et se posent autour d'elle), `corde` (elles
+  glissent sur une corde à linge : ⛔ refusé par Aurélie le 06/11, ne le propose pas), `eventail` (elles sortent d'une boîte en éventail) :
+  `{ "type": "polaroids", "t": 6, "images": ["photo1.jpg", "photo2.jpg"] }`. Quand elle parle de souvenirs, de
+  clientes (avec leur accord), de ses créations, de ses résultats.
+- ⛔ **Jamais d'objet dessiné derrière elle** (machine à écrire, panneau routier) : refusés par Aurélie le 06/11 (« trop fake »).
+- **La vidéo dans la vidéo** : `{ "type": "extrait", "t": 14, "video": "autre-prise.mp4", "debut": 3, "duree": 4, "etiquette": "ma routine en vrai" }` :
+  SON extrait (une 2e prise, une B-roll de son produit ou de ses mains, ou un reel qu'elle a le droit de montrer : le sien,
+  ou celui d'une personne d'accord, en citant la source) tourne sans le son dans un cadre blanc penché, du côté libre,
+  6 secondes au plus. Parfait pour décortiquer un reel ou montrer « en vrai » ce qu'elle explique.
+- **Les effets « interface »** (dans `effets`), pour une vidéo moderne et rythmée, un ou deux par vidéo, SES mots :
+  `dialogue` (une boîte de dialogue de téléphone et le curseur qui clique : `"question": "Supprimer cette vidéo ?", "non": "Annuler", "oui": "Supprimer", "danger": true`, pour un hook qui intrigue),
+  `anatomie` (des étiquettes reliées par un trait autour d'elle : `"items": ["grain", "titre", "zoom"]`, quand elle énumère ce qu'on voit),
+  `fenetre` (une fenêtre d'ordinateur où SA phrase se tape : `"titre": "…", "texte": "…"`),
+  `progression` (« montage en cours… » qui se remplit : `"texte"`, `"fin"`), `horloge` (les aiguilles filent et la lune se lève : le temps qui passe),
+  `prix` (une étiquette de prix, SON vrai chiffre : `"montant": "1 500 €", "petit": "avant", "dessous": "/ mois", "barre": true` pour le barrer),
+  `pastille` (SON petit mot du moment en capsule blanche : `"texte": "super simple", "emoji": "🙌"`), `touches` (`"touches": ["⌘", "V"]`),
+  `timeline` (un panneau de logiciel de montage), `trait` (un trait doré qui se dessine),
+  `ecrans` (4 téléphones avec SA vidéo en 4 looks : éditorial, noir et blanc, rose, épuré) et `etalonnage` (la même image d'elle, sans puis avec retouche : `"avant": "sans", "apres": "avec"`).
+- **Le tableau en liège** : le fond vert avec `"decor": "liege"` : derrière elle, un tableau en liège où SES photos
+  sont punaisées et reliées par un fil rouge, au rythme de ce qu'elle dit.
+
 **Les couleurs d'une photo qu'elle aime** (TOUS les styles) : `"reference": "ma-photo.jpg"` dans projet.json (copie
 la photo dans son projet) et `"intensiteReference": 0.6` (de 0 à 1) : sa vidéo prend doucement les couleurs de cette
 photo (une image de film, une photo Pinterest, son feed). Commence à 0.5 ou 0.6 et montre-lui une image.
@@ -378,6 +415,28 @@ Propose-les-lui, elle choisit :
   si elle te le demande, en recadrant l'image avant.
 - Sons : seulement des petits clics discrets (`clicsMotsForts: 0.1`) et un whoosh doux
   quand elle change de plan. Rien sur le hook, rien de fort à la fin.
+
+### Ses sons à elle (clé `"sons"`)
+
+Elle peut choisir ses sons. Elle te le dit avec ses mots, et tu traduis :
+
+| Elle te dit | Tu écris dans projet.json |
+|---|---|
+| « je veux des sons plus doux » | `"sons": { "pack": "doux" }` |
+| « des sons plus pétillants » | `"sons": { "pack": "pop" }` |
+| « des sons chics, discrets » | `"sons": { "pack": "luxe" }` (déjà le cas en style luxe) |
+| « garde toujours ce pop-là » | `"sons": { "pop": "pop-a" }` (un son fixe pour la famille) |
+| « alterne ces deux whoosh » | `"sons": { "whoosh": ["whoosh-a", "whoosh-doux"] }` |
+| « plus de glitch » | `"sons": { "glitch": "aucun" }` (la famille ne sonne plus) |
+
+Les familles : pop, clic, whoosh, cloche, kaching, photo, magie, glitch, clavier, et celles des objets :
+coffre (le coffre à fiches), boite (l'éventail), papier (une fiche qui sort), punaise (le liège), tirage
+(le Polaroid), tampon, page (le carnet, le titre de chapitre), stylo (la feuille écrite). Une famille
+d'objet sans son retombe sur une famille proche. Les noms sont ceux
+des fichiers de `sons/` sans `.wav` (liste-les si elle demande ce qui existe). Un nom qui n'existe pas
+est ignoré : tu retombes sur les sons habituels, il n'y a jamais d'erreur. Ordre : un son fixé pour
+une famille passe avant le pack, et le pack passe avant la rotation habituelle. Tu peux combiner :
+`"sons": { "pack": "doux", "kaching": "cloche-a" }`.
 
 ## 6. Monter et vérifier
 
@@ -509,6 +568,37 @@ chaque hook (une image toutes les 0,4 s), puis tu lui expliques comment tester :
 hooks en reels d'essai à quelques jours d'écart, et comparer la part de vues qui dépasse 3 s.
 Copie les fichiers de `contenu/` dans le dossier « Mes reels montés » de son Bureau (crée-le s'il n'existe pas) (préfixés de son prénom) pour
 qu'elle les télécharge, et donne-lui la légende directement dans ta réponse, prête à copier.
+
+## 11. Ses objets à elle (importés de SON Canva)
+
+Quand elle t'envoie une image PNG à fond transparent en disant « importe mes objets Canva » (ou quelque chose
+d'approchant), ses objets deviennent les siens dans ses montages : ils passent AVANT les objets livrés.
+Elle utilise SES éléments avec SA licence Canva : tu ne lui proposes jamais de prendre ceux de quelqu'un d'autre.
+
+1. Trouve le fichier (pièce jointe en ligne, ou le chemin qu'elle te donne sur l'ordinateur), puis
+   `cd "ATELIER" && node importer-objets.mjs decouper <le fichier>`.
+   - `PAS_TRANSPARENT` : dis-lui simplement de retélécharger sa page dans Canva en cochant
+     « Arrière-plan transparent » (option de Canva Pro). Rien d'autre.
+   - `ATTENTION … se touchent` : dis-lui d'écarter un peu ses objets sur la page Canva et de te la renvoyer.
+2. Regarde `objets-perso/planche.png` (les objets dans l'ordre des numéros : de gauche à droite, puis
+   la ligne suivante) et donne à chacun un nom simple avec `node importer-objets.mjs nommer import-03 <nom>`.
+   Les noms que les effets reconnaissent, à utiliser quand l'objet correspond :
+   `appareil-instantane` (polaroid), `coffre-bois` (coffre), `boite-bois` (boîte ou caisse ouverte),
+   `boite-carton` (carton ouvert), `enveloppe-kraft-lettre` (enveloppe ouverte), `postit-jaune` (post-it).
+   Pour les autres, un nom libre en minuscules avec des tirets (`etoile-jaune`, `fleche-rose`…).
+3. Un CONTENANT (appareil, coffre, boîte, enveloppe) doit être MESURÉ, sinon il est ignoré (sans son bord,
+   rien ne peut en sortir proprement) :
+   - `node importer-objets.mjs grille <nom>` puis regarde `objets-perso/<nom>-grille.png` (traits bleus tous
+     les 50 px, rouges tous les 100 px, origine en haut à gauche) ;
+   - boîte, coffre ou enveloppe : `node importer-objets.mjs bord <nom> x,y x,y …`, les points du BORD AVANT de
+     gauche à droite (pour une enveloppe : le V de la poche ; pour une boîte en perspective : le coin avant
+     gauche, le coin avant droit, puis le coin arrière droit) ;
+   - appareil : `node importer-objets.mjs fente <nom> y x0 x1` (la ligne de la fente et ses deux bouts) ;
+   - regarde `objets-perso/<nom>-controle.png` : la ligne rouge doit suivre le bord exactement. Sinon, refais.
+4. Dis-lui en une phrase ce que tu as rangé (« ton coffre, ton polaroid et 4 décorations ») et qu'ils
+   serviront dans ses prochains montages. Ne lui montre ni commande, ni nom de fichier technique.
+   Sur Claude en ligne, l'atelier repart de zéro à chaque conversation : dis-lui de garder son image et de
+   la renvoyer avec sa vidéo la prochaine fois (sur l'ordinateur, ses objets restent rangés pour toujours).
 
 ## Ce que tu ne fais jamais
 

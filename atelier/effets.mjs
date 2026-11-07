@@ -5,6 +5,7 @@
 //   avantapres    : deux de SES images empilées, « avant » et « après »
 // effet(E, outils) → { hauteur, duree, anim, dessin(dt, y), sons(t0) } ; `y` = le haut de l'effet dans l'image.
 import { readFileSync, existsSync } from 'node:fs'
+import { effet2 } from './effets2.mjs'
 export const POLICES_EFFETS = [['Sacramento-400.woff2', 'DuoSac', 400], ['Jost-300.woff2', 'DuoJost', 300], ['BebasNeue-400.woff2', 'DuoBebas', 400], ['Gloock-400.woff2', 'DuoGloock', 400], ['ArchivoBlack-400.woff2', 'DuoArchivo', 400], ['Anton-400.woff2', 'Anton', 400], ['Satisfy-400.woff2', 'Script', 400], ['Cormorant-italique.woff2', 'DouxI', 500, 'italic'], ['Fraunces-900.woff2', 'Gros', 900], ['Caveat-700.woff2', 'Annot', 700], ['InstrumentSerif-italique.woff2', 'Didot', 400, 'italic'], ['GloriaHallelujah-400.woff2', 'Carnet', 400], ['Poppins-600.woff2', 'Poppins', 600], ['Caveat-700.woff2', 'Annot', 700]]
 
 const image = f => { if (!f || !existsSync(f)) return null; const ext = f.split('.').pop().toLowerCase(); return `data:image/${ext === 'jpg' ? 'jpeg' : ext};base64,${readFileSync(f).toString('base64')}` }
@@ -128,5 +129,5 @@ export function effet(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) {
           + '<div style="position:absolute;right:-4px;top:110px;width:4px;height:56px;border-radius:2px;background:#2a2a2a"></div></div>' },
       sons: t0 => [{ t: t0, fam: 'whoosh', vol: 0.07 }] }
   }
-  return null
+  return effet2(E, arguments[1]) // les effets du 06/11 (effets2.mjs)
 }

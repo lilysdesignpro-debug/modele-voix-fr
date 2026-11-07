@@ -14,11 +14,14 @@
 // Tous les temps sont ceux de la vidéo d'origine, comme le reste de projet.json.
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync, existsSync } from 'node:fs'
 import { remplirBandes } from './bandes.mjs'
+import { ECHELLE, LARG, HAUT, CADRE, TAILLE, px as pxV, pxPair as pxP, ENCODAGE } from './echelle.mjs'
 import { zones as zonesPlateforme } from './marges.mjs'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { liste as listeNotes } from './listes.mjs'
+import { objetDerriere, fondLiege, photosPunaisees, objet, MESURES, dessusDuBord, faceAvant } from './effets2.mjs'
+import { sonneur } from './sons-choix.mjs'
 import { effet, POLICES_EFFETS, couleurDecor } from './effets.mjs'
 import { etoileGonflee, etoileTrait, etoileBlanche, nuage } from './decor.mjs'
 
@@ -77,14 +80,19 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   //  « pop »       : couleurs franches, gros mots ronds qui claquent, étoiles, carte inclinée sur fond bleu, arc, noir et blanc ;
   //  « editorial » : magazine, une seule famille serrée en minuscules + un mot en italique, titres rose poudré derrière
   //                  la tête, entrées en flou vers net, étalonnage chaud, presque aucun son.
-  const THEME = ({ pop: 'pop', editorial: 'editorial', doux: 'doux', confidence: 'doux', aurelie: 'aurelie', typo: 'typo', witchy: 'witchy', chic: 'chic', automne: 'automne', cosy: 'automne', studio: 'studio' })[P.style] || 'collage'
+  const THEME = ({ pop: 'pop', editorial: 'editorial', doux: 'doux', confidence: 'doux', aurelie: 'aurelie', typo: 'typo', witchy: 'witchy', chic: 'chic', luxe: 'luxe', automne: 'automne', cosy: 'automne', studio: 'studio' })[P.style] || 'collage'
+  // luxe (06/11, validé par Aurélie) : le chic en plus premium : serif italique fin, or pâle, verre dépoli, étalonnage chaud et grain
+  const LUXE = THEME === 'luxe', CHIC = THEME === 'chic' || LUXE, OR = '#E3C38A'
+  // le verre dépoli : le navigateur ne voit pas la vidéo, donc ffmpeg floute la vidéo elle-même sous chaque carte (x, y, l, h en 720, a et b en secondes)
+  const VERRES = []
+  const VERRE = 'background:linear-gradient(160deg,rgba(60,42,30,.30),rgba(30,20,14,.38));backdrop-filter:blur(26px) saturate(1.5) brightness(1.04);-webkit-backdrop-filter:blur(26px) saturate(1.5) brightness(1.04);box-shadow:inset 0 1px 0 rgba(255,255,255,.75),inset 0 0 0 1px rgba(255,255,255,.28),0 24px 50px rgba(30,15,5,.22)'
   const PALETTE = { pop: { fond: '#7DB3E8', mot: '#6FA3DE', marine: '#2B3F6B', etoile: '#F2C94C', rose: '#F4A6C4' }, editorial: { rose: '#F2B8AE', bordeaux: '#6B1E24', peche: '#F6C7A8', nuit: '#2A0306' } }[THEME] || {}
   // typo : sa couleur signature + quatre couleurs vives qui tournent d'un mot fort à l'autre (surchargeables)
   if (THEME === 'typo') Object.assign(PALETTE, { mot: coul.mot || C?.motFort?.couleur || '#F4E04D', jaune: '#F4E04D', lilas: '#C9B8FF', cyan: '#8FE3EA', rose: '#FFB8D6' }, K.couleurs || {})
   const PALETTE_LISTE = { accent: coul.mot || C?.motFort?.couleur || '#2E9E5B', etiquette: '#D62B2B', tampon: coul.mot || C?.motFort?.couleur || '#C62828', ...(K.couleursListe || {}) }
   if (THEME === 'witchy') { const sig = coul.mot || C?.motFort?.couleur || '#6B2F7A', v = parseInt(sig.replace('#', '').slice(0, 6), 16) || 0x6B2F7A, mix = (f, b) => '#' + [v >> 16, (v >> 8) & 255, v & 255].map(c => Math.round(c * f + b).toString(16).padStart(2, '0')).join('')
     Object.assign(PALETTE, { or: '#E9C77B', prune: mix(0.32, 4), nuit: mix(0.5, 8), creme: '#F6E7C8' }, K.couleurs || {}) } // witchy : la nuit prend SA couleur signature, assombrie ; tout se surcharge avec collage.couleurs
-  if (THEME === 'chic') Object.assign(PALETTE, { sable: '#EFE6DA', cacao: '#3B2A22', accent: coul.mot || C?.motFort?.couleur || '#B98B6E' }, K.couleurs || {}) // chic : SA couleur signature pour le mot fort
+  if (CHIC) Object.assign(PALETTE, { sable: '#EFE6DA', cacao: '#3B2A22', accent: LUXE ? OR : coul.mot || C?.motFort?.couleur || '#B98B6E' }, K.couleurs || {}) // chic : SA couleur signature pour le mot fort
   const OMBRE = 'text-shadow:0 1px 2px rgba(0,0,0,.6),0 2px 18px rgba(0,0,0,.5)' // chic : ombre douce, lisible sur un mur clair
   if (THEME === 'automne') Object.assign(PALETTE, { creme: '#FFF3DF', brun: '#4A2412', rouille: '#B4481C', ocre: '#E3A03A' }, K.couleurs || {}) // automne : crème, brun, rouille, ocre
   if (THEME === 'studio') { const sig = coul.mot || C?.motFort?.couleur || '#5A0E1A', v = parseInt(sig.replace('#', '').slice(0, 6), 16) || 0x5A0E1A, mix = f => '#' + [v >> 16, (v >> 8) & 255, v & 255].map(c => Math.round(c * f).toString(16).padStart(2, '0')).join('')
@@ -105,7 +113,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     Object.assign(PALETTE, { rose: hsl(72, 76), peche: hsl(80, 68), fonce: hsl(58, 36), bordeaux: hsl(52, 30), nuit: hsl(55, 9) }, K.couleurs || {})
     // un titre regarde ce qu'il y a SOUS lui à ce moment-là : fond clair → la teinte foncée, sinon la pâle
     PALETTE.sous = (t, y0, y1) => { const y = Math.max(0, Math.round(y0)), h = Math.max(20, Math.min(1280 - y, Math.round(y1 - y0)))
-      const o = spawnSync('ffmpeg', ['-v', 'error', '-ss', Math.max(0, t).toFixed(2), '-i', join(st, 'base-av.mp4'), '-frames:v', '1', '-vf', `crop=iw:${h}:0:${y},scale=1:1:flags=area`, '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'])
+      const o = spawnSync('ffmpeg', ['-v', 'error', '-ss', Math.max(0, t).toFixed(2), '-i', join(st, 'base-av.mp4'), '-frames:v', '1', '-vf', `crop=iw:${Math.min(HAUT - pxV(y), pxV(h))}:0:${pxV(y)},scale=1:1:flags=area`, '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'])
       const l = o.stdout?.length >= 3 ? (0.2126 * o.stdout[0] + 0.7152 * o.stdout[1] + 0.0722 * o.stdout[2]) / 255 : 0
       return l > 0.42 ? PALETTE.fonce : PALETTE.rose }
   }
@@ -224,15 +232,17 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   } })
   }
 
-  if (THEME === 'chic') {
+  if (CHIC) {
   // sous-titres phrase par phrase sous son visage, sans-serif fin ; le mot fort s'écrit en italique à SA couleur,
   // un fin trait se dessine dessous au moment où elle le dit
   const finChic = K.fin?.motCle ? tf(K.fin.t ?? TOT - 3.5) : TOT
   el.push({ a: HOOK, b: finChic, calque: 'devant', dessin: t => {
     if ((K.produits || []).some(pr => t >= tf(pr.t) && t < tf(pr.t + (pr.duree || 3.2)))) return '' // l'étiquette produit porte déjà ses mots
+    if (el.some(e => e.parle && t >= e.a && t < e.b)) return '' // (06/11) pendant une liste, une grille, un duo… ses mots sont déjà à l'écran
     const p = phrases.find(p => t >= p.a && t < p.b); if (!p) return ''
     const q = Math.min(doux((t - p.a) / 0.3), 1 - clamp((t - (p.b - 0.15)) / 0.15, 0, 1)), y = clamp(basVisage(p.a, p.b) + 120, 640, 960)
     const forts = mots.filter(m => m.fort && m.t >= p.a - 0.05 && m.t < p.b), pw = forts.length ? clamp((t - forts[0].t + 0.05) / 0.5, 0, 1) : 0
+    if (LUXE) return '<div style="position:absolute;left:60px;right:100px;top:' + y + 'px;text-align:center;text-wrap:balance;font:italic 400 42px/1.12 Didot,serif;color:#fff;opacity:' + q + ';transform:translateY(' + ((1 - q) * 6).toFixed(1) + 'px);text-shadow:0 1px 1px rgba(0,0,0,.25),0 6px 24px rgba(0,0,0,.3)">' + esc(p.txt).replace(/\*([^*]+)\*/g, (_, w) => '<span style="color:' + (pw > 0 ? OR : '#fff') + '">' + w + '</span>') + '</div>'
     const html = esc(p.txt).replace(/\*([^*]+)\*/g, (_, w) => '<span style="position:relative;display:inline-block;margin:0 4px;font:italic 500 ' + Math.round(48 + 8 * doux(pw)) + 'px/1 DouxI,serif;color:' + (pw > 0 ? PALETTE.accent : '#fff') + ';' + OMBRE + '">' + w
       + '<span style="position:absolute;left:4%;bottom:-6px;height:1.5px;width:' + (92 * doux(pw)).toFixed(1) + '%;background:' + PALETTE.accent + ';box-shadow:0 1px 4px rgba(0,0,0,.3)"></span></span>')
     return '<div style="position:absolute;left:70px;right:110px;top:' + y + 'px;text-align:center;text-wrap:balance;font:500 31px/1.35 ChicS,sans-serif;color:#fff;opacity:' + q + ';transform:translateY(' + ((1 - q) * 6).toFixed(1) + 'px);' + OMBRE + '">' + html + '</div>'
@@ -405,7 +415,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     sons.push({ t: Math.max(0.05, aG), fam: 'magie', vol: 0.06 })
   }
 
-  if (T.grand && THEME === 'chic') {
+  if (T.grand && CHIC) {
     // une ligne fine en capitales espacées, un filet qui se trace, puis le grand mot en italique qui sort du flou
     const { haut, aD, aG, aQ } = H, petite = T.dessus || T.petit || ''
     const tG = Math.round(clamp(600 / (0.4 * Math.max(5, T.grand.length)), 70, 104))
@@ -416,15 +426,15 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       const sortie = 1 - clamp((t - (HOOK - 0.3)) / 0.3, 0, 1), pD = doux((t - aD) / 0.5), pF = doux((t - aD - 0.25) / 0.6), pG = doux((t - aG) / 0.6)
       return '<div style="position:absolute;left:0;right:0;top:' + y0 + 'px;text-align:center;opacity:' + sortie + '">'
         + lp.map(l => '<div style="font:500 21px/30px ChicS,sans-serif;letter-spacing:0.3em;color:#fff;opacity:' + pD + ';' + OMBRE + '">' + esc(l) + '</div>').join('')
-        + '<div style="width:' + Math.round(64 * pF) + 'px;height:1.5px;background:#fff;margin:16px auto 20px;box-shadow:0 1px 6px rgba(0,0,0,.35)"></div>'
-        + '<div style="white-space:nowrap;font:italic 500 ' + tG + 'px/1 DouxI,serif;color:#fff;opacity:' + pG + ';filter:blur(' + ((1 - pG) * 5).toFixed(1) + 'px);letter-spacing:' + (0.04 - 0.04 * pG).toFixed(3) + 'em;text-shadow:0 2px 20px rgba(0,0,0,.35)">' + esc(T.grand) + '</div></div>'
+        + (LUXE ? '<div style="display:flex;align-items:center;justify-content:center;gap:10px;margin:14px auto 18px;opacity:' + pF.toFixed(2) + '"><i style="width:' + Math.round(44 * pF) + 'px;height:1px;background:' + OR + '"></i><i style="width:6px;height:6px;background:' + OR + ';transform:rotate(45deg)"></i><i style="width:' + Math.round(44 * pF) + 'px;height:1px;background:' + OR + '"></i></div>' : '<div style="width:' + Math.round(64 * pF) + 'px;height:1.5px;background:#fff;margin:16px auto 20px;box-shadow:0 1px 6px rgba(0,0,0,.35)"></div>')
+        + '<div style="white-space:nowrap;font:italic ' + (LUXE ? '400 ' + tG + 'px/.95 Didot' : '500 ' + tG + 'px/1 DouxI') + ',serif;color:#fff;opacity:' + pG + ';filter:blur(' + ((1 - pG) * 5).toFixed(1) + 'px);letter-spacing:' + (0.04 - 0.04 * pG).toFixed(3) + 'em;text-shadow:0 2px 20px rgba(0,0,0,.35)">' + esc(T.grand) + '</div></div>'
     } })
     if (T.queue) el.push({ a: 0, b: HOOK, calque: 'devant', dessin: t => { const pQ = doux((t - aQ) / 0.5), sortie = 1 - clamp((t - (HOOK - 0.3)) / 0.3, 0, 1)
       return '<div style="position:absolute;left:70px;right:110px;top:' + clamp(basVisage(0, HOOK) + 140, 640, 960) + 'px;text-align:center;font:500 31px/1.3 ChicS,sans-serif;color:#fff;opacity:' + (pQ * sortie) + ';' + OMBRE + '">' + esc(T.queue) + '</div>' } })
     sons.push({ t: Math.max(0.05, aG), fam: 'whoosh', vol: 0.05 })
   }
 
-  if (THEME === 'chic') {
+  if (CHIC) {
     // la place libre d'un côté de son visage, à une hauteur donnée
     const cote = (a, b, y, h) => { const vs = visages(a, b), g = Math.min(...vs.map(v => v[0]), 720), d = Math.max(...vs.map(v => v[2]), 0)
       return (720 - d) >= g ? 'droite' : 'gauche' }
@@ -432,11 +442,24 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     for (const pr of K.produits || []) {
       const a = tf(pr.t), b = Math.min(TOT, pr.duree ? tf(pr.t + pr.duree) : a + 3.2)
       const c = pr.cote || cote(a, b), yL = pr.y ?? 560, xL = c === 'droite' ? 430 : 50
+      const hV = 54 + (pr.sous ? 44 : 0) + (pr.detail ? 46 : 0); if (LUXE) VERRES.push({ x: xL, y: yL, l: 250, h: hV, r: 22, a, b })
+      // (06/11) le trait pointe vers le VRAI produit, repéré dans l'image (flacon, tasse, téléphone…), jamais vers sa bouche ;
+      // pas de produit repéré, ou repéré sur son visage : pas de trait
+      if (pr.vers == null || pr.vers === 'auto') { pr.vers = null
+        const o = spawnSync('node', [join(ICI, 'detourage', 'objets.mjs'), join(st, 'base-av.mp4'), a.toFixed(2), b.toFixed(2)], { encoding: 'utf8' }).stdout || ''
+        let r = null; try { r = JSON.parse(o.trim().split('\n').pop()) } catch {}
+        const v = vis((a + b) / 2), surVisage = r && v && r.x > v[0] && r.x < v[2] && r.y > v[1] && r.y < v[3]
+        if (r && !surVisage) { pr.vers = [r.x, r.y]; console.log('Produit repéré pour « ' + (pr.nom || pr.sous) + ' » : ' + r.classe + ' en ' + r.x + ', ' + r.y) }
+        else console.log('⚠️ Produit « ' + (pr.nom || pr.sous) + ' » pas repéré dans l\'image : étiquette sans trait') }
       el.push({ a, b, calque: 'devant', dessin: t => {
         const q = doux((t - a) / 0.4) * (1 - doux((t - (b - 0.35)) / 0.35)), pt = doux((t - a) / 0.7), pn = doux((t - a - 0.3) / 0.5), ps = doux((t - a - 0.55) / 0.5)
         let trait = ''
         if (pr.vers) { const [vx, vy] = pr.vers, x1 = c === 'droite' ? xL - 10 : xL + 250, y1 = yL + 30, coude = [x1 + (c === 'droite' ? -40 : 40), y1]
           trait = '<svg style="position:absolute;left:0;top:0;filter:drop-shadow(0 1px 3px rgba(0,0,0,.35))" width="720" height="1280"><path d="M' + x1 + ' ' + y1 + ' L' + coude.join(' ') + ' L' + vx + ' ' + vy + '" fill="none" stroke="#fff" stroke-width="1.6" pathLength="100" stroke-dasharray="100" stroke-dashoffset="' + (100 * (1 - pt)).toFixed(1) + '"/>' + (pt > 0.95 ? '<circle cx="' + vx + '" cy="' + vy + '" r="6" fill="#fff"/>' : '') + '</svg>' }
+        if (LUXE) return '<div style="position:absolute;inset:0;opacity:' + q.toFixed(3) + '">' + trait + '<div style="position:absolute;left:' + xL + 'px;top:' + yL + 'px;width:250px;height:' + hV + 'px;box-sizing:border-box;border-radius:22px;padding:18px 20px;' + VERRE + ';color:#fff">'
+          + '<div style="font:500 11px/1.3 DidotT,sans-serif;letter-spacing:.34em;color:' + OR + '">' + esc((pr.nom || '').toUpperCase()) + '</div>'
+          + (pr.sous ? '<div style="font:italic 400 34px/1.05 Didot,serif;margin-top:8px;opacity:' + ps + ';' + OMBRE + '">' + esc(pr.sous) + '</div>' : '')
+          + (pr.detail ? '<div style="font:500 13px/1.4 DidotT,sans-serif;margin-top:6px;opacity:' + (0.92 * ps).toFixed(2) + '">' + esc(pr.detail) + '</div>' : '') + '</div></div>'
         return '<div style="position:absolute;inset:0;opacity:' + q.toFixed(3) + '">' + trait + '<div style="position:absolute;left:' + xL + 'px;top:' + yL + 'px;width:250px;text-align:' + (c === 'droite' ? 'left' : 'right') + '">'
           + '<div style="font:500 16px/1.3 ChicS,sans-serif;letter-spacing:0.3em;color:#fff;opacity:' + pn + ';' + OMBRE + '">' + esc((pr.nom || '').toUpperCase()) + '</div>'
           + (pr.sous ? '<div style="font:italic 500 40px/1.05 DouxI,serif;color:#fff;margin-top:8px;opacity:' + ps + ';transform:translateY(' + ((1 - ps) * 8).toFixed(1) + 'px);' + OMBRE + '">' + esc(pr.sous) + '</div>' : '') + '</div></div>'
@@ -451,6 +474,12 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       el.push({ a, b, calque: 'devant', dessin: t => {
         const q = doux((t - a) / 0.45) * (1 - doux((t - (b - 0.35)) / 0.35)), z = 0.9 + 0.1 * doux((t - a) / 0.6)
         const n = parseFloat(String(ch.valeur).replace(',', '.')), compte = isFinite(n) ? String(Math.round(n * doux((t - a - 0.1) / 0.9))) : esc(String(ch.valeur))
+        if (LUXE) return '<div style="position:absolute;inset:0;opacity:' + q.toFixed(3) + '"><div style="position:absolute;left:' + x0 + 'px;top:' + y0 + 'px;width:290px;text-align:center;color:#fff;transform:scale(' + z.toFixed(3) + ');text-shadow:0 1px 1px rgba(0,0,0,.25),0 6px 24px rgba(0,0,0,.3)">'
+          + '<div style="font:italic 400 128px/0.95 Didot,serif">' + compte + '<span style="font-size:64px">' + esc(ch.unite || '') + '</span></div>'
+          + (ch.legende ? '<div style="font:500 13px/1.35 DidotT,sans-serif;letter-spacing:.34em;color:' + OR + ';margin-top:8px">' + esc(ch.legende.toUpperCase()) + (ch.source ? '*' : '') + '</div>' : '')
+          + '<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px"><i style="width:30px;height:1px;background:' + OR + '"></i><i style="width:5px;height:5px;background:' + OR + ';transform:rotate(45deg)"></i><i style="width:30px;height:1px;background:' + OR + '"></i></div>'
+          + bens.map(be => { const v = doux((t - be.a) / 0.4); return v <= 0 ? '' : '<div style="font:italic 400 30px/1.2 Didot,serif;margin-top:10px;opacity:' + v + '">' + esc(be.txt) + '</div>' }).join('')
+          + (ch.source ? '<div style="font:500 13px/1.3 DidotT,sans-serif;margin-top:12px;opacity:.85">*' + esc(ch.source) + '</div>' : '') + '</div></div>'
         return '<div style="position:absolute;inset:0;opacity:' + q.toFixed(3) + '"><div style="position:absolute;left:' + x0 + 'px;top:' + y0 + 'px;width:290px;height:290px;border-radius:50%;background:' + PALETTE.sable + 'eb;display:grid;place-items:center;box-shadow:0 10px 30px rgba(0,0,0,.14);transform:scale(' + z.toFixed(3) + ')">'
           + '<div style="text-align:center;color:' + PALETTE.cacao + '"><div style="font:600 108px/0.9 Doux,serif">' + compte + '<span style="font-size:58px">' + esc(ch.unite || '') + '</span></div>'
           + (ch.legende ? '<div style="font:500 14px/1.35 ChicS,sans-serif;letter-spacing:0.22em;margin-top:6px;padding:0 30px">' + esc(ch.legende.toUpperCase()) + (ch.source ? '*' : '') + '</div>' : '') + '</div></div>'
@@ -461,7 +490,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       sons.push({ t: a, fam: 'pop', vol: 0.05 }); bens.forEach(be => sons.push({ t: be.a, fam: 'clic', vol: 0.05 }))
     }
     // LA FIN : « écris-moi » en capitales fines, le mot-clé en italique, sur une fine pastille sable
-    if (K.fin?.motCle) {
+    if (K.fin?.motCle && !K.fin.geant) {
       const t0 = tf(K.fin.t ?? TOT - 3.5), mot = K.fin.motCle, y = clamp(basVisage(t0, TOT) + 40, 600, 860)
       el.push({ a: t0, b: TOT, calque: 'devant', zone: 'poitrine', dessin: t => { const p = doux((t - t0) / 0.5), pf = doux((t - t0 - 0.2) / 0.6)
         return '<div style="position:absolute;left:60px;right:104px;top:' + y + 'px;text-align:center;opacity:' + p + '"><div style="font:500 19px/1 ChicS,sans-serif;letter-spacing:0.32em;color:#fff;' + OMBRE + '">ÉCRIS-MOI EN COMMENTAIRE</div>'
@@ -490,7 +519,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     } })
     sons.push({ t: Math.max(0.05, aG), fam: 'pop', vol: 0.08 })
   }
-  if (K.fin?.motCle && THEME === 'automne') {
+  if (K.fin?.motCle && !K.fin.geant && THEME === 'automne') {
     const t0 = tf(K.fin.t ?? TOT - 3.5), mot = K.fin.motCle, y = clamp(basVisage(t0, TOT) + 40, 600, 860)
     el.push({ a: t0, b: TOT, calque: 'devant', zone: 'poitrine', dessin: t => { const p = doux((t - t0) / 0.5), r = clamp(rebond((t - t0 - 0.2) / 0.3), 0, 1.1)
       return '<div style="position:absolute;left:60px;right:104px;top:' + y + 'px;text-align:center;opacity:' + p + '"><div style="font:' + fA(PS, 50) + ';color:' + PALETTE.creme + ';-webkit-text-stroke:' + traitA(PS, 5) + 'px ' + PALETTE.brun + ';paint-order:stroke fill;text-shadow:0 2px 10px rgba(60,20,0,.6)">écris-moi</div>'
@@ -508,7 +537,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
         + '<div style="white-space:nowrap;font:400 ' + tG + 'px/1.1 Script,cursive;color:' + PALETTE.encre + ';opacity:' + pG + ';transform:translateY(' + ((1 - pG) * 12).toFixed(1) + 'px)">' + esc(T.grand) + '</div>'
         + (T.queue ? '<div style="font:400 40px/1.1 Display,serif;color:' + PALETTE.encre + ';opacity:' + pQ + '">' + esc(T.queue) + '</div>' : '') + '</div>' } })
   }
-  if (K.fin?.motCle && THEME === 'studio') {
+  if (K.fin?.motCle && !K.fin.geant && THEME === 'studio') {
     const t0 = tf(K.fin.t ?? TOT - 3.5), mot = K.fin.motCle, y = clamp(basVisage(t0, TOT) + 40, 600, 880)
     el.push({ a: t0, b: TOT, calque: 'devant', zone: 'poitrine', dessin: t => { const p = doux((t - t0) / 0.4)
       return '<div style="position:absolute;left:60px;right:104px;top:' + y + 'px;text-align:center;opacity:' + p + ';color:' + PALETTE.creme + ';text-shadow:0 2px 12px rgba(0,0,0,.45)"><div style="font:400 40px/1 Display,serif">Écris-moi</div><div style="font:400 84px/1.2 Script,cursive">« ' + esc(mot) + ' »</div></div>' } })
@@ -530,7 +559,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       return `<div style="position:absolute;left:0;right:0;top:${placeHaut ? clamp(basVisage(0, HOOK) + 150, 640, 930) : y0B + 60 + tG}px;text-align:center;font:400 66px/1 Script,cursive;color:${accent};-webkit-text-stroke:5px #fff;paint-order:stroke fill;opacity:${pQ * sortie};text-shadow:0 2px 14px rgba(0,0,0,.3)">${esc(T.queue)}</div>` } })
   }
 
-  if (T.grand && THEME !== 'aurelie' && THEME !== 'doux' && THEME !== 'witchy' && THEME !== 'chic' && THEME !== 'automne' && THEME !== 'studio') {
+  if (T.grand && THEME !== 'aurelie' && THEME !== 'doux' && THEME !== 'witchy' && !CHIC && THEME !== 'automne' && THEME !== 'studio') {
     const fin = HOOK, { tG, tD, yG, yD, aD, aG } = H
     // chaque style a sa grosse lettre : serif beurre qui rebondit (collage), rond très gras qui claque (pop),
     // minuscules serrées rose poudré qui sortent du flou (éditorial)
@@ -553,7 +582,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     } })
   }
 
-  if (T.grand && T.queue && THEME !== 'aurelie' && THEME !== 'doux' && THEME !== 'witchy' && THEME !== 'chic' && THEME !== 'automne' && THEME !== 'studio') {
+  if (T.grand && T.queue && THEME !== 'aurelie' && THEME !== 'doux' && THEME !== 'witchy' && !CHIC && THEME !== 'automne' && THEME !== 'studio') {
     const fin = HOOK, { tG, yG, aQ } = H
     const larg = Math.min(540, T.queue.length * 30 + 20), hQ = Math.ceil((T.queue.length * 30 + 20) / 540) * 72, v = visages(0, fin), touche = (x0, y0) => v.some(f => x0 < f[2] + 16 && x0 + larg > f[0] - 16 && y0 < f[3] + 16 && y0 + hQ > f[1] - 16)
     let x = 720 - 110 - larg, y = yG + tG * 0.5 + 6
@@ -638,14 +667,14 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
         <div style="padding:6px 18px 0 30px;font:400 26px/50px Carnet,cursive;color:${coul.encre};white-space:nowrap">${lignesC}</div>
       </div>`
     } })
-    if (place) { sons.push({ t: t0, fam: 'photo', vol: 0.12 }); items.forEach((_, k) => sons.push({ t: t0 + 0.6 + k * pas, fam: 'clic', vol: 0.08 })) }
+    if (place) { sons.push({ t: t0, fam: 'page', vol: 0.12 }); items.forEach((_, k) => sons.push({ t: t0 + 0.6 + k * pas, fam: 'clic', vol: 0.08 })) }
   }
 
   // 3. Les mots forts en géant, derrière sa tête (un toutes les 4 s au plus, jamais pendant le hook ni un médaillon)
   let dernierG = -9, ARC = null; const TYPO = [] // typo : l'ordre des mots forts, pour faire tourner les animations
   const tient = (txt, voulu, largeurLettre, max = 590) => Math.round(Math.min(voulu, max / (Math.max(1, [...txt].length) * largeurLettre))) // taille qui tient sur UNE ligne
   for (const [ip, p] of phrases.entries()) {
-    if (THEME === 'doux' || THEME === 'witchy' || THEME === 'chic' || THEME === 'automne' || THEME === 'studio') break // doux et witchy : pas de mots géants, l'italique des sous-titres suffit
+    if (THEME === 'doux' || THEME === 'witchy' || CHIC || THEME === 'automne' || THEME === 'studio') break // doux et witchy : pas de mots géants, l'italique des sous-titres suffit
     const forts = mots.filter(m => m.ip === ip && m.fort); if (!forts.length) continue
     const t0 = forts[0].t; if (t0 < HOOK + 0.3 || t0 - dernierG < 4 || dansMed(t0) || t0 > TOT - 1.2) continue
     if ([...(K.listes || []), ...(K.effets || [])].some(L => { const a = tf(L.t); return t0 < a + 6 && t0 > a - 1.8 })) continue // pas de mot géant pendant une liste ou un effet
@@ -779,7 +808,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   //    éditorial : la vidéo rétrécit en carte sur fond bordeaux nuit, la phrase en chapeau.
   const CARTE = { pop: { l: 432, h: 768, cy: 560, rot: -3 } }[THEME]
   for (const [a, b] of MED) {
-    if (THEME === 'doux' || THEME === 'typo' || THEME === 'chic' || THEME === 'automne' || THEME === 'studio') continue // doux et typo : pas d'intermède
+    if (THEME === 'doux' || THEME === 'typo' || CHIC || THEME === 'automne' || THEME === 'studio') continue // doux et typo : pas d'intermède
     if (THEME === 'witchy') { // PAGE DE GRIMOIRE
       const ps = phrases.filter(p => p.b > a + 0.05 && p.a < b - 0.05)
       const hasard = k => { const x = Math.sin(k * 7.13 + a * 3.1) * 43758.5453; return x - Math.floor(x) }
@@ -840,17 +869,17 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   }
 
   // 7 bis. LISTES ANIMÉES : quand elle énumère (« 3 erreurs », « mes étapes »), au lieu d'une liste à cocher
-  for (const L of K.listes || []) {
+  for (const L of LUXE ? [] : K.listes || []) { // en luxe, les listes passent par effets2 (listeLuxe)
     if (L.type === 'notes') { // la to-do d'appli et ses 4 looks, dessinées par listes.mjs
       const Lm = listeNotes(L, { clamp, doux, rebond, esc, couleurs: { coche: (K.couleurs || {}).coche || coul.mot || C?.motFort?.couleur || '#F25C9A' } }); if (!Lm) continue
       const t0 = tf(L.t), b = Math.min(TOT - 0.1, t0 + Lm.duree), y = FV ? clamp(hautTete(t0, b) - Lm.hauteur - 30, 110, 1280 - 290 - Lm.hauteur) : clamp(basVisage(t0, b) + 50, 430, 1280 - 290 - Lm.hauteur)
-      el.push({ a: t0, b, calque: 'devant', zone: 'geant', dessin: t => '<div style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)).toFixed(2) + '">' + Lm.dessin(t - t0, Math.round(y)) + '</div>' })
+      el.push({ a: t0, b, calque: 'devant', zone: 'geant', parle: true, dessin: t => '<div style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)).toFixed(2) + '">' + Lm.dessin(t - t0, Math.round(y)) + '</div>' })
       sons.push(...Lm.sons(t0).map(x => ({ ...x, vol: Math.min(x.vol, 0.09) }))); continue
     }
     const t0 = tf(L.t), items = (L.items || []).slice(0, 5), n = items.length; if (!n) continue
     const pas = L.type === 'ticket' ? 0.45 : 0.6, b = Math.min(TOT - 0.1, t0 + (L.duree ?? Math.max(3.5, 1.2 + n * pas + 1.6)))
-    const hauteur = { ticket: 130 + n * 44, etiqueteuse: 40 + n * 74, postit: n > 3 ? 420 : 220, tampon: 150 + n * 50 }[L.type] || 300
-    const y = clamp(basVisage(t0, b) + 60, 430, 1280 - 290 - hauteur)
+    const hauteur = { ticket: 130 + n * 44, etiqueteuse: 40 + n * 74, postit: n > 3 ? 420 : 220, tampon: 150 + n * 50, fiches: 200 + n * 58, bingo: 120 + Math.ceil(n / 3) * 150 }[L.type] || 300
+    const y = clamp(basVisage(t0, b) + 60, 430, 1280 - 290 - hauteur), COFFRE = L.type === 'fiches' ? (o => o?.mesures?.bord ? o : null)(objet('coffre-bois', 'boite-bois')) : null
     const dessin = {
       // le ticket sort de l'imprimante, ligne après ligne
       ticket: t => { const dt = t - t0, sorti = clamp(dt / (0.4 + n * pas), 0, 1), hP = 60 + (hauteur - 60) * sorti
@@ -866,6 +895,41 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       postit: t => items.map((x, k) => { const p = rebond((t - t0 - 0.15 - k * pas) / 0.22); if (t < t0 + 0.15 + k * pas) return ''
         const col = k % 2, lig = Math.floor(k / 2), rot = [-6, 5, 3, -4, 6][k]
         return '<div style="position:absolute;left:' + (n === 1 ? 260 : 120 + col * 250) + 'px;top:' + (y + lig * 205) + 'px;width:200px;height:190px;transform:rotate(' + rot + 'deg) scale(' + (1.35 - 0.35 * clamp(p, 0, 1.1)) + ');background:' + ['#FFF07A', '#FFC7DD', '#BFE8FF', '#C9F2B9', '#FFD9A8'][k] + ';box-shadow:0 10px 18px rgba(0,0,0,.25);padding:22px 16px;font:400 31px/1.12 Carnet,cursive;color:#2a2a2a;display:flex;align-items:center;justify-content:center;text-align:center">' + esc(x) + '</div>' }).join(''),
+      // (06/11) la boîte à fiches : une boîte en bois, les fiches en sortent une à une et s'empilent au-dessus
+      fiches: t => { const dt = t - t0, boite = doux(dt / 0.3), hB = 150, yB = y + hauteur - hB
+        // (07/11) le coffre mesuré : bord avant à 55,2 % de sa hauteur, ouverture de 8 % à 93 % de sa largeur.
+        // Chaque fiche, PLUS ÉTROITE que l'ouverture, part du fond du coffre, monte tout droit (masquée par la paroi avant),
+        // dépasse un peu, puis s'envole se ranger en pile en prenant son petit angle ; le coffre tressaute à chaque sortie.
+        const lC = 340, xC = 190, hC = COFFRE ? Math.round(lC * COFFRE.h / COFFRE.l) : 0, topC = yB + 293 - hC, sC = COFFRE ? lC / COFFRE.l : 1
+        const bordY = COFFRE ? COFFRE.mesures.bord.map(b => topC + b[1] * sC) : [0], bordAvant = Math.max(...bordY), bordHaut = Math.min(...bordY)
+        const wF = Math.round(lC * 0.85 * 0.9), xF = xC + Math.round(lC * 0.08 + (lC * 0.85 - wF) / 2), hF = 62
+        let tressaut = 0
+        const cartes = items.map((x, k) => { const u = dt - 0.35 - k * pas; if (u < 0) return ''
+          const fs = Math.max(20, Math.min(30, Math.floor((wF - 40) / (0.5 * Math.max(1, x.length)))))
+          const fiche = (gauche, haut, rot, ombre) => '<div style="position:absolute;left:' + Math.round(gauche) + 'px;width:' + (COFFRE ? wF : 360) + 'px;box-sizing:border-box;top:' + haut.toFixed(1) + 'px;transform:rotate(' + rot.toFixed(2) + 'deg);background:#FFF8E7;background-image:repeating-linear-gradient(transparent 0 37px,rgba(80,120,200,.25) 37px 39px);border-top:5px solid #E25C5C;box-shadow:' + ombre + ';padding:10px 22px 14px;font:700 ' + (COFFRE ? fs : 30) + 'px/1.3 Annot,cursive;color:#2b2b2e;white-space:nowrap;overflow:hidden">' + esc(x) + '</div>'
+          if (!COFFRE) { const p = clamp(u / 0.3, 0, 1); return fiche(180 + (k % 2) * 14, yB + 20 - doux(p) * (60 + (n - k) * 58), [-3, 2, -1.5, 3, -2][k], '0 6px 14px rgba(0,0,0,.22)') }
+          if (u < 0.1) tressaut = Math.max(tressaut, Math.sin(u / 0.1 * Math.PI))
+          // 1) elle monte du fond, tout droit, avec un léger dépassement
+          const MO = 0.32, VO = 0.42, depart = bordAvant + 14, sortie = bordHaut - hF - 26
+          if (u < MO) { const q = u / MO, e = 1 - Math.pow(1 - q, 3) + 0.08 * Math.sin(q * Math.PI)
+            return { av: true, h: fiche(xF, depart + (sortie - depart) * e, 0, '0 2px 6px rgba(0,0,0,.18)') } }
+          // 2) elle s'envole vers sa place dans la pile, en arc, et prend son angle
+          const p = clamp((u - MO) / VO, 0, 1), e = doux(p), cible = yB + 40 - (n - 1 - k) * 58, dxF = (k % 2) * 14 - 7
+          return fiche(xF + dxF * e, sortie + (cible - sortie) * e - Math.sin(p * Math.PI) * 18, [-3, 2, -1.5, 3, -2][k] * e, '0 ' + Math.round(4 + 6 * e) + 'px ' + Math.round(8 + 8 * e) + 'px rgba(0,0,0,.24)') })
+        const montantes = cartes.filter(c => c && c.av).map(c => c.h).join(''), posees = cartes.filter(c => typeof c === 'string').join('')
+        const imC = st => '<img src="' + COFFRE.src + '" style="position:absolute;left:' + xC + 'px;top:' + (topC - 4 * tressaut).toFixed(1) + 'px;width:' + lC + 'px;' + st + '">'
+        return '<div style="position:absolute;inset:0;opacity:' + boite.toFixed(2) + '">' + (COFFRE ? imC('filter:drop-shadow(0 14px 24px rgba(0,0,0,.35))') + posees + '<div style="position:absolute;inset:0;clip-path:' + dessusDuBord(COFFRE, xC, topC - 4 * tressaut, lC) + '">' + montantes + '</div>' + imC('clip-path:' + faceAvant(COFFRE)) : posees)
+          + (COFFRE ? '<div style="position:absolute;left:300px;top:' + Math.round((bordAvant + yB + 293) / 2 - 18) + 'px;width:120px;height:36px;border-radius:5px;background:#F3E7CC;box-shadow:inset 0 0 0 2px #B8925A,0 2px 5px rgba(0,0,0,.3);display:grid;place-items:center;font:700 14px/1 Poppins,sans-serif;letter-spacing:.12em;color:#6E4524">' + esc((L.titre || 'Recettes').toUpperCase().slice(0, 12)) + '</div></div>' : '')
+          + (COFFRE ? '' : '<div style="position:absolute;left:150px;width:420px;top:' + yB + 'px;height:' + hB + 'px;border-radius:10px;background:linear-gradient(#9A6A3E,#6E4524);box-shadow:inset 0 6px 0 rgba(255,255,255,.18),0 12px 24px rgba(0,0,0,.3)">'
+          + '<div style="position:absolute;left:150px;top:46px;width:120px;height:44px;border-radius:6px;background:#E9D9B6;box-shadow:inset 0 0 0 3px #B8925A;display:grid;place-items:center;font:700 16px/1 Poppins,sans-serif;letter-spacing:.12em;color:#6E4524">' + esc((L.titre || 'Recettes').toUpperCase().slice(0, 12)) + '</div></div></div>') },
+      // (06/11) la carte de bingo : la grille se pose, chaque case se fait tamponner d'une pastille à sa couleur
+      bingo: t => { const dt = t - t0, p0 = rebond(dt / 0.3), col = Math.min(3, n), lig = Math.ceil(n / 3), w = 500, cw = w / col
+        const cases = items.map((x, k) => { const tk = 0.45 + k * pas, pt = clamp((dt - tk) / 0.16, 0, 1)
+          return '<div style="position:absolute;left:' + ((k % 3) * cw) + 'px;top:' + (84 + Math.floor(k / 3) * 150) + 'px;width:' + cw + 'px;height:150px;box-sizing:border-box;box-shadow:inset 0 0 0 1.5px #2b2b2e;display:grid;place-items:center;text-align:center;padding:12px;overflow:hidden;font:600 22px/1.2 Poppins,sans-serif;color:#2b2b2e">'
+            + (dt >= tk ? '<div style="position:absolute;left:50%;top:50%;width:112px;height:112px;margin:-56px;border-radius:50%;background:' + PALETTE_LISTE.accent + ';opacity:' + (0.85 * pt).toFixed(2) + ';transform:scale(' + (1.6 - 0.6 * pt).toFixed(3) + ')"></div>' : '')
+            + '<span style="position:relative;color:' + (pt > 0.5 ? '#fff' : '#2b2b2e') + '">' + esc(x) + '</span></div>' }).join('')
+        return '<div style="position:absolute;left:' + ((720 - w) / 2) + 'px;width:' + w + 'px;top:' + y + 'px;height:' + (84 + lig * 150) + 'px;background:#FBF7EE;box-shadow:0 12px 26px rgba(0,0,0,.25);transform:rotate(-1.5deg) scale(' + (0.85 + 0.15 * clamp(p0, 0, 1.1)).toFixed(3) + ')">'
+          + '<div style="display:flex;justify-content:space-around;height:84px;align-items:center;font:900 52px/1 Rond,Poppins,sans-serif;color:#2b2b2e">' + (L.titre ? '<span style="font-size:34px">' + esc(L.titre.toUpperCase().slice(0, 16)) + '</span>' : 'BINGO'.split('').map(c => '<span>' + c + '</span>').join('')) + '</div>' + cases + '</div>' },
       // la liste papier, puis le tampon qui frappe
       tampon: t => { const dt = t - t0, tT = 0.4 + n * pas, pT = clamp((dt - tT) / 0.18, 0, 1)
         return '<div style="position:absolute;left:120px;width:480px;top:' + y + 'px;height:' + hauteur + 'px;background:#F6F1E6;box-shadow:0 10px 22px rgba(0,0,0,.25);transform:rotate(-1.5deg);padding:26px 30px;font:700 26px/1.85 Machine,monospace;color:#2B1B17">'
@@ -874,25 +938,44 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
           + (dt >= tT ? '<div style="position:absolute;right:26px;bottom:22px;transform:rotate(-14deg) scale(' + (2.2 - 1.2 * pT) + ');opacity:' + (0.25 + 0.65 * pT) + ';border:6px solid ' + PALETTE_LISTE.tampon + ';border-radius:10px;padding:4px 16px;font:900 46px/1 Rond,sans-serif;letter-spacing:.08em;color:' + PALETTE_LISTE.tampon + ';mix-blend-mode:multiply">' + esc((L.tampon || 'FAIT').toUpperCase()) + '</div>' : '') + '</div>' },
     }[L.type]
     if (!dessin) continue
-    el.push({ a: t0, b, calque: 'devant', zone: 'geant', dessin: t => '<div style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)) + '">' + dessin(t) + '</div>' })
+    el.push({ a: t0, b, calque: 'devant', zone: 'geant', parle: true, dessin: t => '<div style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)) + '">' + dessin(t) + '</div>' })
     if (L.type === 'ticket') sons.push({ t: t0 + 0.1, fam: 'clavier', vol: 0.07, duree: 0.4 + n * pas })
-    else if (L.type === 'tampon') { items.forEach((_, k) => sons.push({ t: t0 + 0.2 + k * pas, fam: 'clic', vol: 0.07 })); sons.push({ t: t0 + 0.4 + n * pas, fam: 'pop', vol: 0.14 }) }
+    else if (L.type === 'bingo') { items.forEach((_, k) => sons.push({ t: t0 + 0.45 + k * pas, fam: 'pop', vol: 0.11 })) }
+    else if (L.type === 'fiches') { sons.push({ t: t0 + 0.05, fam: 'coffre', vol: 0.09, duree: 1.2 }); items.forEach((_, k) => sons.push({ t: t0 + 0.35 + k * pas, fam: 'papier', vol: 0.08, duree: 0.6 })) }
+    else if (L.type === 'tampon') { items.forEach((_, k) => sons.push({ t: t0 + 0.2 + k * pas, fam: 'clic', vol: 0.07 })); sons.push({ t: t0 + 0.4 + n * pas, fam: 'tampon', vol: 0.14 }) }
     else items.forEach((_, k) => sons.push({ t: t0 + 0.15 + k * pas, fam: L.type === 'postit' ? 'pop' : 'clic', vol: 0.1 }))
   }
 
   // 7 ter. Les effets ponctuels (effets.mjs) : la phrase-choc et les commentaires vont au-dessus de sa tête, la
   //         capture et l'avant/après sous son visage ; jamais sur son visage.
-  for (let E of K.effets || []) {
-    if (E.type === 'telephone') { const vs = visages(tf(E.t), tf(E.t) + (E.duree || 4)), g = vs.length ? Math.min(...vs.map(v => v[0])) : 230, d = vs.length ? 720 - Math.max(...vs.map(v => v[2])) : 230 // placeTel : du côté libre
-      const cote = E.cote || (g > d ? 'gauche' : 'droite'), libre = cote === 'gauche' ? g : d; E = { ...E, cote, largeur: E.largeur || Math.max(170, Math.min(250, libre - 30)) } }
+  const filR = K.filRouge && (K.filRouge.etapes || []).length ? K.filRouge.etapes.map((x, k, l) => ({ type: 'filrouge', t: x.t, k, items: l.map(y => y.texte), titre: K.filRouge.titre, duree: x.duree || K.filRouge.duree })) : []
+  const GEANT = K.fin?.geant && K.fin?.motCle ? [{ type: 'motGeant', t: K.fin.t ?? (TOT - 3.5), texte: K.fin.motCle, avant: K.fin.avant, duree: 60 }] : []
+  for (let E of [...(K.effets || []), ...filR, ...GEANT, ...(LUXE ? (K.listes || []).map(L => ({ ...L, type: 'listeLuxe' })) : [])]) {
+    if (E.type === 'extrait') { // la vidéo dans la vidéo : ses images, 15 par seconde, préparées ici
+      const f = E.video && (E.video.includes(':') || E.video.startsWith('/') ? E.video : join(dir, E.video)), dE = join(st, 'extrait-' + Math.round(tf(E.t) * 100)); rmSync(dE, { recursive: true, force: true }); mkdirSync(dE, { recursive: true })
+      if (f && existsSync(f)) spawnSync('ffmpeg', ['-v', 'error', '-ss', String(E.debut || 0), '-t', String(Math.min(8, E.duree || 5)), '-i', f, '-vf', 'fps=15,scale=450:-2', '-q:v', '4', join(dE, 'i%04d.jpg')])
+      const ims = readdirSync(dE).filter(x => x.endsWith('.jpg')).sort().map(x => join(dE, x)); if (!ims.length) { console.log('⚠️ EXTRAIT introuvable : ' + E.video); continue }
+      const dim = (spawnSync('ffprobe', ['-v', 'error', '-show_entries', 'stream=width,height', '-of', 'csv=p=0', ims[0]], { encoding: 'utf8' }).stdout || '').trim().split(',').map(Number)
+      E = { ...E, _images: ims, ratio: E.ratio || (dim[0] ? dim[1] / dim[0] : 16 / 9), duree: E.duree || ims.length / 15 } }
+    if (E.type === 'pluie') { const a0 = tf(E.t), b0 = a0 + (E.duree || 3.4), vs = []; let trou = false // un visage pas repéré (plan large, trop petit) : on protège le centre par prudence
+      for (let t = a0; t <= b0; t += 0.1) { const v = vis(t); if (v) vs.push(v); else trou = true }
+      if (trou) vs.push([180, 120, 540, 760]); E = { ...E, _visages: vs } }
+    if (['ecrans', 'etalonnage'].includes(E.type) && !E._images) { // une image d'elle à ce moment-là, pour ses 4 looks ou l'avant/après d'étalonnage
+      const fI = join(st, 'look-' + Math.round(tf(E.t) * 100) + '.jpg'); spawnSync('ffmpeg', ['-v', 'error', '-y', '-ss', (tf(E.t) + 0.3).toFixed(2), '-i', join(st, 'base-av.mp4'), '-frames:v', '1', '-q:v', '3', fI]); E = { ...E, _images: existsSync(fI) ? [fI] : [] } }
+    if (['telephone', 'filrouge', 'compteurs', 'polaroids', 'extrait', 'progression', 'horloge', 'prix', 'pluie'].includes(E.type)) { const vs = visages(tf(E.t), tf(E.t) + (E.duree || 4)), g = vs.length ? Math.min(...vs.map(v => v[0])) : 230, d = vs.length ? 720 - Math.max(...vs.map(v => v[2])) : 230 // placeTel : du côté libre
+      const cote = E.cote || (g > d ? 'gauche' : 'droite'), libre = cote === 'gauche' ? g : d; E = { ...E, cote, largeur: E.largeur || (E.type === 'telephone' ? Math.max(170, Math.min(250, libre - 30)) : E.type === 'polaroids' ? libre - 20 : undefined) } }
+    // (07/11) la boîte de l'éventail va sous son visage ; en gros plan il n'y a pas la place : elle passe de côté, plus petite
+    if (E.type === 'eventail' && !E.cote && basVisage(tf(E.t), tf(E.t) + (E.duree || 3.4)) + 50 > 1280 - 290 - 470) { const vs = visages(tf(E.t), tf(E.t) + (E.duree || 3.4)), g = vs.length ? Math.min(...vs.map(v => v[0])) : 230, d = vs.length ? 720 - Math.max(...vs.map(v => v[2])) : 230
+      E = { ...E, cote: g > d ? 'gauche' : 'droite', largeur: E.largeur || Math.max(g, d) - 20 } }
     const decor = E.type === 'duo' && (!E.couleur || E.couleur === 'auto') ? couleurDecor(spawnSync('ffmpeg', ['-v', 'error', '-ss', tf(E.t).toFixed(2), '-i', join(st, 'base-av.mp4'), '-frames:v', '1', '-vf', 'scale=36:64', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-']).stdout, vis(tf(E.t))) : null
     if (decor) console.log('Couleur du décor pour « ' + E.grand + ' » : ' + decor)
-    const Em = effet(E, { clamp, doux, rebond, esc, dossier: dir, couleurs: { marqueur: E.couleur || '#FFE14D', contour: '#2b2416', feutre: coul.mot || C?.motFort?.couleur || '#E8613C', decor } })
+    const Em = effet(E, { clamp, doux, rebond, esc, dossier: dir, couleurs: { skin: LUXE ? 'luxe' : null, marqueur: E.couleur || '#FFE14D', contour: '#2b2416', feutre: coul.mot || C?.motFort?.couleur || '#E8613C', decor } })
     if (!Em) continue
-    const t0 = tf(E.t), b = Math.min(TOT - 0.1, t0 + Em.duree), haut = E.type === 'choc' || E.type === 'commentaires'
+    const t0 = tf(E.t), b = Math.min(TOT - 0.1, t0 + Em.duree), haut = ['choc', 'commentaires', 'chapitre', 'chat'].includes(E.type)
     const yHaut = hautTete(t0, b) - Em.hauteur - 24, y = (haut || FV) && yHaut >= 110 ? yHaut : clamp(basVisage(t0, b) + 50, 430, 1280 - 290 - Em.hauteur)
     const yP = Em.place ? clamp(FV ? hautTete(t0, b) - Em.hauteur - 20 : hautTete(t0, b) + 40, FV ? 110 : 200, 1280 - 300 - Em.hauteur) : null
-    el.push({ a: t0, b, calque: 'devant', zone: 'geant', duo: E.type === 'duo', parle: E.type === 'duo' || E.type === 'choc', dessin: t => '<div style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)).toFixed(2) + '">' + Em.dessin(t - t0, Math.round(yP ?? y)) + '</div>' })
+    el.push({ a: t0, b, calque: 'devant', zone: 'geant', duo: E.type === 'duo', parle: ['duo', 'choc', 'grille', 'feuille', 'listeLuxe', 'chat', 'motGeant', 'chapitre', 'fenetre', 'ecrans', 'etalonnage', 'timeline', 'dialogue'].includes(E.type), dessin: t => '<div class="' + (['filrouge', 'compteurs', 'graphique'].includes(E.type) ? 'libre' : '') + '" style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)).toFixed(2) + '">' + Em.dessin(t - t0, Math.round(yP ?? y)) + '</div>' })
+    if (Em.cadre) { const R = Em.cadre(Math.round(yP ?? y)); VERRES.push({ ...R, a: t0, b }) }
     sons.push(...Em.sons(t0))
   }
 
@@ -922,8 +1005,9 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     K._scenesStudio.splice(ks, 1)
   }
 
-  const DET = (K.detours || []).map(D => { const a = tf(D.t), b = Math.min(TOT - 0.1, a + (D.duree || 2.5)); return { ...D, a, b } })
-    .filter(D => { const g = D.forcer ? { ok: true } : detourTient(D.a, D.b); if (!g.ok) console.log('⚠️ EFFET RETIRÉ : « ' + D.type + ' » à ' + D.t + ' s, ' + g.pourquoi + ' : image normale gardée'); return g.ok })
+  const DET = (K.detours || []).map(D => { const a = tf(D.t), b = Math.min(TOT - 0.1, a + (D.duree || 2.5)); return { ...D, a, b, ...(['machine', 'panneau'].includes(D.type) && D.contour == null ? { contour: false } : {}) } })
+    .filter(D => { const g = D.forcer ? { ok: true } : detourTient(D.a, D.b); if (!g.ok && ['machine', 'panneau'].includes(D.type) && /touche le bord/.test(g.pourquoi)) g.ok = true // un objet au-dessus de sa tête : les bords du bas ne gênent pas
+      if (!g.ok) console.log('⚠️ EFFET RETIRÉ : « ' + D.type + ' » à ' + D.t + ' s, ' + g.pourquoi + ' : image normale gardée'); return g.ok })
   const sigD = coul.mot || C?.motFort?.couleur || '#C0182B'
   const imgD = f => { const p = f && (f.includes(':') || f.startsWith('/') ? f : join(dir, f)); if (!p || !existsSync(p)) return null; return 'data:image/' + (p.toLowerCase().endsWith('png') ? 'png' : 'jpeg') + ';base64,' + readFileSync(p).toString('base64') }
   for (const D of DET) {
@@ -936,6 +1020,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
         const sc = (x, r) => '<div style="position:absolute;left:' + x + 'px;top:' + y + 'px;width:130px;height:40px;background:rgba(245,236,214,.82);transform:rotate(' + r + 'deg);box-shadow:0 2px 6px rgba(0,0,0,.18);opacity:' + o + '"></div>'
         return sc(Math.round(v[0] - 150), -24) + sc(Math.round(v[2] + 20), 22) } })
     }
+    if (D.type === 'machine' || D.type === 'panneau') { const f = objetDerriere(D, { clamp, doux, esc, couleur: sigD }); if (f) el.push({ a, b, calque: 'derriere', dessin: t => '<div style="position:absolute;inset:0;opacity:' + ent(t).toFixed(2) + '">' + f(t, vis(t)) + '</div>' }) }
     if (D.type === 'dessin') el.push({ a, b, calque: 'derriere', dessin: () => '<i></i>' }) // rien derrière : juste de quoi la détourer
     if (D.type === 'vertige') el.push({ a, b, calque: 'derriere', dessin: t => { const u = t - a, v = vis(t), cx = v ? Math.round((v[0] + v[2]) / 2) : 360, cy = v ? Math.round((v[1] + v[3]) / 2) : 520
       return '<div style="position:absolute;inset:0;opacity:' + ent(t).toFixed(2) + ';background:#15101a;overflow:hidden"><div style="position:absolute;left:' + (cx - 1100) + 'px;top:' + (cy - 1100) + 'px;width:2200px;height:2200px;border-radius:50%;transform:rotate(' + Math.round(u * 140) + 'deg) scale(' + (1 + u * 0.35).toFixed(3) + ');background:repeating-conic-gradient(from 0deg,' + c1 + ' 0deg 15deg,#FBF3EA 15deg 30deg);-webkit-mask:radial-gradient(circle,transparent 0,#000 3%)"></div>'
@@ -958,9 +1043,10 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     const grille = n => n === 1 ? [[0, 0, 720, 1280]] : n === 2 ? [[0, 0, 360, 1280], [360, 0, 360, 1280]] : n === 3 ? [[0, 0, 720, 640], [0, 640, 360, 640], [360, 640, 360, 640]] : [[0, 0, 360, 640], [360, 0, 360, 640], [0, 640, 360, 640], [360, 640, 360, 640]]
     const pre = []
     const flou = src => '<div style="position:absolute;inset:-60px;background:url(' + src + ') center/cover;filter:blur(34px) brightness(.82) saturate(1.1)"></div>'
-    pre.push({ a: A0FV, b: Math.min(TOT, FINFV), calque: 'derriere', dessin: () => '<div style="position:absolute;inset:0;overflow:hidden;background:' + fondFV + '">' + (FV.fond || !segs[0] ? '' : flou(segs[0].srcs[0])) + '</div>' })
+    pre.push({ a: A0FV, b: Math.min(TOT, FINFV), calque: 'derriere', dessin: () => '<div style="position:absolute;inset:0;overflow:hidden;background:' + fondFV + '">' + (FV.decor === 'liege' ? fondLiege : FV.fond || !segs[0] ? '' : flou(segs[0].srcs[0])) + '</div>' })
     for (const I of segs) {
       const cases = grille(Math.min(4, I.srcs.length))
+      if (FV.decor === 'liege') { pre.push({ a: I.a, b: I.b, calque: 'derriere', dessin: t => photosPunaisees(I.srcs.slice(0, 4), clamp((t - I.a) / 2.3, 0, 1), { couleur: sigD }) }); I.srcs.slice(0, 4).forEach((_, k) => sons.push({ t: I.a + 2.3 * (k * 0.22 + 0.2), fam: 'punaise', vol: 0.09 })); continue }
       pre.push({ a: I.a, b: I.b, calque: 'derriere', dessin: t => { const q = doux((t - I.a) / 0.12)
         return cases.map(([x, y, w, h], k) => '<div style="position:absolute;left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;overflow:hidden;opacity:' + q.toFixed(2) + ';box-shadow:inset 0 0 0 2px #fff">' + flou(I.srcs[k]) + '<div style="position:absolute;inset:0;background:url(' + I.srcs[k] + ') center/' + ajusteFV(I.srcs[k], w, h, cases.length) + ' no-repeat;transform:translateY(' + ((1 - q) * 24).toFixed(1) + 'px) scale(' + (1.02 + 0.06 * clamp((t - I.a) / Math.max(1, I.b - I.a), 0, 1)).toFixed(4) + ')"></div></div>').join('') } })
       if ((I.etiquettes || []).length) el.push({ a: I.a, b: I.b, calque: 'devant', dessin: t => { const q = clamp(rebond((t - I.a - 0.15) / 0.3), 0, 1.08)
@@ -986,18 +1072,18 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
 
   // 8. La fin. Pop : « commente » et le mot-clé qui respire, en rond gonflé. Éditorial : « commente » en italique et
   //    le mot-clé entre guillemets, en flou vers net. Collage : le mot-clé se tape dans une barre de commentaire.
-  if (K.fin?.motCle && THEME === 'doux') {
+  if (K.fin?.motCle && !K.fin.geant && THEME === 'doux') {
     const t0 = tf(K.fin.t ?? TOT - 3.5), mot = K.fin.motCle, y = clamp(basVisage(t0, TOT) + 30, 560, 760)
     el.push({ a: t0, b: TOT, calque: 'devant', zone: 'poitrine', dessin: t => { const p = doux((t - t0) / 0.5)
       return `<div style="position:absolute;left:60px;right:104px;top:${y}px;text-align:center;opacity:${p};text-shadow:0 2px 16px rgba(0,0,0,.5)"><div style="font:italic 500 44px/1 DouxI,serif;color:#fff">écris-moi</div><div style="font:600 96px/1.05 Doux,serif;color:#fff">« ${esc(mot)} »</div></div>` } })
   }
-  if (K.fin?.motCle && THEME === 'witchy') {
+  if (K.fin?.motCle && !K.fin.geant && THEME === 'witchy') {
     const t0 = tf(K.fin.t ?? TOT - 3.5), mot = K.fin.motCle, y = clamp(basVisage(t0, TOT) + 30, 540, 720)
     el.push({ a: t0, b: TOT, calque: 'devant', zone: 'poitrine', dessin: t => { const p = doux((t - t0) / 0.5), z = Math.round(Math.min(66, 230 / (mot.length * 0.75)))
       return '<div style="position:absolute;left:210px;top:' + y + 'px;width:300px;height:300px;border-radius:50%;border:2px solid ' + PALETTE.or + ';box-shadow:0 0 30px rgba(233,199,123,.4) inset,0 0 30px rgba(233,199,123,.3);display:grid;place-items:center;background:' + PALETTE.prune + '8c;opacity:' + p + ';transform:scale(' + (0.92 + 0.08 * p) + ')"><div style="text-align:center"><div style="font:italic 500 32px/1 DouxI,serif;color:' + PALETTE.creme + '">écris-moi</div><div style="white-space:nowrap;font:700 ' + z + 'px/1.1 Cinzel,serif;text-transform:uppercase;color:' + PALETTE.or + ';text-shadow:0 0 16px rgba(233,199,123,.6)">' + esc(mot) + '</div></div></div>' + WI.lunes(y + 330, p) } })
     sons.push({ t: t0 + 0.2, fam: 'cloche', vol: 0.05 })
   }
-  if (K.fin?.motCle && THEME !== 'collage' && THEME !== 'doux' && THEME !== 'witchy' && THEME !== 'chic' && THEME !== 'automne' && THEME !== 'studio') {
+  if (K.fin?.motCle && !K.fin.geant && THEME !== 'collage' && THEME !== 'doux' && THEME !== 'witchy' && !CHIC && THEME !== 'automne' && THEME !== 'studio') {
     const t0 = tf(K.fin.t ?? TOT - 3.5), mot = K.fin.motCle, y = clamp(basVisage(t0, TOT) + 30, 560, 760)
     el.push({ a: t0, b: TOT, calque: 'devant', zone: 'poitrine', dessin: t => {
       if (THEME === 'typo') { const n = clamp(Math.floor((t - t0 - 0.35) * 10) + 1, 0, mot.length)
@@ -1015,7 +1101,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     } })
     sons.push(THEME === 'typo' ? { t: t0 + 0.35, fam: 'clavier', vol: 0.09, duree: mot.length / 10 + 0.1 } : { t: t0 + 0.3, fam: THEME === 'pop' ? 'pop' : 'cloche', vol: THEME === 'pop' ? 0.12 : 0.06 })
   }
-  if (K.fin?.motCle && THEME === 'collage') {
+  if (K.fin?.motCle && !K.fin.geant && THEME === 'collage') {
     const t0 = tf(K.fin.t ?? TOT - 3.5), mot = K.fin.motCle, tT = t0 + 0.5
     const yBarre = clamp(basVisage(t0, TOT) + 30, 560, 730) // sous le menton, au-dessus des sous-titres (qui commencent vers 850)
     el.push({ a: t0, b: TOT, calque: 'devant', dessin: t => {
@@ -1068,7 +1154,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   const lum = c => { const v = (c.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(x => +x / 255); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2] }
   const fondA = t => { const o = spawnSync('ffmpeg', ['-v', 'error', '-ss', t.toFixed(2), '-i', join(st, 'base-av.mp4'), '-frames:v', '1', '-vf', 'scale=72:128', '-f', 'rawvideo', '-pix_fmt', 'gray', '-']); return o.stdout?.length >= 72 * 128 ? o.stdout : null }
   const mesurer = () => page.evaluate(() => { const out = [], w = document.createTreeWalker(document.getElementById('s'), NodeFilter.SHOW_TEXT); let n
-    while ((n = w.nextNode())) { const txt = n.textContent.trim(); if (!txt) continue; const e = n.parentElement; let o = 1, a = e
+    while ((n = w.nextNode())) { const txt = n.textContent.trim(); if (!txt) continue; const e = n.parentElement; if (e.closest('.libre')) continue; let o = 1, a = e
       while (a && a.id !== 's') { o *= +getComputedStyle(a).opacity; a = a.parentElement } if (o < 0.6) continue
       const r = document.createRange(); r.selectNodeContents(n); const q = r.getBoundingClientRect(); if (q.width < 3 || q.height < 3) continue
       const cs = getComputedStyle(e), z = parseFloat(cs.fontSize) || +e.getAttribute('font-size') || 0
@@ -1093,8 +1179,8 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       const masque = join(fM, 'masque-0001.png'), detour = avecDerriere && existsSync(masque)
       const g = !avecDerriere ? '[0][2]overlay=0:0[o]'
         : !detour ? '[0][1]overlay=0:0[x];[x][2]overlay=0:0[o]'
-        : FV ? '[3]format=gray,scale=720:1280,split=2[m][m2];[m2]' + Array(11).fill('dilation').join(',') + '[md];color=c=white:s=720x1280,format=rgba[w];[w][md]alphamerge,scale=' + wFV + ':' + hFV + '[ct];[0]format=rgba[b];[b][m]alphamerge,scale=' + wFV + ':' + hFV + '[p];[0][1]overlay=0:0[x];[x][ct]overlay=' + xFV + ':' + yFV + ':shortest=1[x2];[x2][p]overlay=' + xFV + ':' + yFV + '[x3];[x3][2]overlay=0:0[o]'
-        : '[3]format=gray,scale=720:1280[m];[0]format=rgba[b];[b][m]alphamerge[p];[0][1]overlay=0:0[x];[x][p]overlay=0:0[x2];[x2][2]overlay=0:0[o]'
+        : FV ? '[3]format=gray,scale=720:1280,split=2[m0][m2];[m0]scale=' + CADRE + '[m];[m2]' + Array(11).fill('dilation').join(',') + ',scale=' + CADRE + '[md];color=c=white:s=' + TAILLE + ',format=rgba[w];[w][md]alphamerge,scale=' + pxP(wFV) + ':' + pxP(hFV) + '[ct];[0]format=rgba[b];[b][m]alphamerge,scale=' + pxP(wFV) + ':' + pxP(hFV) + '[p];[0][1]overlay=0:0[x];[x][ct]overlay=' + pxV(xFV) + ':' + pxV(yFV) + ':shortest=1[x2];[x2][p]overlay=' + pxV(xFV) + ':' + pxV(yFV) + '[x3];[x3][2]overlay=0:0[o]'
+        : '[3]format=gray,scale=' + CADRE + '[m];[0]format=rgba[b];[b][m]alphamerge[p];[0][1]overlay=0:0[x];[x][p]overlay=0:0[x2];[x2][2]overlay=0:0[o]'
       lancer('ffmpeg', ['-y', '-v', 'error', '-i', fI, '-i', fD, '-i', fV, ...(detour ? ['-i', masque] : []), '-filter_complex', g, '-map', '[o]', '-frames:v', '1', '-q:v', '3', sortieK])
       if (existsSync(sortieK)) images.push(sortieK)
     }
@@ -1193,26 +1279,27 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     fond = join(st, 'collage-fond.mp4')
     const plusD = [...(avecB ? ['-f', 'concat', '-safe', '0', '-i', join(st, 'collage-contour-blanc.txt')] : []), ...(avecC ? ['-f', 'concat', '-safe', '0', '-i', join(st, 'collage-contour-trait.txt')] : [])]
     const dil = n => Array(n).fill('dilation').join(',')
-    const grapheD = '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad0];[2:v]fps=30,format=gray,scale=720:1280[m];'
+    const grapheD = '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad0];[2:v]fps=30,format=gray,scale=' + CADRE + '[m];'
       + (THEME === 'aurelie' || THEME === 'studio' ? '' : '')
-      + (avecB ? '[3:v]fps=30,format=gray,scale=720:1280,' + dil(9) + '[mb];color=c=white:s=720x1280:r=30,format=rgba[wb];[wb][mb]alphamerge[cb];[ad0][cb]overlay=0:0:shortest=1[ad1];' : '[ad0]null[ad1];')
-      + (avecC ? '[' + (avecB ? 4 : 3) + ':v]fps=30,format=gray,scale=720:1280,split=2[t1][t2];[t1]' + dil(15) + '[e1];[t2]' + dil(8) + '[e2];color=c=' + colTrait + ':s=720x1280:r=30,format=rgba[wc];[wc][e1]alphamerge[c1];[ad1]split=2[ad1a][ad1b];[ad1a][c1]overlay=0:0:shortest=1[x1];[ad1b]format=rgba[ad1r];[ad1r][e2]alphamerge[inner];[x1][inner]overlay=0:0:shortest=1[ad2];' : '[ad1]null[ad2];')
-      + '[b][m]alphamerge[p];[ad2][p]overlay=0:0:eof_action=pass[o]'
+      + (avecB ? '[3:v]fps=30,format=gray,scale=720:1280,' + dil(9) + ',scale=' + CADRE + '[mb];color=c=white:s=' + TAILLE + ':r=30,format=rgba[wb];[wb][mb]alphamerge[cb];[ad0][cb]overlay=0:0:shortest=1[ad1];' : '[ad0]null[ad1];')
+      + (avecC ? '[' + (avecB ? 4 : 3) + ':v]fps=30,format=gray,scale=720:1280,split=2[t1][t2];[t1]' + dil(15) + ',scale=' + CADRE + '[e1];[t2]' + dil(8) + ',scale=' + CADRE + '[e2];color=c=' + colTrait + ':s=' + TAILLE + ':r=30,format=rgba[wc];[wc][e1]alphamerge[c1];[ad1]split=2[ad1a][ad1b];[ad1a][c1]overlay=0:0:shortest=1[x1];[ad1b]format=rgba[ad1r];[ad1r][e2]alphamerge[inner];[x1][inner]overlay=0:0:shortest=1[ad2];' : '[ad1]null[ad2];')
+      + '[b][m]alphamerge[p];'
+      + '[ad2][p]overlay=0:0:eof_action=pass[o]'
     lancer('ffmpeg', ['-y', '-v', 'error', '-i', base, '-f', 'concat', '-safe', '0', '-i', join(st, 'collage-derriere.txt'), '-f', 'concat', '-safe', '0', '-i', join(st, 'collage-masques.txt'), ...(DET.length ? plusD : []),
       '-filter_complex', FV ? (FVok
-        ? '[0:v]split=3[a][b][bg];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad0];[2:v]fps=30,format=gray,scale=720:1280,' + "tmix=frames=3:weights='1 2 1',gblur=sigma=1.4,lut=c0='clip((val-96)*2.1,0,255)'[mg];nullsrc=s=720x1280:r=30,geq=lum='255*min(1,min(X,W-X)/90)':cb=128:cr=128,format=gray[gf];[mg][gf]blend=all_mode=multiply:shortest=1" + ',split=3[m][m2][m3];[bg][m3]alphamerge[pg];[m2]' + Array(11).fill('dilation').join(',') + '[md];color=c=white:s=720x1280:r=30,format=rgba[w];[w][md]alphamerge,scale=' + wFV + ':' + hFV + '[ct];[b][m]alphamerge,scale=' + wFV + ':' + hFV + '[p];[ad0][pg]overlay=0:0:eof_action=pass:enable=not(between(t\\,' + A0FV.toFixed(3) + '\\,' + Math.min(TOT, FINFV).toFixed(3) + '))[ad1];[ad1][ct]overlay=' + xFV + ':' + yFV + ':shortest=1:enable=' + (FV.contour ? 'between(t\\,' + A0FV.toFixed(3) + '\\,' + Math.min(TOT, FINFV).toFixed(3) + ')' : '0') + '[x];[x][p]overlay=' + xFV + ':' + yFV + ':eof_action=pass:enable=between(t\\,' + A0FV.toFixed(3) + '\\,' + Math.min(TOT, FINFV).toFixed(3) + ')[o]'
-        : '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad0];[b]scale=' + (wFV - 40) + ':' + (hFV - 70) + ',format=rgba,geq=r=\'r(X,Y)\':g=\'g(X,Y)\':b=\'b(X,Y)\':a=\'if(gt(hypot(max(abs(X-W/2)-(W/2-34),0),max(abs(Y-H/2)-(H/2-34),0)),34),0,255)\'[pip];color=c=white:s=' + (wFV - 28) + 'x' + (hFV - 58) + ':r=30,format=rgba,geq=r=255:g=255:b=255:a=\'if(gt(hypot(max(abs(X-W/2)-(W/2-40),0),max(abs(Y-H/2)-(H/2-40),0)),40),0,255)\'[cad];[ad0][cad]overlay=' + (xFV + 14) + ':' + (yFV + 20) + ':shortest=1[x];[x][pip]overlay=' + (xFV + 20) + ':' + (yFV + 26) + ':eof_action=pass[o]')
+        ? '[0:v]split=3[a][b][bg];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad0];[2:v]fps=30,format=gray,scale=720:1280,' + "tmix=frames=3:weights='1 2 1',gblur=sigma=1.4,lut=c0='clip((val-96)*2.1,0,255)'[mg];nullsrc=s=720x1280:r=30,geq=lum='255*min(1,min(X,W-X)/90)':cb=128:cr=128,format=gray[gf];[mg][gf]blend=all_mode=multiply:shortest=1" + ',split=3[m0][m2][m30];[m0]scale=' + CADRE + '[m];[m30]scale=' + CADRE + '[m3];[bg][m3]alphamerge[pg];[m2]' + Array(11).fill('dilation').join(',') + ',scale=' + CADRE + '[md];color=c=white:s=' + TAILLE + ':r=30,format=rgba[w];[w][md]alphamerge,scale=' + pxP(wFV) + ':' + pxP(hFV) + '[ct];[b][m]alphamerge,scale=' + pxP(wFV) + ':' + pxP(hFV) + '[p];[ad0][pg]overlay=0:0:eof_action=pass:enable=not(between(t\\,' + A0FV.toFixed(3) + '\\,' + Math.min(TOT, FINFV).toFixed(3) + '))[ad1];[ad1][ct]overlay=' + pxV(xFV) + ':' + pxV(yFV) + ':shortest=1:enable=' + (FV.contour ? 'between(t\\,' + A0FV.toFixed(3) + '\\,' + Math.min(TOT, FINFV).toFixed(3) + ')' : '0') + '[x];[x][p]overlay=' + pxV(xFV) + ':' + pxV(yFV) + ':eof_action=pass:enable=between(t\\,' + A0FV.toFixed(3) + '\\,' + Math.min(TOT, FINFV).toFixed(3) + ')[o]'
+        : '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad0];[b]scale=' + pxP(wFV - 40) + ':' + pxP(hFV - 70) + ',format=rgba,geq=r=\'r(X,Y)\':g=\'g(X,Y)\':b=\'b(X,Y)\':a=\'if(gt(hypot(max(abs(X-W/2)-(W/2-' + pxV(34) + '),0),max(abs(Y-H/2)-(H/2-' + pxV(34) + '),0)),' + pxV(34) + '),0,255)\'[pip];color=c=white:s=' + pxP(wFV - 28) + 'x' + pxP(hFV - 58) + ':r=30,format=rgba,geq=r=255:g=255:b=255:a=\'if(gt(hypot(max(abs(X-W/2)-(W/2-' + pxV(40) + '),0),max(abs(Y-H/2)-(H/2-' + pxV(40) + '),0)),' + pxV(40) + '),0,255)\'[cad];[ad0][cad]overlay=' + pxV(xFV + 14) + ':' + pxV(yFV + 20) + ':shortest=1[x];[x][pip]overlay=' + pxV(xFV + 20) + ':' + pxV(yFV + 26) + ':eof_action=pass[o]')
       : DET.length && THEME !== 'aurelie' && THEME !== 'studio' ? grapheD : THEME === 'aurelie' || (THEME === 'studio' && K.contour)
-        ? '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad];[2:v]fps=30,format=gray,scale=720:1280,split=2[m][m2];[m2]dilation,dilation,dilation,dilation,dilation,dilation,dilation,dilation,dilation[md];color=c=white:s=720x1280:r=30,format=rgba[w];[w][md]alphamerge[ct];[ad][ct]overlay=0:0:shortest=1[adc];[b][m]alphamerge[p];[adc][p]overlay=0:0:eof_action=pass[o]'
-        : '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad];[2:v]fps=30,format=gray,scale=720:1280[m];[b][m]alphamerge[p];[ad][p]overlay=0:0:eof_action=pass[o]',
+        ? '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad];[2:v]fps=30,format=gray,scale=720:1280,split=2[m0][m2];[m0]scale=' + CADRE + '[m];[m2]dilation,dilation,dilation,dilation,dilation,dilation,dilation,dilation,dilation,scale=' + CADRE + '[md];color=c=white:s=' + TAILLE + ':r=30,format=rgba[w];[w][md]alphamerge[ct];[ad][ct]overlay=0:0:shortest=1[adc];[b][m]alphamerge[p];[adc][p]overlay=0:0:eof_action=pass[o]'
+        : '[0:v]split=2[a][b];[1:v]fps=30,format=rgba[d];[a][d]overlay=0:0:eof_action=pass[ad];[2:v]fps=30,format=gray,scale=' + CADRE + '[m];[b][m]alphamerge[p];[ad][p]overlay=0:0:eof_action=pass[o]',
       '-map', '[o]', '-map', '0:a', '-c:v', 'libx264', '-crf', '16', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-c:a', 'copy', '-t', TOT.toFixed(3), fond])
     if (FV && FVok) { // la transition : elle se réduit pendant que ses images arrivent
       const tr = join(st, 'fv-transition'); rmSync(tr, { recursive: true, force: true }); mkdirSync(tr, { recursive: true })
       const f0 = Math.round(A0FV * FPS), nT = Math.round(TRFV * FPS), liste = []
-      for (let i = 0; i < nT; i++) { const f = f0 + i, t = f / FPS, k = kFVat(t), fr = (kFV < 1 ? (1 - k) / (1 - kFV) : 0), w = Math.round(720 * k / 2) * 2, h = Math.round(1280 * k / 2) * 2, x = Math.round(xFV * fr), y = Math.round(yFV * fr)
+      for (let i = 0; i < nT; i++) { const f = f0 + i, t = f / FPS, k = kFVat(t), fr = (kFV < 1 ? (1 - k) / (1 - kFV) : 0), w = Math.round(LARG * k / 2) * 2, h = Math.round(HAUT * k / 2) * 2, x = Math.round(xFV * ECHELLE * fr), y = Math.round(yFV * ECHELLE * fr)
         const im = join(tr, 'b' + i + '.png'), out = join(tr, 't' + String(i).padStart(3, '0') + '.png'), m = piste[f] || noir, d = pistes.derriere[f] || vide
         lancer('ffmpeg', ['-y', '-v', 'error', '-ss', t.toFixed(3), '-i', base, '-frames:v', '1', im])
-        lancer('ffmpeg', ['-y', '-v', 'error', '-i', im, '-i', d, '-i', m, '-filter_complex', '[0]format=rgba,split=2[b0][b1];[2]format=gray,scale=720:1280[mg];color=c=black:s=720x1280:d=0.04,format=gray,geq=lum=' + "'255*min(1,min(X,W-X)/90)'" + '[gf];[mg][gf]blend=all_mode=multiply:shortest=1,split=2[m][m2];[m2]' + Array(11).fill('dilation').join(',') + '[md];color=c=white:s=720x1280:d=0.04,format=rgba[w];[w][md]alphamerge,scale=' + w + ':' + h + '[ct];[b1][m]alphamerge,scale=' + w + ':' + h + '[p];[b0][1]overlay=0:0[x];' + (FV.contour ? '[x][ct]overlay=' + x + ':' + y + ':shortest=1[x2]' : '[ct]nullsink;[x]null[x2]') + ';[x2][p]overlay=' + x + ':' + y + '[o]', '-map', '[o]', '-frames:v', '1', out])
+        lancer('ffmpeg', ['-y', '-v', 'error', '-i', im, '-i', d, '-i', m, '-filter_complex', '[0]format=rgba,split=2[b0][b1];[2]format=gray,scale=720:1280[mg];color=c=black:s=720x1280:d=0.04,format=gray,geq=lum=' + "'255*min(1,min(X,W-X)/90)'" + '[gf];[mg][gf]blend=all_mode=multiply:shortest=1,split=2[m0][m2];[m0]scale=' + CADRE + '[m];[m2]' + Array(11).fill('dilation').join(',') + ',scale=' + CADRE + '[md];color=c=white:s=' + TAILLE + ':d=0.04,format=rgba[w];[w][md]alphamerge,scale=' + w + ':' + h + '[ct];[b1][m]alphamerge,scale=' + w + ':' + h + '[p];[b0][1]overlay=0:0[x];' + (FV.contour ? '[x][ct]overlay=' + x + ':' + y + ':shortest=1[x2]' : '[ct]nullsink;[x]null[x2]') + ';[x2][p]overlay=' + x + ':' + y + '[o]', '-map', '[o]', '-frames:v', '1', out])
         liste.push(out) }
       const avecTr = join(st, 'collage-fond-tr.mp4')
       lancer('ffmpeg', ['-y', '-v', 'error', '-i', fond, '-framerate', String(FPS), '-i', join(tr, 't%03d.png'), '-filter_complex', '[1:v]setpts=PTS-STARTPTS+' + (f0 / FPS).toFixed(4) + '/TB[tr];[0:v][tr]overlay=0:0:eof_action=pass[o]', '-map', '[o]', '-map', '0:a', '-c:v', 'libx264', '-crf', '16', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-c:a', 'copy', avecTr])
@@ -1221,11 +1308,11 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   }
 
   // ── Le médaillon : sa vidéo recadrée sur le visage, dans un cercle, sur le papier ──
-  const meds = (THEME === 'editorial' || THEME === 'doux' || THEME === 'typo' || THEME === 'witchy' || THEME === 'chic' || THEME === 'automne' || THEME === 'studio' ? [] : MED).map(([a, b], k) => {
+  const meds = (THEME === 'editorial' || THEME === 'doux' || THEME === 'typo' || THEME === 'witchy' || CHIC || THEME === 'automne' || THEME === 'studio' ? [] : MED).map(([a, b], k) => {
     if (CARTE) { // pop / éditorial : toute l'image réduite en carte (inclinée en pop), sur son fond
       const f = join(st, `collage-medaillon-${k}.mp4`), rot = (CARTE.rot * Math.PI / 180).toFixed(4)
       lancer('ffmpeg', ['-y', '-v', 'error', '-ss', a.toFixed(3), '-t', (b - a).toFixed(3), '-i', base, '-loop', '1', '-i', fondInter, '-loop', '1', '-i', coins,
-        '-filter_complex', `[0:v]scale=${CARTE.l}:${CARTE.h},format=rgba[v];[2:v]format=gray,scale=${CARTE.l}:${CARTE.h}[m];[v][m]alphamerge[c];[c]rotate=${rot}:c=none:ow=rotw(${rot}):oh=roth(${rot})[cr];[1:v]format=rgba[fd];[fd][cr]overlay=(main_w-overlay_w)/2:${CARTE.cy}-overlay_h/2:shortest=1,format=yuv420p[o]`,
+        '-filter_complex', `[0:v]scale=${pxP(CARTE.l)}:${pxP(CARTE.h)},format=rgba[v];[2:v]format=gray,scale=${pxP(CARTE.l)}:${pxP(CARTE.h)}[m];[v][m]alphamerge[c];[c]rotate=${rot}:c=none:ow=rotw(${rot}):oh=roth(${rot})[cr];[1:v]format=rgba[fd];[fd][cr]overlay=(main_w-overlay_w)/2:${pxV(CARTE.cy)}-overlay_h/2:shortest=1,format=yuv420p[o]`,
         '-map', '[o]', '-an', '-c:v', 'libx264', '-crf', '16', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-t', (b - a).toFixed(3), f])
       return { a, b, f }
     }
@@ -1234,31 +1321,34 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     const x0 = Math.round(clamp(cx - c / 2, 0, 720 - c)), y0 = Math.round(clamp(cy - c / 2 + c * 0.08, 0, 1280 - c))
     const f = join(st, `collage-medaillon-${k}.mp4`)
     lancer('ffmpeg', ['-y', '-v', 'error', '-ss', a.toFixed(3), '-t', (b - a).toFixed(3), '-i', base, '-loop', '1', '-i', papier, '-loop', '1', '-i', cercle,
-      '-filter_complex', `[0:v]crop=${c}:${c}:${x0}:${y0},scale=520:520,format=rgba[v];[2:v]format=gray,scale=520:520[m];[v][m]alphamerge[c];[1:v][c]overlay=100:240:shortest=1,format=yuva420p[o]`,
+      '-filter_complex', `[0:v]crop=${pxP(c)}:${pxP(c)}:${Math.min(LARG - pxP(c), pxV(x0))}:${Math.min(HAUT - pxP(c), pxV(y0))},scale=${pxV(520)}:${pxV(520)},format=rgba[v];[2:v]format=gray,scale=${pxV(520)}:${pxV(520)}[m];[v][m]alphamerge[c];[1:v][c]overlay=${pxV(100)}:${pxV(240)}:shortest=1,format=yuva420p[o]`,
       '-map', '[o]', '-an', '-c:v', 'libx264', '-crf', '16', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-t', (b - a).toFixed(3), f])
     return { a, b, f }
   })
 
   // ── Les sons, puis le rendu final ──
-  const SONS = readdirSync(join(ICI, 'sons')).filter(x => x.endsWith('.wav')).map(x => x.slice(0, -4)), tours = {}
-  const son = fam => { const l = SONS.filter(x => x.startsWith(fam + '-') || x === fam || (fam === 'clavier' && x.startsWith('clavier'))); tours[fam] = (tours[fam] ?? -1) + 1; return l.length ? l[tours[fam] % l.length] : null }
+  const SONS = readdirSync(join(ICI, 'sons')).filter(x => x.endsWith('.wav')).map(x => x.slice(0, -4))
+  const son = sonneur(SONS, P.sons, THEME) // (06/11) ses sons à elle : "sons" dans projet.json (pack, ou un son par famille), voir sons-choix.mjs
   const ev = THEME === 'aurelie' ? [] : sons.map(s => ({ ...s, n: son(s.fam) })).filter(s => s.n) // signature : ses bruitages, elle les fait elle-même
   const n = readdirSync(dir).filter(x => /-v\d+\.mp4$/.test(x)).length + 1, sortie = join(dir, `${nom}-v${n}.mp4`)
   const entrees = ['-i', fond, '-f', 'concat', '-safe', '0', '-i', join(st, 'collage-devant.txt'), ...meds.flatMap(m => ['-i', m.f]), ...ev.flatMap(s => ['-i', join(ICI, 'sons', s.n + '.wav')])]
   const lut = join(ICI, 'luts', 'cinema.cube').replace(/\\/g, '/').replace(':', '\\:')
   const traitement = THEME === 'aurelie' && existsSync(join(ICI, 'luts', 'cinema.cube')) ? `lut3d=file='${lut}'`
     : THEME === 'automne' ? 'colorbalance=rs=.025:gs=.008:bs=-.03:rm=.02:bm=-.025,eq=saturation=1.05'
-    : THEME === 'doux' || THEME === 'witchy' || THEME === 'chic' || THEME === 'studio' ? 'null'
+    : LUXE ? 'eq=saturation=0.9:contrast=1.05:brightness=0.01,colorbalance=rs=.03:gs=.012:bs=-.03:rm=.02:bm=-.02,vignette=angle=PI/5,noise=alls=5:allf=t'
+    : THEME === 'doux' || THEME === 'witchy' || CHIC || THEME === 'studio' ? 'null'
     : THEME === 'editorial' ? `eq=saturation=1.02:contrast=1.04,colorbalance=rh=.015:bh=-.015,noise=alls=2:allf=t`
     : THEME === 'pop' && ARC ? `hue=s=0:enable='between(t,${ARC[0].toFixed(3)},${ARC[1].toFixed(3)})'` : 'null'
   let g = `[0:v]${traitement}[v0];`, cur = 'v0'
   meds.forEach((m, k) => { g += `[${2 + k}:v]format=rgba,fade=t=in:st=0:d=0.25:alpha=1,setpts=PTS-STARTPTS+${m.a.toFixed(3)}/TB[m${k}];[${cur}][m${k}]overlay=0:0:eof_action=pass:enable='between(t,${m.a.toFixed(3)},${m.b.toFixed(3)})'[w${k}];`; cur = `w${k}` })
+  VERRES.forEach((V, k) => { const X = pxV(V.x), Y = pxV(V.y), W = pxP(V.l), H = pxP(V.h), R = pxV(V.r), a = V.a, b = V.b
+    g += `[${cur}]split=2[vv${k}][vw${k}];[vw${k}]crop=${W}:${H}:${X}:${Y},gblur=sigma=${pxV(14)},eq=brightness=0.02:saturation=1.15,format=rgba,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='if(gt(hypot(max(abs(X-W/2)-(W/2-${R}),0),max(abs(Y-H/2)-(H/2-${R}),0)),${R}),0,255*clip(min((T-${a.toFixed(3)})/0.4,(${b.toFixed(3)}-T)/0.35),0,1))'[vb${k}];[vv${k}][vb${k}]overlay=${X}:${Y}:enable='between(t,${a.toFixed(3)},${b.toFixed(3)})'[vx${k}];`; cur = `vx${k}` })
   g += `[1:v]fps=30,format=rgba[dv];[${cur}][dv]overlay=0:0:eof_action=pass[vo];`
   const i0 = 2 + meds.length
   ev.forEach((s, k) => { const ms = Math.round(s.t * 1000); g += `[${i0 + k}:a]${s.duree ? `atrim=0:${s.duree.toFixed(2)},afade=t=out:st=${Math.max(0, s.duree - 0.15).toFixed(2)}:d=0.15,` : ''}adelay=${ms}|${ms},volume=${s.vol}[s${k}];` })
   g += `[0:a]${ev.map((_, k) => `[s${k}]`).join('')}amix=inputs=${ev.length + 1}:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100[ao]`
   writeFileSync(join(dir, 'sons-places.txt'), ev.map(s => `${s.t.toFixed(1).padStart(5)} s  ${s.n}`).join('\n') + '\n')
-  lancer('ffmpeg', ['-y', '-v', 'error', ...entrees, '-filter_complex', g, '-map', '[vo]', '-map', '[ao]', '-t', TOT.toFixed(3), '-c:v', 'libx264', '-crf', '19', '-preset', 'fast', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', sortie])
+  lancer('ffmpeg', ['-y', '-v', 'error', ...entrees, '-filter_complex', g, '-map', '[vo]', '-map', '[ao]', '-t', TOT.toFixed(3), ...ENCODAGE, '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', sortie])
   const rapport = [...alertes.values()].map(a => '⚠️ CONTRÔLE : ' + a.msg + ' à ' + a.t + (a.n > 1 ? ' (et ' + (a.n - 1) + ' autre' + (a.n > 2 ? 's' : '') + ' fois)' : ''))
   writeFileSync(join(st, 'controle-visuel.txt'), rapport.join('\n') || 'rien à signaler')
   if (rapport.length) console.log(rapport.join('\n')); else console.log('Contrôle visuel : rien à signaler (visage, doublons, bords, lisibilité)')

@@ -20,7 +20,7 @@ try {
   const distant = JSON.parse(await lire('version.json'))
   let n = 0
   for (const [f, sha] of Object.entries(distant.fichiers)) {
-    if (/^(projets|chartes\/(?!modele\.json)|node_modules)/.test(f)) continue // jamais SES fichiers
+    if (/^(projets|objets-perso|chartes\/(?!modele\.json)|node_modules)/.test(f)) continue // jamais SES fichiers
     const local = join(ICI, f)
     if (empreinte(local) === sha) continue
     const contenu = await lire(f, true)
