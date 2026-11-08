@@ -313,6 +313,8 @@ profil, son feed, sa page de vente, un post, un témoignage reçu…), puis une 
   (une vidéo de formation), jamais dans une vidéo ordinaire.
 Pendant un effet, les mots géants se taisent. Regarde une image du résultat : rien sur son visage.
 
+**Le catalogue en vidéo** : https://claude.ai/artifact/3WxS2pJSqiizXBQEf1ewiC : chaque effet et chaque variante en quelques secondes, avec un bouton « Copier ma phrase pour Claude ». Quand tu lui proposes un effet, donne-lui ce lien pour qu'elle le voie avant de choisir ; si elle te colle une phrase copiée depuis le catalogue, c'est l'effet qu'elle veut. Ce qui n'y est pas a été retiré par Aurélie : ne le propose pas.
+
 **Les nouveaux effets** (dans `collage`, les 9 styles du moteur collage) :
 - **Le fil rouge** : quand elle annonce ses points (« numéro un… numéro deux… », « première étape… »), une carte
   revient à chaque point : une carte en verre dépoli (le décor flouté derrière), barre en segments façon stories,
@@ -338,9 +340,9 @@ Pendant un effet, les mots géants se taisent. Regarde une image du résultat : 
 - **Un vrai objet qui arrive quand elle en parle** : `{ "type": "objet", "t": 7, "nom": "latte" }`. Quand elle DIT
   « mon café », « mon matcha », « ma tasse », mets `t` sur ce mot : l'objet tombe à côté d'elle, du côté libre,
   se pose en bas comme sur une table (petit écrasement, ombre), puis s'efface. En très gros plan, il
-  n'apparaît pas du tout (rien plutôt qu'un objet riquiqui : choix d'Aurélie) : jamais sur son visage. Noms livrés : `latte`, `matcha-latte`,
-  `cafe-glace-1`, `cafe-glace-2`, `tasse-1` (grains de café), `tasse-2` (tasse bleue), `cafe-creme`,
-  `cafe-noir-verre`, `cappuccino-soucoupe`, `latte-feuille`, `espresso-soucoupe`, et depuis le 08/11 `latte-2` (café crème chantilly, tasse noire), `cafe-glace-3`, `matcha-latte-2`, `tasse-the`, `ordinateur` (un ordinateur portable, quand elle dit « mon ordi ») (+ ses objets à elle, section 11).
+  n'apparaît pas du tout (rien plutôt qu'un objet riquiqui : choix d'Aurélie) : jamais sur son visage. Noms livrés : `latte`,
+  `cafe-glace-1`, `cafe-glace-2`, `tasse-2` (tasse bleue), `cafe-creme`,
+  `cafe-noir-verre`, `cappuccino-soucoupe`, `latte-feuille`, et depuis le 08/11 `latte-2` (café crème chantilly, tasse noire), `cafe-glace-3`, `matcha-latte-2`, `tasse-the`, `ordinateur` (un ordinateur portable, quand elle dit « mon ordi ») (+ ses objets à elle, section 11).
   Un ou deux par vidéo, seulement sur un mot qu'elle prononce.
 - **Le mot-tasse** : un mot en géant dont le O est une VRAIE tasse vue de dessus. Validé par Aurélie le 07/11.
   `{ "type": "motTasse", "t": 4, "texte": "possible", "nom": "latte-feuille", "transition": "pose" }`
@@ -349,8 +351,7 @@ Pendant un effet, les mots géants se taisent. Regarde une image du résultat : 
   - `transition` : **`pose`**, la seule (la tasse est posée d'en haut dans le trou du mot, son ombre se resserre).
     ⛔ Le zoom, la glisse, la lettre qui pivote et la version dorée ont été retirés par Aurélie.
   - `nom`, les tasses vues de dessus : `latte-feuille` (latte, feuille dessinée), `cafe-creme` (café au lait),
-    `cappuccino-soucoupe` (cappuccino sur soucoupe), `espresso-soucoupe` (espresso sur soucoupe),
-    `matcha-latte` (matcha), `tasse-1` (grains de café), et depuis le 08/11 : `cappuccino-mousse` (cappuccino, soucoupe sombre), `mug-cafe` (mug de café noir), `tasse-blanche-cafe` (café noir, tasse blanche), `the-soucoupe` (espresso et cuillère), `matcha-latte-2` (matcha, spirale de lait), `cafe-glace-3` (café glacé vu de dessus). Ou une tasse vue de dessus de SON Canva (section 11).
+    `cappuccino-soucoupe` (cappuccino sur soucoupe), et depuis le 08/11 : `cappuccino-mousse` (cappuccino, soucoupe sombre), `mug-cafe` (mug de café noir), `tasse-blanche-cafe` (café noir, tasse blanche), `the-soucoupe` (espresso et cuillère), `matcha-latte-2` (matcha, spirale de lait), `cafe-glace-3` (café glacé vu de dessus). Ou une tasse vue de dessus de SON Canva (section 11).
     `cafe-noir-verre` se lit mal comme un O (verre invisible sur fond clair), `tasse-the` non plus (la tasse est décalée sur sa soucoupe) : garde-les pour l'effet `objet`.
   - Le rond de chaque tasse est déjà mesuré au pixel : elle s'emboîte toute seule à la taille des lettres,
     et la taille du mot s'adapte pour qu'il tienne dans l'écran. Tu n'as rien à régler.

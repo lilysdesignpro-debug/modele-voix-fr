@@ -114,7 +114,7 @@ export function effet2(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) 
   if (E.type === 'motTasse') {
     const txt = String(E.texte || '').trim().toUpperCase(); if (!txt) return null
     const iO = E.lettre ?? txt.indexOf('O'); if (iO < 0 || txt[iO] !== 'O') return null // pas de O : pas de tasse
-    const O = objet(...[].concat(E.nom || ['matcha-latte', 'tasse-1', 'latte'])); if (!O) return null
+    const O = objet(...[].concat(E.nom || ['latte-feuille', 'cappuccino-soucoupe', 'latte'] /* (08/11) matcha, espresso et grains retirés par Aurélie */)); if (!O) return null
     const R = (O.dossier === 'objets' ? lireJson(join(ICI_E, 'objets', 'ronds.json')) : O.dossier === 'objets-perso' ? lireJson(join(ICI_E, 'objets-perso', 'ronds.json')) : RONDS)[O.nom] || mesurerRond(join(ICI_E, O.dossier, O.nom + '.png')) || [O.l / 2, O.h / 2, Math.min(O.l, O.h) * 0.47] // une tasse importée par l'élève se mesure toute seule : elle n'a rien à faire
     const mode = ['pose', 'zoom'].includes(E.transition) ? E.transition : 'pose', duree = E.duree ?? 2.8 // (07/11) Aurélie garde pose et zoom ; glisse et tourne refusées (le code reste, jamais choisi)
     const larg = [...txt].reduce((w, c) => w + (c === ' ' ? 0.28 : 'MW'.includes(c) ? 1.0 : 'IJ1'.includes(c) ? 0.38 : 'O'.includes(c) ? 0.8 : 0.74), 0), z = Math.round(Math.min(150, 600 / larg)), lux = false /* (08/11) l'or retiré par Aurélie */, col = E.couleur || (lux ? '#E3C38A' : accent) // largeur réelle des lettres (Montserrat Black) : le mot tient dans l'écran, même penché
