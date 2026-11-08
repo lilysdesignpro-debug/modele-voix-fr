@@ -312,6 +312,7 @@ profil, son feed, sa page de vente, un post, un témoignage reçu…), puis une 
   de chaque police et une flèche : SEULEMENT pour une vidéo où elle parle de polices, de design ou de ses outils
   (une vidéo de formation), jamais dans une vidéo ordinaire.
 Pendant un effet, les mots géants se taisent. Regarde une image du résultat : rien sur son visage.
+⛔ Jamais deux effets l'un sur l'autre : l'outil place chaque effet à côté de ceux déjà à l'écran, et s'il n'y a pas la place, il ne l'affiche pas (le terminal écrit « Pas de … : un autre effet occupe déjà l'écran »). Si tu lis ça, espace tes effets d'au moins 4 secondes et remonte. Un objet posé reste en bas, jamais à hauteur de tête.
 
 **Le catalogue en vidéo** : https://claude.ai/artifact/3WxS2pJSqiizXBQEf1ewiC : chaque effet et chaque variante en quelques secondes, avec un bouton « Copier ma phrase pour Claude ». Quand tu lui proposes un effet, donne-lui ce lien pour qu'elle le voie avant de choisir ; si elle te colle une phrase copiée depuis le catalogue, c'est l'effet qu'elle veut. Ce qui n'y est pas a été retiré par Aurélie : ne le propose pas.
 

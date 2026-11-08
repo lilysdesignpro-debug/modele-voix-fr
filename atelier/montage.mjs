@@ -70,8 +70,8 @@ async function ouvrirNavigateur() {
     return nav
   } catch {
     const { createRequire } = await import('node:module')
-    const racine = spawnSync('npm', ['root', '-g'], { encoding: 'utf8' }).stdout.trim()
-    const { chromium } = createRequire(join(racine, 'x.js'))('playwright')
+    const racine = (spawnSync('npm', ['root', '-g'], { encoding: 'utf8', shell: process.platform === 'win32' }).stdout || '').trim()
+    let chromium; try { ({ chromium } = createRequire(join(racine || '.', 'x.js'))('playwright')) } catch { throw new Error('Le navigateur qui dessine les sous-titres n\'est pas installé : relance l\'installation de l\'atelier (installer.mjs), puis remonte la vidéo.') } // (08/11) un message clair au lieu d'un « trim » incompréhensible
     const nav = await chromium.launch({ executablePath: ['/usr/bin/google-chrome', '/usr/bin/chromium'].find(existsSync) })
     return { newPage: async () => { const p = await nav.newPage({ deviceScaleFactor: ECHELLE }); p.setViewport = v => p.setViewportSize({ width: v.width, height: v.height }); return p }, close: () => nav.close() }
   }

@@ -10,6 +10,9 @@ import { spawnSync } from 'node:child_process'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
 const [video, debut, fin, sortie] = process.argv.slice(2)
+// (08/11) sans le modèle (téléchargé à l'installation), on s'arrête tout de suite : avant, l'outil attendait 2 minutes pour rien
+import { existsSync as existe0 } from 'node:fs'
+if (!existe0(join(ICI, 'selfie_multiclass.tflite'))) { mkdirSync(sortie, { recursive: true }) /* le dossier vide dit « pas de masques » au montage, qui continue */; console.error('(détourage indisponible : le modèle n\'est pas installé ; relance l\'installation de l\'atelier pour le titre derrière la tête)'); process.exit(2) }
 mkdirSync(sortie, { recursive: true })
 const images = join(sortie, 'images'); mkdirSync(images, { recursive: true })
 spawnSync('ffmpeg', ['-y', '-v', 'error', '-ss', debut, '-to', fin, '-i', video, '-vf', 'fps=30,scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280', join(images, 'i-%04d.jpg')], { stdio: 'inherit' })

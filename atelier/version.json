@@ -1,16 +1,16 @@
 {
- "version": "202611081702",
+ "version": "202611082026",
  "modeEmploi": 2,
  "fichiers": {
   "assembler.mjs": "84e1e6ca777c949268496e12a701648cd62106dbd7f13d848de116963e6731dd",
   "bandes.mjs": "d886bca8cef5ab9fa391f653cc0fd15c25d4b1144078d424f98b1b1f5d6d7d65",
   "chartes/modele.json": "9c4118330751cc2b5b391ceaa8a1fa3db887e5ffa67fb0bb457d3629b5d352ce",
-  "coach.mjs": "d3984710c67707a9ad40141bfd6d18d4c0286c0e02ae1e77199287cd2f0d1ced",
-  "collage.mjs": "8eb2411d8308cee234bfdc61ecb277e74d8c41160e841205463225029a6de3ed",
+  "coach.mjs": "bece4dc018f9f3500e219c335381a3e19396e673e82ca4c51c275032f63456f4",
+  "collage.mjs": "a9b7757515789772b63fcd12ed78346b58ba3b94562b25a51ad51ccb4e073e6b",
   "declinaisons.mjs": "717f82305a09a2873941ce6f3b7ceebd92d1012d33bffe3d70206aaa6b1ecd84",
   "decor.mjs": "37c36fd797af9e0cd3cf3d952c1d3d1a30a69c9c4c0378d55c17e89bb8480fc5",
   "defi.mjs": "a995dc8ccdd539163b4e60dcee2a0d2019184b2520c7bbc703e3ebc2e14fb961",
-  "detourage/detourer.mjs": "0dab5d0007a0ee868da97bff4eb5257c3e038c27fe71872f3e18f64bb9d8c932",
+  "detourage/detourer.mjs": "606233376ef3439af8b2aee5a8850c3c8b43d9c6c0225ae627cfd4e20bb00156",
   "detourage/face_landmarker.task": "64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff",
   "detourage/page.html": "aa0b3525fe84655f51eeb6252be647787953b78c6ea61f73eab95175432155d0",
   "detourage/regard.mjs": "694b53bf28b0b1443e736499297116175847ced9183f9d34f831488a8a46c2c7",
@@ -23,12 +23,12 @@
   "effets2.mjs": "a8956debe4b58c927a29355caa3c766ad2a24457d94e5eb797cb286687602e27",
   "habillages.mjs": "f360dccfa16fc036536a677a55db48dc1c852c2e5b7884fb61f22edba92b0734",
   "importer-objets.mjs": "152d6705a9f1d21e454c6ec51577a9f3cf1bcad641609c983fa6a92c09ed1406",
-  "listes.mjs": "4b8bd79f1d8ab794696f0447bf98d21286b149bf14599041f63a290c1acc9bf3",
+  "listes.mjs": "fd78d30cfc799e00db5451e01ebcd4e662ace3d34a1e82df4d8682483212f64d",
   "marges.mjs": "d1231909cc040fd2f3d459020eb0fbaf75dce9f73e3171c7e9ccb398cc08fb16",
   "mettre-a-jour.mjs": "5c8d749b5f60742efa0f5f76327c58eaaac85b72374fbebdf4ec1df47cdbab6e",
-  "montage.mjs": "03bd04a3bfda0aed45d6c3d4ec23654998ddc57f33494a6a482be746e52e4980",
-  "NOTICE-ordinateur.md": "213344243dd12f79e1f8469a5c901bcb1667397f35ac6a77f841f780420e23a4",
-  "NOTICE.md": "81fe4c0354727db59941587b670724f36ca92041911bed9ef69b844a2ce5c7ca",
+  "montage.mjs": "6afdaef081ae4e01babaf59d7084bf250cb2f46c5d0ab091f1fa295cabae8358",
+  "NOTICE-ordinateur.md": "c11bc343b7d3d47a55ae4def005b2eb5b61be424827bb78bb65ff5460aef8e40",
+  "NOTICE.md": "2f6d54431c73b8d935bf3225a04f695618807862ce1abe63102504b8bb74dd70",
   "objets/ampoule-dessin.png": "645ad97c3f13efb22d00a1d38246dc2ae0638fd2f1486631bb8683c3215fc7b3",
   "objets/appareil-argentique.png": "396717f7e63ff7748b0b95b92b33273075dffbe6d9dd27efcd76a35057544720",
   "objets/appareil-instantane.png": "0ad1bed0ee8cdf940e73d1c6266746182db860389d975d80a30602128de4d777",
@@ -224,6 +224,6 @@
   "sons/zip-a.wav": "5213f9454876cc2d5f0ead2e0aaed234c7377c320c9981b2e4fcfaa677ccef88",
   "sons/zip-b.wav": "d3dc33aa2bae3bfc920e4e2edd3946999f2955e14f8268b4d614528653909bac",
   "sons-choix.mjs": "5ec652c358ddb18e4d249c32ebef2e0c2fdbf53a4abbc301dedb8f758b2c13ce",
-  "zone-effets.mjs": "a51a0c3ef6ec5c02b655599547f2ee1946ff1c03bf2a399a8c5c8423c53d93c6"
+  "zone-effets.mjs": "47e33e35e99b9f741babf78671b02bceaaa6d21aef759964819132094f8a5b67"
  }
 }

@@ -1,7 +1,7 @@
 // LE COACH FACECAM ET LE DÉTECTEUR DE DÉCROCHAGE.
 // L'élève dépose une vidéo face caméra ; l'outil la regarde et l'écoute, puis rend un retour bienveillant :
 // ses chiffres (regard, tics, débit, énergie, cadrage, lumière), ses points forts, UN point à travailler avec
-// son exercice, et la relecture « décrochage » d'Alice (idées répétées, phrases redites, énergie qui retombe,
+// son exercice, et la relecture « décrochage » (idées répétées, phrases redites, énergie qui retombe,
 // version divisée par deux). Tout se passe sur l'ordinateur : la vidéo ne part nulle part.
 //
 //   node contenu/montage/coach.mjs analyser <video.mp4> [nom]

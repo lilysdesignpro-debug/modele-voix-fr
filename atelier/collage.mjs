@@ -16,7 +16,7 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync, existsSync
 import { remplirBandes } from './bandes.mjs'
 import { ECHELLE, LARG, HAUT, CADRE, TAILLE, px as pxV, pxPair as pxP, ENCODAGE } from './echelle.mjs'
 import { zones as zonesPlateforme } from './marges.mjs'
-import { placerDansZone } from './zone-effets.mjs'
+import { placerDansZone, boiteDe } from './zone-effets.mjs'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -312,7 +312,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
           : '<div style="position:absolute;left:' + x + 'px;top:' + (yDeb + k * 58) + 'px;font:400 44px/1 Display,serif;color:' + PALETTE.encre + ';opacity:' + q + ';transform:translateY(' + ((1 - q) * 10).toFixed(1) + 'px);text-shadow:' + (PALETTE.ombreS || '0 0 3px rgba(0,0,0,.7),0 2px 10px rgba(0,0,0,.45)') + '">' + w + '</div>' }).join('') + '</div>' })
     }
     // hors scènes : sa phrase en serif fin crème, sous son visage
-    el.push({ a: HOOK, b: finS, calque: 'devant', dessin: t => { if (dansScene(t)) return ''
+    el.push({ a: HOOK, b: finS, calque: 'devant', dessin: t => { if (dansScene(t) || el.some(e => e.parle && t >= e.a && t < e.b)) return ''
       const p = phrases.find(p => t >= p.a && t < p.b); if (!p) return ''
       const q = Math.min(doux((t - p.a) / 0.25), 1 - clamp((t - (p.b - 0.12)) / 0.12, 0, 1)), y = clamp(basVisage(p.a, p.b) + 110, 640, 960)
       const html = esc(p.txt).replace(/\*([^*]+)\*/g, (_, w) => '<span style="font:400 54px/1 Script,cursive">' + w + '</span>')
@@ -983,7 +983,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     const t0 = tf(E.t), b = Math.min(TOT - 0.1, t0 + Em.duree), haut = ['choc', 'commentaires', 'chapitre', 'chat'].includes(E.type)
     const yHaut = hautTete(t0, b) - Em.hauteur - 24, y = (haut || FV) && yHaut >= 110 ? yHaut : clamp(basVisage(t0, b) + 50, 430, 1280 - 290 - Em.hauteur)
     const yP = Em.place ? clamp(FV ? hautTete(t0, b) - Em.hauteur - 20 : hautTete(t0, b) + 40, FV ? 110 : 200, 1280 - 300 - Em.hauteur) : null
-    el.push({ a: t0, b, calque: 'devant', zone: 'geant', duo: E.type === 'duo', parle: ['duo', 'choc', 'grille', 'feuille', 'listeLuxe', 'chat', 'motGeant', 'chapitre', 'fenetre', 'ecrans', 'etalonnage', 'timeline', 'dialogue'].includes(E.type) || (['filrouge', 'compteurs'].includes(E.type) && E.sous) /* (07/11) fil rouge sous le menton : les sous-titres se taisent */, dessin: t => '<div class="' + (['filrouge', 'compteurs', 'graphique'].includes(E.type) ? 'libre' : '') + '" style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)).toFixed(2) + '">' + eF.enveloppe(Em.dessin(t - t0, Math.round(yP ?? y))) + '</div>' }); const eF = el.at(-1); eF.enveloppe = h => h; eF.ajuste = { nom: E.type, brut: dt => Em.dessin(dt, Math.round(yP ?? y)), anim: Em.anim, duree: Math.min(Em.duree, b - t0) }
+    el.push({ a: t0, b, calque: 'devant', zone: 'geant', duo: E.type === 'duo', parle: ['duo', 'choc', 'grille', 'feuille', 'listeLuxe', 'chat', 'motGeant', 'motTasse', 'chapitre', 'fenetre', 'ecrans', 'etalonnage', 'timeline', 'dialogue'].includes(E.type) || (['filrouge', 'compteurs'].includes(E.type) && E.sous) /* (07/11) fil rouge sous le menton : les sous-titres se taisent */, dessin: t => '<div class="' + (['filrouge', 'compteurs', 'graphique'].includes(E.type) ? 'libre' : '') + '" style="position:absolute;inset:0;opacity:' + (1 - clamp((t - (b - 0.25)) / 0.25, 0, 1)).toFixed(2) + '">' + eF.enveloppe(Em.dessin(t - t0, Math.round(yP ?? y))) + '</div>' }); const eF = el.at(-1); eF.enveloppe = h => h; eF.ajuste = { nom: E.type, posePasEnHaut: E.type === 'objet', brut: dt => Em.dessin(dt, Math.round(yP ?? y)), anim: Em.anim, duree: Math.min(Em.duree, b - t0) }
     if (Em.cadre) { const R = Em.cadre(Math.round(yP ?? y)); VERRES.push(eF.ajuste.verre = { ...R, a: t0, b }) }
     eF.ajuste.sons = Em.sons(t0); sons.push(...eF.ajuste.sons)
   }
@@ -1116,7 +1116,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   if (K.fin?.motCle && !K.fin.geant && THEME === 'collage') {
     const t0 = tf(K.fin.t ?? TOT - 3.5), mot = K.fin.motCle, tT = t0 + 0.5
     const yBarre = clamp(basVisage(t0, TOT) + 30, 560, 730) // sous le menton, au-dessus des sous-titres (qui commencent vers 850)
-    el.push({ a: t0, b: TOT, calque: 'devant', dessin: t => {
+    el.push({ a: t0, b: TOT, calque: 'devant', zone: 'poitrine', dessin: t => {
       const p = doux((t - t0) / 0.3), n = clamp(Math.floor((t - tT) * 8) + 1, 0, mot.length), coeur = t > tT + mot.length / 8 + 0.2
       return `<div style="position:absolute;left:72px;right:116px;top:${yBarre + (1 - p) * 30}px;opacity:${p};height:84px;border-radius:42px;background:#fff;box-shadow:0 6px 20px rgba(0,0,0,.2);display:flex;align-items:center;gap:16px;padding:0 22px;font:600 30px Poppins,sans-serif;color:#222">
         <div style="width:48px;height:48px;border-radius:50%;background:${C.motFort?.couleur || coul.tomate}"></div>
@@ -1147,8 +1147,14 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   // pour le réseau choisi ("plateforme"). Chaque effet est mesuré au pixel une fois posé, puis déplacé ou un peu réduit.
   // S'il faudrait le réduire sous 75 % ou le pousser sur son visage, il ne sort pas : rien plutôt qu'un effet riquiqui (Aurélie).
   const HORS_ZONE = ['pluie', 'anatomie'] // se placent eux-mêmes autour de son visage
-  for (const e of el) { const A = e.ajuste; if (!A || HORS_ZONE.includes(A.nom)) continue
-    const bon = await placerDansZone(page, A, ZM, visages(e.a, e.b)); if (bon && bon.k === 1 && !bon.dx && !bon.dy) continue
+  // (08/11) jamais deux effets l'un sur l'autre : les éléments fixes (carte de fin, titres sur la poitrine) sont mesurés d'abord,
+  // puis chaque effet, dans l'ordre où il arrive, évite ceux déjà à l'écran au même moment ; s'il n'a pas la place, il ne sort pas.
+  const POSES = []
+  for (const e of el.filter(e => e.zone === 'poitrine' && e.calque === 'devant')) { let q = null; for (const tm of [e.a + 0.6, e.a + 1.5, e.a + 3, e.b - 0.1].filter(x => x < e.b)) { const r = await boiteDe(page, e.dessin(tm)); if (r) q = q ? [Math.min(q[0], r[0]), Math.min(q[1], r[1]), Math.max(q[2], r[2]), Math.max(q[3], r[3])] : r } if (q) POSES.push({ a: e.a, b: e.b, q }) /* mesuré à plusieurs moments : la carte grandit en arrivant */ }
+  for (const e of el.filter(e => e.ajuste && !HORS_ZONE.includes(e.ajuste.nom)).sort((x, y) => x.a - y.a)) { const A = e.ajuste
+    const obst = POSES.filter(o => o.a < e.b - 0.05 && e.a < o.b - 0.05).map(o => o.q)
+    const bon = await placerDansZone(page, A, ZM, visages(e.a, e.b), obst); if (bon?.boite) POSES.push({ a: e.a, b: e.b, q: bon.boite }); if (bon && bon.k === 1 && !bon.dx && !bon.dy) continue
+    if (!bon && obst.length) { e.supprime = true; console.log('Pas de ' + A.nom + ' à ' + e.a.toFixed(1) + ' s : un autre effet occupe déjà l’écran à ce moment-là (espace-les)'); continue }
     if (!bon) { e.supprime = true; console.log('Zone ' + ZM.nom + ' : pas de ' + A.nom + ' à ' + e.a.toFixed(1) + ' s (pas la place hors de ce que l’appli recouvre sans toucher son visage)'); continue }
     const r1 = x => Math.round(x * 10) / 10
     e.enveloppe = h => '<div style="position:absolute;inset:0;transform-origin:' + r1(bon.ox) + 'px ' + r1(bon.oy) + 'px;transform:translate(' + r1(bon.dx) + 'px,' + r1(bon.dy) + 'px) scale(' + bon.k + ')">' + h + '</div>'
@@ -1294,7 +1300,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     for (const [k, [x, y]] of (FV && !FVok ? [] : unies.entries())) {
       const d = join(dt, `f${k}`)
       spawnSync('node', [join(ICI, 'detourage', 'detourer.mjs'), base, x.toFixed(3), y.toFixed(3), d], { stdio: 'inherit' })
-      readdirSync(d).filter(z => z.startsWith('masque-')).sort().forEach((m, i) => { const fr = Math.round(x * FPS) + i; if (fr < piste.length) piste[fr] = join(d, m) })
+      ;(existsSync(d) ? readdirSync(d) : []).filter(z => z.startsWith('masque-')).sort().forEach((m, i) => { const fr = Math.round(x * FPS) + i; if (fr < piste.length) piste[fr] = join(d, m) })
     }
     const noir = join(st, 'masque-noir.png'); lancer('ffmpeg', ['-y', '-v', 'error', '-f', 'lavfi', '-i', 'color=c=black:s=720x1280', '-frames:v', '1', '-pix_fmt', 'gray', noir])
     rle(piste.slice(0, N).map(m => m || noir), 'collage-masques.txt')
