@@ -869,7 +869,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   }
 
   // 7 bis. LISTES ANIMÉES : quand elle énumère (« 3 erreurs », « mes étapes »), au lieu d'une liste à cocher
-  for (const L of LUXE ? [] : K.listes || []) { // en luxe, les listes passent par effets2 (listeLuxe)
+  for (const L of LUXE ? [] : (K.listes || []).map(L => ['ticket', 'tampon'].includes(L.type) ? { ...L, type: 'notes' } : L)) { /* (08/11) ticket et tampon retirés par Aurélie */ // en luxe, les listes passent par effets2 (listeLuxe)
     // (07/11) ticket, étiqueteuse, post-it et tampon passent AUSSI par listes.mjs (versions réalistes validées par Aurélie) :
     // avant, le collage gardait ses propres copies anciennes, et les élèves en style collage ne voyaient pas les corrections.
     if (['notes', 'ticket', 'etiqueteuse', 'postit', 'tampon'].includes(L.type)) { // dessinées par listes.mjs, partagé avec le moteur classique
@@ -967,11 +967,14 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     if (['telephone', 'filrouge', 'compteurs', 'polaroids', 'extrait', 'progression', 'horloge', 'prix', 'pluie', 'objet', 'pincee'].includes(E.type)) { const vs = visages(tf(E.t), tf(E.t) + (E.duree || 4)), g = vs.length ? Math.min(...vs.map(v => v[0])) : 230, d = vs.length ? 720 - Math.max(...vs.map(v => v[2])) : 230 // placeTel : du côté libre
       const cote = E.cote || (g > d ? 'gauche' : 'droite'), libre = cote === 'gauche' ? g : d; E = { ...E, cote, largeur: E.largeur || (E.type === 'telephone' ? Math.max(170, Math.min(250, libre - 30)) : E.type === 'pincee' ? libre - 110 : E.type === 'polaroids' ? libre - 20 : ['filrouge', 'compteurs'].includes(E.type) ? libre - 54 : undefined) }
       // (07/11) le fil rouge ne touche JAMAIS son visage : plus étroit s'il faut, et s'il n'y a vraiment pas la place à côté (gros plan), il passe sous son menton
-      if (['filrouge', 'compteurs'].includes(E.type) && E.look !== 'cartes' && E.largeur < 220) E = { ...E, sous: true } }
-    if (E.type === 'objet' && basVisage(tf(E.t), tf(E.t) + (E.duree || 2.8)) + 50 > 1280 - 290 - 330) E = { ...E, surCote: true, largeur: E.largeur || (vs => vs.length ? (E.cote === 'gauche' ? Math.min(...vs.map(v => v[0])) : 720 - Math.max(...vs.map(v => v[2]))) - 20 : 200)(visages(tf(E.t), tf(E.t) + 3)) }
+      if (E.type === 'compteurs' && E.look !== 'cartes' && E.largeur < 220) E = { ...E, sous: true }
+      /* (08/11) Aurélie : en gros plan, rien plutôt qu'un effet riquiqui ou sous le menton */
+      if ((E.type === 'filrouge' && E.largeur < 220) || (E.type === 'polaroids' && E.largeur < 240)) { console.log('Gros plan à ' + tf(E.t).toFixed(1) + ' s : pas de ' + E.type + ' (pas la place à côté de son visage)'); continue } }
+    if (E.type === 'objet' && basVisage(tf(E.t), tf(E.t) + (E.duree || 2.8)) + 50 > 1280 - 290 - 330) { console.log('Gros plan à ' + tf(E.t).toFixed(1) + ' s : pas d’objet (pas la place sous son visage)'); continue } /* (08/11) Aurélie : plus de version plus petite sur le côté */
+    if (false) E = { ...E, surCote: true, largeur: E.largeur || (vs => vs.length ? (E.cote === 'gauche' ? Math.min(...vs.map(v => v[0])) : 720 - Math.max(...vs.map(v => v[2]))) - 20 : 200)(visages(tf(E.t), tf(E.t) + 3)) }
     // (07/11) la boîte de l'éventail va sous son visage ; en gros plan il n'y a pas la place : elle passe de côté, plus petite
     if (E.type === 'eventail' && !E.cote && basVisage(tf(E.t), tf(E.t) + (E.duree || 3.4)) + 50 > 1280 - 290 - 470) { const vs = visages(tf(E.t), tf(E.t) + (E.duree || 3.4)), g = vs.length ? Math.min(...vs.map(v => v[0])) : 230, d = vs.length ? 720 - Math.max(...vs.map(v => v[2])) : 230
-      E = { ...E, cote: g > d ? 'gauche' : 'droite', largeur: E.largeur || Math.max(g, d) - 20 } }
+      console.log('Gros plan à ' + tf(E.t).toFixed(1) + ' s : pas d’éventail (pas la place sous son visage)'); continue } /* (08/11) Aurélie : rien plutôt que l'éventail plus petit sur le côté */
     const decor = E.type === 'duo' && (!E.couleur || E.couleur === 'auto') ? couleurDecor(spawnSync('ffmpeg', ['-v', 'error', '-ss', tf(E.t).toFixed(2), '-i', join(st, 'base-av.mp4'), '-frames:v', '1', '-vf', 'scale=36:64', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-']).stdout, vis(tf(E.t))) : null
     if (decor) console.log('Couleur du décor pour « ' + E.grand + ' » : ' + decor)
     const Em = effet(E, { clamp, doux, rebond, esc, dossier: dir, couleurs: { skin: LUXE ? 'luxe' : null, marqueur: E.couleur || '#FFE14D', contour: '#2b2416', feutre: coul.mot || C?.motFort?.couleur || '#E8613C', decor } })

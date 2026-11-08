@@ -44,6 +44,16 @@ export function couleurDecor(rgb, visage) {
 
 export function effet(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) {
   const chemin = f => f && (f.includes(':') || f.startsWith('/') ? f : dossier + '/' + f)
+  /* (08/11) tri d'Aurélie dans le catalogue : ce qu'elle a retiré ne sort plus, même demandé */
+  if (['timeline', 'trait'].includes(E.type)) return null
+  if (E.type === 'capture') E = { ...E, cercle: null, etiquette: '' }
+  if (E.type === 'pincee') E = { ...E, objet: null }
+  if (E.type === 'dialogue') E = { ...E, danger: false }
+  if (E.type === 'fenetre') E = { ...E, bouton: E.bouton || 'OK' }
+  if (E.type === 'motTasse') E = { ...E, transition: 'pose', lettre: undefined }
+  if (E.type === 'filrouge') E = { ...E, look: undefined }
+  if (E.type === 'objet') E = { ...E, surCote: false }
+  if (E.type === 'eventail') E = { ...E, cote: undefined, largeur: undefined }
   if (E.type === 'choc') {
     const mots = String(E.texte || '').trim().split(/\s+/).filter(Boolean); if (!mots.length) return null
     const lignes = []; let l = ''
@@ -121,7 +131,7 @@ export function effet(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) {
     return { hauteur: H, anim: duree, duree, place: cote,
       dessin: (dt, y) => { const p = clamp(rebond(dt / 0.45), 0, 1.06), sortie = 1 - clamp((dt - (duree - 0.3)) / 0.3, 0, 1)
         const defile = clamp((dt - 0.6) / Math.max(0.5, duree - 1.1), 0, 1), haut = (W - 20) * R - (H - 24), dy = -haut * (defile < 0.5 ? 2 * defile * defile : 1 - Math.pow(-2 * defile + 2, 2) / 2)
-        const x = cote === 'droite' ? 720 - W - 26 : 26, rot = cote === 'droite' ? 5 : -5
+        const x = cote === 'droite' ? 720 - W - 52 : 52, rot = cote === 'droite' ? 5 : -5
         return '<div style="position:absolute;left:' + x + 'px;top:' + y + 'px;width:' + W + 'px;height:' + H + 'px;opacity:' + sortie.toFixed(2) + ';transform:translateY(' + ((1 - Math.min(1, p)) * 160).toFixed(1) + 'px) rotate(' + rot + 'deg) scale(' + (0.9 + 0.1 * Math.min(1, p)).toFixed(3) + ')">'
           + '<div style="position:absolute;inset:0;border-radius:40px;background:#111;box-shadow:0 24px 50px rgba(0,0,0,.45),inset 0 0 0 2px #3a3a3a"></div>'
           + '<div style="position:absolute;left:10px;top:12px;right:10px;bottom:12px;border-radius:31px;overflow:hidden;background:#fff"><div style="position:absolute;left:0;top:' + dy.toFixed(1) + 'px;width:100%;height:' + Math.round((W - 20) * R) + 'px;background:url(' + src + ') top center/100% auto no-repeat"></div></div>'

@@ -223,12 +223,10 @@ carte blanche, compteur 0/4 et barre de progression, coches dessinées au trait)
 nuit, cases qui s'allument à SA couleur), `"pastilles"` (pas de carte : chaque ligne est une capsule qui pope puis
 se colore, pour 3 mots-clés courts) et `"anneau"` (anneau de progression qui monte jusqu'à 100 % avec la liste à
 côté, pour un bilan, des étapes, une routine). La couleur des coches est celle de sa charte (`"couleurs": { "coche": "#…" }`
-pour la changer). Les autres types, plus « fait main », choisis selon le ton :
-`ticket` (ticket de caisse qui sort de l'imprimante, titre en haut : étapes, recette, bilan), `etiqueteuse`
+pour la changer). Les autres types, plus « fait main », choisis selon le ton : `etiqueteuse`
 (bandes rouges imprimées une à une : affirmations courtes), `postit` (post-it de couleur collés un par un :
-idées, mots-clés) et `tampon` (liste papier puis un tampon qui frappe, `"tampon": "FAIT"` ou un mot à elle :
-objectif, défi), et, dans les 9 styles du moteur collage, `fiches` (des fiches qui sortent
-d'une boîte en bois, `"titre"` = l'étiquette de la boîte : recette, routine). ⛔ Jamais `bingo` (refusé par Aurélie le 06/11). Varie les types d'une vidéo à
+idées, mots-clés), et, dans les 9 styles du moteur collage, `fiches` (des fiches qui sortent
+d'une boîte en bois, `"titre"` = l'étiquette de la boîte : recette, routine). ⛔ Jamais `bingo` (refusé par Aurélie le 06/11), ni `ticket` ni `tampon` (retirés par Aurélie le 08/11). Varie les types d'une vidéo à
 l'autre. Une ou deux listes par vidéo au plus ; pendant une liste, les sous-titres et les mots géants
 se taisent. Regarde une image du résultat : la liste ne doit jamais toucher son visage.
 
@@ -289,11 +287,12 @@ des exemples, des avant/après, des produits. Conseil à lui donner AVANT qu'ell
   en capture d'écran ou en texte collé, et tu recopies leurs mots tels quels (corrige seulement une faute de frappe
   si elle le veut). Jamais un commentaire inventé, jamais « pour l'exemple ». Pas de pseudo ni de photo : seulement
   le texte. Si elle n'en a pas, pas d'effet commentaires ;
-- `{ "t": 51.9, "type": "capture", "image": "captures/stat.png", "ratio": 1.8, "cercle": { "x": 0.5, "y": 0.6, "r": 0.3 }, "etiquette": "ma charte" }` :
-  SA vraie capture d'écran (dans `projets/<nom>/captures/`), un cercle tracé au feutre autour de ce dont elle parle
-  (`x`, `y`, `r` en fraction de l'image) et une petite étiquette. `ratio` = hauteur ÷ largeur de la capture ;
-- `{ "t": 59.4, "type": "avantapres", "avant": "captures/avant.jpg", "apres": "captures/apres.jpg" }` : deux de SES
-  images côte à côte, « avant » et « après ». Jamais une image qui n'est pas la sienne ;
+- `{ "t": 51.9, "type": "capture", "image": "captures/stat.png", "ratio": 1.8 }` :
+  SA vraie capture d'écran (dans `projets/<nom>/captures/`), seule, sans cercle ni étiquette (retirés par Aurélie le 08/11).
+  `ratio` = hauteur ÷ largeur de la capture ;
+- `{ "t": 59.4, "type": "avantapres", "avant": "captures/avant.jpg", "apres": "captures/apres.jpg", "labelAvant": "mon feed en 2024", "labelApres": "*aujourd'hui*" }` : deux de SES
+  images côte à côte. ⛔ TOUJOURS ses étiquettes à elle dans `labelAvant` et `labelApres` (les mots « AVANT / APRÈS »
+  tout seuls ont été retirés par Aurélie) : demande-lui comment elle les appelle. Jamais une image qui n'est pas la sienne ;
 - `{ "t": 12, "type": "telephone", "image": "captures/mon-feed.jpg", "duree": 4 }` : SA capture d'écran (son profil,
   son feed, sa page de vente, un long post) dans un téléphone qui arrive sur le côté, légèrement penché, et la
   capture DÉFILE dedans pendant qu'elle en parle. Le téléphone se pose tout seul du côté libre, à la taille de la
@@ -317,10 +316,10 @@ Pendant un effet, les mots géants se taisent. Regarde une image du résultat : 
 **Les nouveaux effets** (dans `collage`, les 9 styles du moteur collage) :
 - **Le fil rouge** : quand elle annonce ses points (« numéro un… numéro deux… », « première étape… »), une carte
   revient à chaque point : une carte en verre dépoli (le décor flouté derrière), barre en segments façon stories,
-  les étapes faites cochées à sa couleur et barrées, la nouvelle qui sort du flou ("look": "carnet" dans filRouge = l'ancien bloc-notes papier ; ⛔ demande-lui lequel des deux elle préfère) :
+  les étapes faites cochées à sa couleur et barrées, la nouvelle qui sort du flou (le bloc-notes papier a été retiré par Aurélie le 08/11 : il n'y a plus que celui-là) :
   `"filRouge": { "titre": "ma routine", "etapes": [{ "t": 12.4, "texte": "le sérum" }, { "t": 21, "texte": "le spray" }] }`
   (`t` = le moment où elle dit le numéro, 2 à 6 étapes de 1 à 4 mots, SES mots). Le plus fort pour la rétention :
-  propose-le dès qu'elle numérote.
+  propose-le dès qu'elle numérote. Filmée en très gros plan (pas la place à côté de son visage), il ne sort pas : rien plutôt qu'un fil rouge riquiqui ou sous son menton (choix d'Aurélie).
 - **La grille-formule** : `{ "t": 30, "type": "grille", "titre": "…", "lignes": [["Sujet", "…"], ["Angle", "…"], ["Format", "…"], ["Hook", "…"]] }`,
   quand elle donne une méthode ou une formule en plusieurs cases ; les mots de droite s'écrivent case par case (SES mots).
 - **La feuille lignée** : `{ "t": 40, "type": "feuille", "titre": "par exemple", "lignes": ["…", "…"] }`, quand elle
@@ -334,21 +333,21 @@ Pendant un effet, les mots géants se taisent. Regarde une image du résultat : 
   instantané et s'empilent), `pluie` (elles sortent d'une enveloppe et se posent autour d'elle), `corde` (elles
   glissent sur une corde à linge : ⛔ refusé par Aurélie le 06/11, ne le propose pas), `eventail` (elles sortent d'une boîte en éventail) :
   `{ "type": "polaroids", "t": 6, "images": ["photo1.jpg", "photo2.jpg"] }`. Quand elle parle de souvenirs, de
-  clientes (avec leur accord), de ses créations, de ses résultats.
+  clientes (avec leur accord), de ses créations, de ses résultats. En très gros plan, les polaroïds et l'éventail
+  ne sortent pas (pas de version plus petite sur le côté : choix d'Aurélie) ; préviens-la si sa vidéo est filmée de très près.
 - **Un vrai objet qui arrive quand elle en parle** : `{ "type": "objet", "t": 7, "nom": "latte" }`. Quand elle DIT
   « mon café », « mon matcha », « ma tasse », mets `t` sur ce mot : l'objet tombe à côté d'elle, du côté libre,
-  se pose en bas comme sur une table (petit écrasement, ombre), puis s'efface. En très gros plan, il se met
-  tout seul sur le côté, plus petit : jamais sur son visage. Noms livrés : `latte`, `matcha-latte`,
+  se pose en bas comme sur une table (petit écrasement, ombre), puis s'efface. En très gros plan, il
+  n'apparaît pas du tout (rien plutôt qu'un objet riquiqui : choix d'Aurélie) : jamais sur son visage. Noms livrés : `latte`, `matcha-latte`,
   `cafe-glace-1`, `cafe-glace-2`, `tasse-1` (grains de café), `tasse-2` (tasse bleue), `cafe-creme`,
   `cafe-noir-verre`, `cappuccino-soucoupe`, `latte-feuille`, `espresso-soucoupe` (+ ses objets à elle, section 11).
   Un ou deux par vidéo, seulement sur un mot qu'elle prononce.
 - **Le mot-tasse** : un mot en géant dont le O est une VRAIE tasse vue de dessus. Validé par Aurélie le 07/11.
   `{ "type": "motTasse", "t": 4, "texte": "possible", "nom": "latte-feuille", "transition": "pose" }`
   - `texte` : SON mot, celui qu'elle dit à ce moment-là, et il doit contenir un O (« possible », « 3 mois »,
-    « organisation », « on commence »). Le premier O devient la tasse ; pour un autre O : `"lettre": 5` (position, en partant de 0).
-  - `transition` : **`pose`** (la tasse est posée d'en haut dans le trou du mot, son ombre se resserre) ou
-    **`zoom`** (la tasse remplit l'écran vue d'au-dessus, puis rétrécit dans le mot pendant que les lettres
-    arrivent). ⛔ Rien d'autre : la glisse et la lettre qui pivote ont été refusées.
+    « organisation », « on commence »). C'est toujours le premier O qui devient la tasse.
+  - `transition` : **`pose`**, la seule (la tasse est posée d'en haut dans le trou du mot, son ombre se resserre).
+    ⛔ Le zoom, la glisse, la lettre qui pivote et la version dorée ont été retirés par Aurélie.
   - `nom`, les tasses vues de dessus : `latte-feuille` (latte, feuille dessinée), `cafe-creme` (café au lait),
     `cappuccino-soucoupe` (cappuccino sur soucoupe), `espresso-soucoupe` (espresso sur soucoupe),
     `matcha-latte` (matcha), `tasse-1` (grains de café). Ou une tasse vue de dessus de SON Canva (section 11).
@@ -364,8 +363,7 @@ Pendant un effet, les mots géants se taisent. Regarde une image du résultat : 
   - Elle se place toute seule du côté libre, à côté de la tête, jamais sur le visage ni au bord de l'écran.
     Tu n'as rien à régler.
   - Pour une capture de téléphone (très haute), ajoute `"ratio": 1.8` ; par défaut 1,25.
-  - Rien sur le coin par défaut : la pince suffit. Un petit objet de la banque (`"objet": "cafe-glace-1"`)
-    seulement si elle le demande.
+  - Rien sur le coin : la pince suffit (l'objet sur le coin a été retiré par Aurélie le 08/11).
   - Quand elle dit « regarde », « mon site », « ce message », « mes chiffres ». ⛔ Jamais pendant le hook.
 - ⛔ **Jamais d'objet dessiné derrière elle** (machine à écrire, panneau routier) : refusés par Aurélie le 06/11 (« trop fake »).
 - **La vidéo dans la vidéo** : `{ "type": "extrait", "t": 14, "video": "autre-prise.mp4", "debut": 3, "duree": 4, "etiquette": "ma routine en vrai" }` :
@@ -373,14 +371,15 @@ Pendant un effet, les mots géants se taisent. Regarde une image du résultat : 
   ou celui d'une personne d'accord, en citant la source) tourne sans le son dans un cadre blanc penché, du côté libre,
   6 secondes au plus. Parfait pour décortiquer un reel ou montrer « en vrai » ce qu'elle explique.
 - **Les effets « interface »** (dans `effets`), pour une vidéo moderne et rythmée, un ou deux par vidéo, SES mots :
-  `dialogue` (une boîte de dialogue de téléphone et le curseur qui clique : `"question": "Supprimer cette vidéo ?", "non": "Annuler", "oui": "Supprimer", "danger": true`, pour un hook qui intrigue),
+  `dialogue` (une boîte de dialogue de téléphone et le curseur qui clique : `"question": "Publier sans hook ?", "detail": "Tes vues risquent de chuter", "non": "Non", "oui": "Publier", "clic": "non"`, pour un hook qui intrigue ; la version rouge « danger » a été retirée),
   `anatomie` (des étiquettes reliées par un trait autour d'elle : `"items": ["grain", "titre", "zoom"]`, quand elle énumère ce qu'on voit),
-  `fenetre` (une fenêtre d'ordinateur où SA phrase se tape : `"titre": "…", "texte": "…"`),
+  `fenetre` (une fenêtre d'ordinateur où SA phrase se tape, avec son bouton d'envoi : `"titre": "…", "texte": "…", "bouton": "Valider"`),
   `progression` (« montage en cours… » qui se remplit : `"texte"`, `"fin"`), `horloge` (les aiguilles filent et la lune se lève : le temps qui passe),
   `prix` (une étiquette de prix, SON vrai chiffre : `"montant": "1 500 €", "petit": "avant", "dessous": "/ mois", "barre": true` pour le barrer),
-  `pastille` (SON petit mot du moment en capsule blanche : `"texte": "super simple", "emoji": "🙌"`), `touches` (`"touches": ["⌘", "V"]`),
-  `timeline` (un panneau de logiciel de montage), `trait` (un trait doré qui se dessine),
-  `ecrans` (4 téléphones avec SA vidéo en 4 looks : éditorial, noir et blanc, rose, épuré) et `etalonnage` (la même image d'elle, sans puis avec retouche : `"avant": "sans", "apres": "avec"`).
+  `pastille` (SON petit mot du moment en capsule blanche : `"texte": "super simple", "emoji": "🙌"`), `touches` (`"touches": ["Ctrl", "C"]`),
+  `ecrans` (4 téléphones avec SA vidéo en 4 looks, ⛔ toujours des looks choisis pour elle, jamais ceux par défaut :
+  `"looks": [["brut", "none"], ["doux", "brightness(1.1) saturate(.8)"], ["chaud", "sepia(.3) saturate(1.2)"], ["n&b", "grayscale(1)"]]`) et `etalonnage` (la même image d'elle, sans puis avec retouche : `"avant": "sans", "apres": "avec"`).
+  ⛔ Jamais `timeline` ni `trait` (retirés par Aurélie le 08/11).
 - **Le tableau en liège** : le fond vert avec `"decor": "liege"` : derrière elle, un tableau en liège où SES photos
   sont punaisées et reliées par un fil rouge, au rythme de ce qu'elle dit.
 

@@ -95,7 +95,7 @@ export function effet2(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) 
     const O = objet(...[].concat(E.nom || [])); if (!O) return null
     const W = 300, H = 330, duree = E.duree ?? 2.8, POSE = 0.42 // posé en bas, du côté libre, comme sur la table (jamais en l'air à hauteur de tête)
     return { hauteur: H, anim: 0.6, duree, place: E.surCote ? cote : undefined, // très gros plan : pas la place sous son visage, il se pose de côté, plus petit
-      dessin: (dt, y) => { const k = E.surCote ? clamp((E.largeur || W) / W, 0.45, 1) : 1, w = W * k, h = (H - 34) * k, x = cote === 'droite' ? 720 - w - 24 : 24
+      dessin: (dt, y) => { const k = E.surCote ? clamp((E.largeur || W) / W, 0.45, 1) : 1, w = W * k, h = (H - 34) * k, x = cote === 'droite' ? 720 - w - 80 : 80
         const f = Math.min(w / O.l, h / O.h), lo = O.l * f, ho = O.h * f, xo = x + (w - lo) / 2, sol = y + 6 + h
         const q = clamp(dt / POSE, 0, 1), chute = (1 - q * q) * -(sol + 40 - y), u = dt - POSE
         const ecrase = u > 0 && u < 0.28 ? Math.sin(u / 0.28 * Math.PI) * Math.exp(-u * 6) * 0.14 : 0, flotte = u > 0.3 ? Math.sin((u - 0.3) * 2.4) * 2.5 : 0
@@ -117,7 +117,7 @@ export function effet2(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) 
     const O = objet(...[].concat(E.nom || ['matcha-latte', 'tasse-1', 'latte'])); if (!O) return null
     const R = (O.dossier === 'objets' ? lireJson(join(ICI_E, 'objets', 'ronds.json')) : O.dossier === 'objets-perso' ? lireJson(join(ICI_E, 'objets-perso', 'ronds.json')) : RONDS)[O.nom] || mesurerRond(join(ICI_E, O.dossier, O.nom + '.png')) || [O.l / 2, O.h / 2, Math.min(O.l, O.h) * 0.47] // une tasse importée par l'élève se mesure toute seule : elle n'a rien à faire
     const mode = ['pose', 'zoom'].includes(E.transition) ? E.transition : 'pose', duree = E.duree ?? 2.8 // (07/11) Aurélie garde pose et zoom ; glisse et tourne refusées (le code reste, jamais choisi)
-    const larg = [...txt].reduce((w, c) => w + (c === ' ' ? 0.28 : 'MW'.includes(c) ? 1.0 : 'IJ1'.includes(c) ? 0.38 : 'O'.includes(c) ? 0.8 : 0.74), 0), z = Math.round(Math.min(150, 600 / larg)), lux = couleurs.skin === 'luxe', col = E.couleur || (lux ? '#E3C38A' : accent) // largeur réelle des lettres (Montserrat Black) : le mot tient dans l'écran, même penché
+    const larg = [...txt].reduce((w, c) => w + (c === ' ' ? 0.28 : 'MW'.includes(c) ? 1.0 : 'IJ1'.includes(c) ? 0.38 : 'O'.includes(c) ? 0.8 : 0.74), 0), z = Math.round(Math.min(150, 600 / larg)), lux = false /* (08/11) l'or retiré par Aurélie */, col = E.couleur || (lux ? '#E3C38A' : accent) // largeur réelle des lettres (Montserrat Black) : le mot tient dans l'écran, même penché
     const D = z * 0.78, s = D / (2 * R[2]) // diamètre du rond = un O de la police (Montserrat Black : 0,78 em de large)
     const debutL = mode === 'zoom' ? 0.5 : 0, arrive = { pose: 0.32, glisse: 0.38, tourne: 0.75, zoom: 0 }[mode], fin = { pose: 0.42, glisse: 0.55, tourne: 0.35, zoom: 0.55 }[mode]
     const ressort = u => u >= 1 ? 1 : 1 - Math.exp(-6 * u) * Math.cos(u * 9.5) * (1 - u) // arrive avec un petit dépassement, puis se cale
@@ -180,7 +180,7 @@ export function effet2(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) 
   // motGeant : le mot-clé de fin en géant, en biais, contour blanc, qui claque puis respire
   if (E.type === 'motGeant') {
     const mot = String(E.texte || '').trim(); if (!mot) return null
-    const duree = E.duree ?? 3.2, z = Math.round(Math.min(150, 1150 / Math.max(4, mot.length))), lux = couleurs.skin === 'luxe', col = E.couleur || (lux ? '#E3C38A' : accent)
+    const duree = E.duree ?? 3.2, z = Math.round(Math.min(140, 600 / (0.82 * Math.max(4, mot.length)))), lux = couleurs.skin === 'luxe', col = E.couleur || (lux ? '#E3C38A' : accent)
     return { hauteur: z + 60, anim: 0.4, duree,
       dessin: (dt, y) => { const p = clamp(rebond(dt / 0.32), 0, 1.12), r = 1 + 0.025 * Math.sin(dt * 4)
         return '<div style="position:absolute;left:0;right:0;top:' + y + 'px;text-align:center;transform:rotate(-8deg) scale(' + (p * (p >= 1 ? r : 1)).toFixed(3) + ')">'
@@ -278,7 +278,7 @@ export function effet2(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) 
         sons: t0 => [{ t: t0, fam: 'whoosh', vol: 0.05 }, { t: t0 + 1.15, fam: 'pop', vol: 0.08 }] }
     }
     return { hauteur: H, anim: 1.4, duree, place: cote,
-      dessin: (dt, y) => { const p = clamp(rebond(dt / 0.35), 0, 1.06), x = cote === 'droite' ? 720 - W - 34 : 34
+      dessin: (dt, y) => { const p = clamp(rebond(dt / 0.35), 0, 1.06), x = cote === 'droite' ? 720 - W - 50 : 50
         const ligne = (txt, j) => { const fait = j < k, cours = j === k, ec = cours ? clamp((dt - 0.45) / 0.7, 0, 1) : 1, coche = fait ? 1 : cours ? clamp((dt - 1.25) / 0.25, 0, 1) : 0
           const vu = j <= k, t2 = vu ? txt.slice(0, Math.ceil(txt.length * ec)) : ''
           return '<div style="display:flex;align-items:center;gap:10px;height:46px;border-bottom:1.5px solid rgba(70,110,190,.28)">'
@@ -332,7 +332,7 @@ export function effet2(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) 
       coeur: '<path d="M12 21 C 4 14, 2 10, 5 6.5 C 8 3.5, 11 5, 12 7 C 13 5, 16 3.5, 19 6.5 C 22 10, 20 14, 12 21 Z" fill="#fff"/>' }[E.icone || 'vues']
     const pas = 0.32, W = 190, H = items.length * 66 + 20, duree = E.duree ?? Math.max(3, items.length * pas + 2)
     return { hauteur: H, anim: items.length * pas + 0.4, duree, place: cote,
-      dessin: (dt, y) => { const x = cote === 'droite' ? 720 - W - 40 : 40
+      dessin: (dt, y) => { const x = cote === 'droite' ? 720 - W - 40 - 34 : 40
         return items.map((it, j) => { if (dt < j * pas) return ''; const p = clamp(rebond((dt - j * pas) / 0.25), 0, 1.1)
           return '<div style="position:absolute;left:' + (x + [0, 22, 6, 28, 12][j]) + 'px;top:' + (y + j * 66) + 'px;transform:scale(' + p.toFixed(3) + ') rotate(' + [-3, 2, -1, 3, -2][j] + 'deg);display:flex;align-items:center;gap:12px;padding:10px 18px;border-radius:14px;background:rgba(28,26,30,.86);border:2px solid rgba(255,255,255,.85);' + OMBRE + '">'
             + '<svg viewBox="0 0 24 24" width="30" height="30">' + ico + '</svg><span style="font:800 30px/1 Poppins,sans-serif;color:#fff">' + esc(it.n) + '</span>'
@@ -397,7 +397,7 @@ export function effet2(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) 
     const W = Math.round(E.largeur || 270), R = E.ratio || 16 / 9, H = Math.round(W * R), duree = E.duree ?? Math.min(6, ims.length / 15), cache = new Map()
     const img = k => { k = Math.max(0, Math.min(ims.length - 1, k)); if (!cache.has(k)) { cache.clear(); cache.set(k, image(ims[k])) } return cache.get(k) }
     return { hauteur: H + (E.etiquette ? 56 : 0), anim: duree, duree, place: cote,
-      dessin: (dt, y) => { const p = clamp(rebond(dt / 0.35), 0, 1.05), x = cote === 'droite' ? 720 - W - 36 : 36, src = img(Math.floor(dt * 15)), q = clamp((dt - 0.5) / 0.3, 0, 1)
+      dessin: (dt, y) => { const p = clamp(rebond(dt / 0.35), 0, 1.05), x = cote === 'droite' ? 720 - W - 56 : 56, src = img(Math.floor(dt * 15)), q = clamp((dt - 0.5) / 0.3, 0, 1)
         return '<div style="position:absolute;left:' + x + 'px;top:' + y + 'px;width:' + W + 'px;transform:scale(' + p.toFixed(3) + ') rotate(' + (cote === 'droite' ? 4 : -4) + 'deg);opacity:' + Math.min(1, p).toFixed(2) + '">'
           + '<div style="width:' + W + 'px;height:' + H + 'px;box-sizing:border-box;border:7px solid #fff;border-radius:10px;background:#111 url(' + src + ') center/cover;' + OMBRE + '"></div>'
           + (E.etiquette ? '<div style="margin:12px auto 0;width:max-content;max-width:' + (W + 60) + 'px;padding:8px 14px;background:#fff;color:#1b1b1f;font:700 20px/1.15 Poppins,sans-serif;border-radius:8px;transform:rotate(-3deg);opacity:' + q.toFixed(2) + ';' + OMBRE + '">' + esc(E.etiquette) + '</div>' : '') + '</div>' },
@@ -454,7 +454,7 @@ export function effet2(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) 
     const duree = E.duree ?? 2.6
     return { hauteur: 90, anim: duree, duree, place: cote,
       dessin: (dt, y) => { const p = doux(dt / 0.25), r = clamp((dt - 0.3) / Math.max(0.8, duree - 1), 0, 1), fini = r >= 1, x = cote === 'droite' ? 720 - 340 - 40 : 40
-        return '<div style="position:absolute;left:' + x + 'px;top:' + y + 'px;width:340px;opacity:' + p.toFixed(2) + ';padding:14px 18px;border-radius:14px;background:rgba(255,255,255,.96);' + OMBRE + '">'
+        return '<div style="position:absolute;left:' + x + 'px;top:' + y + 'px;width:340px;box-sizing:border-box;opacity:' + p.toFixed(2) + ';padding:14px 18px;border-radius:14px;background:rgba(255,255,255,.96);' + OMBRE + '">'
           + '<div style="display:flex;justify-content:space-between;font:800 15px/1 Poppins,sans-serif;letter-spacing:.08em;color:#1b1b1f;margin-bottom:10px"><span>' + esc((fini ? (E.fin || 'terminé ✓') : (E.texte || 'montage en cours…')).toUpperCase()) + '</span><span style="color:' + accent + '">' + Math.round(r * 100) + ' %</span></div>'
           + '<div style="height:10px;border-radius:5px;background:#ececf0;overflow:hidden"><div style="height:100%;width:' + (r * 100).toFixed(1) + '%;background:' + accent + '"></div></div></div>' },
       sons: t0 => [{ t: t0 + duree - 0.7, fam: 'pop', vol: 0.09 }] }
@@ -567,7 +567,7 @@ export function effet2(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) 
     const AP0 = objet('polaroid-1000', 'appareil-instantane')
     const pas = AP0 ? 1.0 : 0.7, W = 300, H = AP0 ? 440 : 330, duree = E.duree ?? Math.max(3.2, 0.5 + ims.length * pas + 1.4)
     return { hauteur: H, anim: 0.5 + ims.length * pas, duree, place: cote,
-      dessin: (dt, y) => { const x = cote === 'droite' ? 720 - W - 20 : 20, cam = doux(dt / 0.3), AP = AP0
+      dessin: (dt, y) => { const x = cote === 'droite' ? 720 - W - 40 : 40, cam = doux(dt / 0.3), AP = AP0
         if (AP) {
           // (07/11) mesuré sur l'image polaroid-1000 : la fente est à 88,5 % de la hauteur, de 8,8 % à 92,8 % de la largeur.
           // Le tirage sort VRAIMENT de la fente : on ne le voit que sous la ligne de la fente, il glisse au rythme du moteur,
@@ -685,7 +685,7 @@ export function effet2(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) 
           + cartes + '<div style="position:absolute;left:220px;top:' + (y + 190) + 'px;width:280px;height:140px;border-radius:10px;background:' + accent + ';' + OMBRE + '"></div></div>' },
       sons: t0 => [{ t: t0 + 0.05, fam: 'boite', vol: 0.09 }, { t: t0 + 0.4, fam: 'whoosh', vol: 0.06 }] }
     // (07/11) pas la place sous son visage (gros plan) : la boîte se met de côté, plus petite, au lieu de passer sur elle
-    O.dessin = (dt, y) => { const cote = E.cote, kE = cote ? clamp((E.largeur || 320) / 320, 0.5, 1) : 1, dxE = cote ? (cote === 'droite' ? 720 - 10 - 160 * kE : 10 + 160 * kE) - 360 : 0
+    O.dessin = (dt, y) => { const cote = E.cote, kE = cote ? clamp((E.largeur || 320) / 320, 0.5, 1) : 1, dxE = cote ? (cote === 'droite' ? 720 - 64 - 160 * kE : 64 + 160 * kE) - 360 : 0
       const enveloppe = h => cote ? '<div style="position:absolute;inset:0;transform-origin:360px ' + (y + 470) + 'px;transform:translateX(' + dxE.toFixed(1) + 'px) scale(' + kE.toFixed(3) + ')">' + h + '</div>' : h
       return enveloppe(O.dessin0(dt, y)) }
     return O
