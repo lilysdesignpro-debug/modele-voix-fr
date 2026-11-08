@@ -1,12 +1,12 @@
 {
- "version": "202611082026",
+ "version": "202611082249",
  "modeEmploi": 2,
  "fichiers": {
   "assembler.mjs": "84e1e6ca777c949268496e12a701648cd62106dbd7f13d848de116963e6731dd",
   "bandes.mjs": "d886bca8cef5ab9fa391f653cc0fd15c25d4b1144078d424f98b1b1f5d6d7d65",
   "chartes/modele.json": "9c4118330751cc2b5b391ceaa8a1fa3db887e5ffa67fb0bb457d3629b5d352ce",
   "coach.mjs": "bece4dc018f9f3500e219c335381a3e19396e673e82ca4c51c275032f63456f4",
-  "collage.mjs": "a9b7757515789772b63fcd12ed78346b58ba3b94562b25a51ad51ccb4e073e6b",
+  "collage.mjs": "b1595b1981bbb2af589e5ad11ebe2f47d5050d45106c4e1b371acaf8a66c8a48",
   "declinaisons.mjs": "717f82305a09a2873941ce6f3b7ceebd92d1012d33bffe3d70206aaa6b1ecd84",
   "decor.mjs": "37c36fd797af9e0cd3cf3d952c1d3d1a30a69c9c4c0378d55c17e89bb8480fc5",
   "defi.mjs": "a995dc8ccdd539163b4e60dcee2a0d2019184b2520c7bbc703e3ebc2e14fb961",

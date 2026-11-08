@@ -367,7 +367,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       const y = clamp(basVisage(p.a, p.b) + 26, 560, 860)
       return `<div style="position:absolute;left:60px;right:104px;top:${y}px;text-align:center;font:600 40px/1 Poppins,sans-serif;letter-spacing:-1px;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.6)">${html}</div>`
     } })
-    // le hook : « ELLE A DIT QUE C'ÉTAIT » énorme, en capitales ivoire, derrière elle, puis « un torchon » en italique bordeaux
+    // le hook : le haut du titre énorme, en capitales ivoire, derrière elle, puis le mot fort en italique bordeaux
     const TA = K.titre || {}
     if (TA.haut) {
       const aM = quandMot(TA.mot, 1.2), lignesH = coupeLignes(TA.haut.toUpperCase(), 13), tH = Math.round(clamp(620 / (0.5 * Math.max(...lignesH.map(l => l.length))), 70, 160))
