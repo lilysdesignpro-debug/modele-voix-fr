@@ -5,5 +5,12 @@
  "cafe-noir-verre": [259, 208, 206],
  "cappuccino-soucoupe": [227, 229, 226],
  "latte-feuille": [242, 241, 240],
- "espresso-soucoupe": [448, 444, 440]
+ "espresso-soucoupe": [448, 444, 440],
+ "cappuccino-mousse": [388, 444, 384],
+ "mug-cafe": [118, 166, 117],
+ "tasse-blanche-cafe": [239, 234, 230],
+ "tasse-the": [640, 563, 537],
+ "the-soucoupe": [539, 536, 531],
+ "matcha-latte-2": [395, 346, 342],
+ "cafe-glace-3": [679, 644, 634]
 }

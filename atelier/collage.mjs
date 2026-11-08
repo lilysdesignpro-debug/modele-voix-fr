@@ -988,6 +988,9 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     eF.ajuste.sons = Em.sons(t0); sons.push(...eF.ajuste.sons)
   }
 
+  // (08/11) LES BRUITAGES posés à la main (projet.json, "bruitages") : ciseaux, applaudissements, boing… au moment où elle le dit
+  for (const B of P.bruitages || []) if (B && B.son && B.t != null) sons.push({ t: tf(B.t), fam: String(B.son), vol: B.vol ?? 0.1 })
+
   // 7 sexies. Les effets détourés : son décor change, elle devient papier, un trait de feutre la dessine, une spirale l'aspire
   const detourTient = (a, b) => { // la silhouette est-elle assez stable pour un effet détouré ?
     const d = join(st, 'garde-' + a.toFixed(2)); rmSync(d, { recursive: true, force: true })

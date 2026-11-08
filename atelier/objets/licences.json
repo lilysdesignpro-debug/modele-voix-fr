@@ -395,5 +395,95 @@
   "auteur": null,
   "detoure": "2026-11-07",
   "note": "pince-noire redressée (rotation 140°) pour la capture pincée"
+ },
+ "cappuccino-mousse.png": {
+  "licence": "cc0",
+  "source": "wordpress",
+  "page": "https://wordpress.org/photos/photo/8906a10393/",
+  "url": "https://pd.w.org/2026/05/8906a103938c926d7.82191157-2048x1536.jpg",
+  "titre": "A top-down view of a cup of coffee with heart-shaped latte art, sitting in a dark saucer on a textured wooden table.",
+  "auteur": "Alina Kakshapati",
+  "detoure": "2026-11-07",
+  "choisi": "2026-11-08"
+ },
+ "mug-cafe.png": {
+  "licence": "cc0",
+  "source": "rawpixel",
+  "page": "https://www.rawpixel.com/image/5970488/minimalist-cup-coffee",
+  "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvaXMxMDUyMC1pbWFnZS1rd3lzaDB1ai5qcGc.jpg",
+  "titre": "Minimalist Cup of Coffee",
+  "auteur": null,
+  "detoure": "2026-11-07",
+  "choisi": "2026-11-08"
+ },
+ "tasse-blanche-cafe.png": {
+  "licence": "cc0",
+  "source": "stocksnap",
+  "page": "https://stocksnap.io/photo/still-items-KY7HDBVD7I",
+  "url": "https://cdn.stocksnap.io/img-thumbs/960w/KY7HDBVD7I.jpg",
+  "titre": "Still Items",
+  "auteur": "Jeffrey Wegrzyn",
+  "detoure": "2026-11-07",
+  "choisi": "2026-11-08"
+ },
+ "tasse-the.png": {
+  "licence": "cc0",
+  "source": "wordpress",
+  "page": "https://wordpress.org/photos/photo/56362fcf20/",
+  "url": "https://pd.w.org/2022/08/56362fcf2029526b5.96119360-2048x1536.jpg",
+  "titre": "Cup of tea on a peach background (table)",
+  "auteur": "Olga Gleckler",
+  "detoure": "2026-11-07",
+  "choisi": "2026-11-08"
+ },
+ "the-soucoupe.png": {
+  "licence": "cc0",
+  "source": "wordpress",
+  "page": "https://wordpress.org/photos/photo/27165bdf93/",
+  "url": "https://pd.w.org/2024/02/27165bdf930f20113.56436503-2048x1365.jpg",
+  "titre": "Top view of a cup of coffee on a light wooden table",
+  "auteur": "Nilo Velez",
+  "detoure": "2026-11-07",
+  "choisi": "2026-11-08"
+ },
+ "latte-2.png": {
+  "licence": "cc0",
+  "source": "stocksnap",
+  "page": "https://stocksnap.io/photo/coffee-cafe-452RWQUM4W",
+  "url": "https://cdn.stocksnap.io/img-thumbs/960w/452RWQUM4W.jpg",
+  "titre": "Coffee Cafe",
+  "auteur": "Ross Parmly",
+  "detoure": "2026-11-08",
+  "choisi": "2026-11-08"
+ },
+ "cafe-glace-3.png": {
+  "licence": "cc0",
+  "source": "wordpress",
+  "page": "https://wordpress.org/photos/photo/4336618f4e/",
+  "url": "https://pd.w.org/2024/04/4336618f4e7a28171.67465428-2048x2048.jpg",
+  "titre": "Grass of iced coffee with drinking straw on a gray background",
+  "auteur": "Roberto Vazquez",
+  "detoure": "2026-11-08",
+  "choisi": "2026-11-08"
+ },
+ "matcha-latte-2.png": {
+  "licence": "cc0",
+  "source": "rawpixel",
+  "page": "https://www.rawpixel.com/image/5963400/free-public-domain-cc0-photo",
+  "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvcHgxMDgwNjgxLWltYWdlLWt3eXJmY3d3LmpwZw.jpg",
+  "titre": null,
+  "auteur": null,
+  "detoure": "2026-11-08",
+  "choisi": "2026-11-08"
+ },
+ "ordinateur.png": {
+  "licence": "cc0",
+  "source": "stocksnap",
+  "page": "https://stocksnap.io/photo/macbook-laptop-DUAHA1V312",
+  "url": "https://cdn.stocksnap.io/img-thumbs/960w/DUAHA1V312.jpg",
+  "titre": "Macbook Laptop",
+  "auteur": "Marc Chouinard",
+  "detoure": "2026-11-08",
+  "choisi": "2026-11-08"
  }
 }

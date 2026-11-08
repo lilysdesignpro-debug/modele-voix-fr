@@ -340,7 +340,7 @@ Pendant un effet, les mots géants se taisent. Regarde une image du résultat : 
   se pose en bas comme sur une table (petit écrasement, ombre), puis s'efface. En très gros plan, il
   n'apparaît pas du tout (rien plutôt qu'un objet riquiqui : choix d'Aurélie) : jamais sur son visage. Noms livrés : `latte`, `matcha-latte`,
   `cafe-glace-1`, `cafe-glace-2`, `tasse-1` (grains de café), `tasse-2` (tasse bleue), `cafe-creme`,
-  `cafe-noir-verre`, `cappuccino-soucoupe`, `latte-feuille`, `espresso-soucoupe` (+ ses objets à elle, section 11).
+  `cafe-noir-verre`, `cappuccino-soucoupe`, `latte-feuille`, `espresso-soucoupe`, et depuis le 08/11 `latte-2` (café crème chantilly, tasse noire), `cafe-glace-3`, `matcha-latte-2`, `tasse-the`, `ordinateur` (un ordinateur portable, quand elle dit « mon ordi ») (+ ses objets à elle, section 11).
   Un ou deux par vidéo, seulement sur un mot qu'elle prononce.
 - **Le mot-tasse** : un mot en géant dont le O est une VRAIE tasse vue de dessus. Validé par Aurélie le 07/11.
   `{ "type": "motTasse", "t": 4, "texte": "possible", "nom": "latte-feuille", "transition": "pose" }`
@@ -350,8 +350,8 @@ Pendant un effet, les mots géants se taisent. Regarde une image du résultat : 
     ⛔ Le zoom, la glisse, la lettre qui pivote et la version dorée ont été retirés par Aurélie.
   - `nom`, les tasses vues de dessus : `latte-feuille` (latte, feuille dessinée), `cafe-creme` (café au lait),
     `cappuccino-soucoupe` (cappuccino sur soucoupe), `espresso-soucoupe` (espresso sur soucoupe),
-    `matcha-latte` (matcha), `tasse-1` (grains de café). Ou une tasse vue de dessus de SON Canva (section 11).
-    `cafe-noir-verre` se lit mal comme un O (verre invisible sur fond clair) : garde-le pour l'effet `objet`.
+    `matcha-latte` (matcha), `tasse-1` (grains de café), et depuis le 08/11 : `cappuccino-mousse` (cappuccino, soucoupe sombre), `mug-cafe` (mug de café noir), `tasse-blanche-cafe` (café noir, tasse blanche), `the-soucoupe` (espresso et cuillère), `matcha-latte-2` (matcha, spirale de lait), `cafe-glace-3` (café glacé vu de dessus). Ou une tasse vue de dessus de SON Canva (section 11).
+    `cafe-noir-verre` se lit mal comme un O (verre invisible sur fond clair), `tasse-the` non plus (la tasse est décalée sur sa soucoupe) : garde-les pour l'effet `objet`.
   - Le rond de chaque tasse est déjà mesuré au pixel : elle s'emboîte toute seule à la taille des lettres,
     et la taille du mot s'adapte pour qu'il tienne dans l'écran. Tu n'as rien à régler.
   - Un ou deux par vidéo, sur un mot fort, de préférence quand il est question de café, de pause, de routine.
@@ -471,6 +471,18 @@ des fichiers de `sons/` sans `.wav` (liste-les si elle demande ce qui existe). U
 est ignoré : tu retombes sur les sons habituels, il n'y a jamais d'erreur. Ordre : un son fixé pour
 une famille passe avant le pack, et le pack passe avant la rotation habituelle. Tu peux combiner :
 `"sons": { "pack": "doux", "kaching": "cloche-a" }`.
+
+### Les bruitages posés à la main (clé `"bruitages"`, banque choisie par Aurélie le 08/11)
+
+Pour un bruitage qui RACONTE ce qu'elle dit, au moment précis : `"bruitages": [{ "t": 12.4, "son": "ciseaux" }, { "t": 31, "son": "applaudissements" }]`
+(`t` = temps de la vidéo d'origine ; `son` = une famille, ou un son précis comme `"boing-b"` ; `"vol"` facultatif). Les familles :
+`ciseaux` (elle coupe, elle tranche), `scotch` (elle colle, elle répare), `machine` (machine à écrire), `cassette` (retour en arrière,
+souvenir), `cles` (« la clé », « déverrouiller »), `ticket` (un total, une addition), `agrafeuse` (« c'est réglé »), `zip` (« bouche cousue »,
+fermer), `bulle` (une idée qui pope, doux), `goutte` (look doux), `roulement` (tambour avant une révélation), `stop` (arrêt net, comique),
+`boing` (ressort comique), `message` (notification de message), `swipe` (doigt qui glisse sur l'écran), `craie` (tableau, leçon),
+`applaudissements` (une victoire), `riser` (montée avant LA révélation), `soyeux` (transition luxe). ⛔ Deux ou trois par vidéo au plus,
+seulement sur un mot qu'elle prononce, jamais pendant le hook, jamais deux à moins de 3 secondes. Les comiques (boing, stop) seulement
+si le ton de la vidéo est drôle.
 
 ## 6. Monter et vérifier
 

@@ -854,6 +854,7 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
 
   // Chaque son accompagne ce qu'on voit, rien pendant le hook, jamais sur un mot fort.
   const ev = []
+  for (const B of P.bruitages || []) if (B && B.son && B.t != null) { const n = son(String(B.son)); if (n) ev.push([n, nt(B.t), B.vol ?? VOL_SON]) } // (08/11) bruitages posés à la main
   if (OUV) ev.push([son('whoosh'), HOOK - 0.2, VOL_SON]) // passage de l'ouverture au début de la vidéo
   coupes.map(nt).filter(t => t > HOOK + 0.3).forEach(t => ev.push([son('whoosh'), t - 0.2, VOL_SON]))
   let k = 0, d = 0
