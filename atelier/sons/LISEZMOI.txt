@@ -2,12 +2,102 @@ Banque de sons choisie par Aurélie le 03/11/2026, à l'oreille, parmi les sons 
 Tous sous licence CC0 (domaine public) : libres d'usage, de modification et de redistribution, sans mention obligatoire.
 Coupés court, sans le blanc du début, et mis au même niveau.
 Chaque famille tourne : le montage prend un son différent à chaque apparition.
-pop-a          mots forts et émojis            freesound.org/s/733264
-clic-a         cartes et captures              freesound.org/s/677860
-whoosh-a       changements de plan             freesound.org/s/391444
-cloche-a       notifications, rappels          freesound.org/s/740423
-kaching-a      argent, chiffres, #ding         freesound.org/s/209578
+pop-a          mots forts et émojis   freesound.org/s/733264
+clic-a         cartes et captures   freesound.org/s/677860
+whoosh-a       changements de plan   freesound.org/s/391444
+cloche-a       notifications, rappels   freesound.org/s/740423
+kaching-a      argent, chiffres, #ding   freesound.org/s/209578
 photo-a, -b    captures d'écran                freesound.org/s/376205, /249750
-magie-a        carte de fin                    freesound.org/s/511485
-glitch-a       effet moderne au choix          freesound.org/s/332711
+magie-a        carte de fin   freesound.org/s/511485
+glitch-a       effet moderne au choix   freesound.org/s/332711
 clavier-court, clavier-b, -c   texte qui se tape      freesound.org/s/813214, /527726, /513792
+
+Depuis le 03/11/2026 ce sont aussi les sons d'Aurélie pour ses propres vidéos. Les sons Mixkit d'avant sont dans anciens/mixkit/.
+clic-b, clic-c, whoosh-b, whoosh-doux, pop-b, kaching-b/c/d, magie-b : copies, pour que les anciens projets qui les nomment se remontent.
+
+Ajoutés le 06/11/2026, choisis par Aurélie à l'oreille dans la page d'écoute (CC0, Freesound) :
+pop-c          mots forts et émojis   freesound.org/s/447910
+whoosh-c       changements de plan   freesound.org/s/473583
+whoosh-d       changements de plan   freesound.org/s/701104
+cloche-b       notifications, rappels   freesound.org/s/380482
+kaching-e      argent, chiffres   freesound.org/s/184438
+photo-c        captures, photos   freesound.org/s/431588
+photo-d        captures, photos   freesound.org/s/157812
+clavier-d      texte qui se tape   freesound.org/s/447909
+coffre-a       le coffre à fiches qui s'ouvre   freesound.org/s/573654
+boite-a        la boîte de l'éventail   freesound.org/s/441649
+papier-a       une fiche qui sort, une carte qui glisse   freesound.org/s/464302
+punaise-a      une photo punaisée au liège   freesound.org/s/446634
+tirage-a       le Polaroid qui imprime   freesound.org/s/331709
+tirage-b       le Polaroid qui imprime   freesound.org/s/676387
+tampon-a       un tampon, une validation   freesound.org/s/448474
+page-a         une page qui se tourne, la feuille lignée   freesound.org/s/457767
+page-b         une page qui se tourne, la feuille lignée   freesound.org/s/346835
+stylo-a        les mots qui s'écrivent à la main   freesound.org/s/82610
+Les familles neuves (coffre, boite, papier, punaise, tirage, tampon, page, stylo) retombent sur une famille proche si le son manque (voir sons-choix.mjs).
+
+Ajoutés le 08/11/2026, choisis par Aurélie à l oreille dans la page d écoute (CC0, Freesound) :
+ciseaux-a      ciseaux, collage                    freesound.org/s/272035
+ciseaux-b      ciseaux, collage                    freesound.org/s/240474
+ciseaux-c      ciseaux, collage                    freesound.org/s/436769
+ciseaux-d      ciseaux, collage                    freesound.org/s/397608
+scotch-a       photo scotchée, ruban arraché       freesound.org/s/223375
+scotch-b       photo scotchée, ruban arraché       freesound.org/s/369915
+scotch-c       photo scotchée, ruban arraché       freesound.org/s/151446
+machine-a      machine à écrire : frappe et ding   freesound.org/s/345955
+machine-b      machine à écrire : frappe et ding   freesound.org/s/433596
+cassette-a     clac de cassette, bouton play       freesound.org/s/91994
+cassette-b     clac de cassette, bouton play       freesound.org/s/843021
+cles-a         trousseau de clés                   freesound.org/s/267711
+cles-b         trousseau de clés                   freesound.org/s/390324
+cles-c         trousseau de clés                   freesound.org/s/565909
+ticket-a       ticket de caisse qui sort           freesound.org/s/202531
+ticket-b       ticket de caisse qui sort           freesound.org/s/345057
+agrafeuse-a    agrafeuse                           freesound.org/s/119154
+agrafeuse-b    agrafeuse                           freesound.org/s/331155
+zip-a          fermeture éclair                    freesound.org/s/519477
+zip-b          fermeture éclair                    freesound.org/s/51176
+bulle-a        pop de bulle douce                  freesound.org/s/97978
+bulle-b        pop de bulle douce                  freesound.org/s/221091
+goutte-a       goutte d'eau, look doux             freesound.org/s/273870
+roulement-a    roulement de tambour avant une révélfreesound.org/s/77305
+stop-a         arrêt net, effet comique            freesound.org/s/43404
+boing-a        ressort comique                     freesound.org/s/61847
+boing-b        ressort comique                     freesound.org/s/383240
+boing-c        ressort comique                     freesound.org/s/540790
+message-a      message reçu                        freesound.org/s/242855
+message-b      message reçu                        freesound.org/s/760369
+swipe-a        glissement de doigt sur l'écran     freesound.org/s/60007
+swipe-b        glissement de doigt sur l'écran     freesound.org/s/515625
+craie-a        craie au tableau                    freesound.org/s/398491
+craie-b        craie au tableau                    freesound.org/s/210319
+craie-c        craie au tableau                    freesound.org/s/232420
+applaudissementapplaudissements courts             freesound.org/s/139972
+applaudissementapplaudissements courts             freesound.org/s/182571
+applaudissementapplaudissements courts             freesound.org/s/333405
+applaudissementapplaudissements courts             freesound.org/s/117592
+riser-a        montée avant une révélation         freesound.org/s/110218
+magie-c        carte de fin, révélation            freesound.org/s/545238
+magie-d        carte de fin, révélation            freesound.org/s/264981
+clic-d         cartes, cases cochées               freesound.org/s/320181
+clic-e         cartes, cases cochées               freesound.org/s/342200
+glitch-b       effet moderne, écrans               freesound.org/s/350614
+glitch-c       effet moderne, écrans               freesound.org/s/2314
+pop-d          mots forts et émojis                freesound.org/s/776443
+clic-f         cartes, cases cochées               freesound.org/s/528561
+whoosh-e       changements de plan                 freesound.org/s/71852
+whoosh-f       changements de plan                 freesound.org/s/349698
+kaching-f      argent, chiffres                    freesound.org/s/351304
+photo-e        captures, photos                    freesound.org/s/353044
+magie-e        carte de fin, révélation            freesound.org/s/715067
+glitch-d       effet moderne, écrans               freesound.org/s/441342
+clavier-a      texte qui se tape                   freesound.org/s/194799
+papier-b       une fiche qui sort, une carte qui glfreesound.org/s/444431
+enveloppe-a    la pluie de photos depuis l'enveloppfreesound.org/s/626821
+tirage-c       le Polaroid qui imprime             freesound.org/s/444682
+tampon-b       un tampon, une validation           freesound.org/s/362624
+riser-b        montée avant une révélation         freesound.org/s/685256
+riser-c        montée avant une révélation         freesound.org/s/503815
+soyeux-a       transitions du look luxe            freesound.org/s/320144
+page-c         une page qui se tourne, la feuille lfreesound.org/s/136778
+page-d         une page qui se tourne, la feuille lfreesound.org/s/397548
