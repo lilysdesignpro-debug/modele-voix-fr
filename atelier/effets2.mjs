@@ -615,7 +615,7 @@ export function effet2(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) 
     const pas = objet('enveloppe-kraft-lettre') ? 0.4 : 0.28, duree = E.duree ?? Math.max(3.2, 0.6 + ims.length * pas + 1.8)
     // les places autour d'elle : en haut et sur les côtés, jamais au milieu (son visage)
     // les places possibles, en absolu ; on écarte toutes celles qui toucheraient son visage (E._visages : ses boîtes pendant l'effet)
-    const toutes = [[30, 190, -9], [530, 210, 8], [40, 470, 6], [520, 500, -7], [150, 100, 4], [400, 90, -4], [30, 720, 5], [530, 740, -6], [280, 760, 3]]
+    const toutes = [[86, 190, -9], [466, 210, 8], [86, 470, 6], [466, 500, -7], [170, 100, 4], [400, 96, -4], [86, 720, 5], [396, 740, -6], [240, 760, 3]] // (08/11) toutes dans la zone sûre d'Instagram (côtés, colonne d'icônes)
     const touche = ([x, y]) => (E._visages || []).some(v => x < v[2] + 10 && x + 160 > v[0] - 10 && y < v[3] + 10 && y + 196 > v[1] - 10)
     const places = [...toutes.filter(p => !touche(p)), ...toutes.filter(touche)]
     return { hauteur: 470, anim: 0.6 + ims.length * pas, duree,
@@ -624,7 +624,7 @@ export function effet2(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) 
         // chaque photo sort de la poche (on ne la voit qu'au-dessus du V de la poche, mesuré au pixel), puis s'envole se poser
         const EL = objet('enveloppe-kraft-lettre', 'enveloppe-blanche')
         if (EL && EL.mesures?.bord) {
-          const lE = 260, s = lE / EL.l, xE = cote === 'droite' ? 720 - lE - 30 : 30, yE = 90 - (1 - env) * 60
+          const lE = 260, s = lE / EL.l, xE = cote === 'droite' ? 720 - lE - 70 : 70, yE = 90 - (1 - env) * 60
           const V = EL.mesures.bord, vMin = Math.min(...V.map(v => v[1])), vMax = Math.max(...V.map(v => v[1]))
                     const clipPoche = dessusDuBord(EL, xE, yE, lE)
           const MO = 0.32, VO = 0.6, x0 = xE + lE / 2 - 80, yBas = yE + vMax * s + 6, yHaut = yE + vMin * s - 196 - 8

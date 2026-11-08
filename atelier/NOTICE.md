@@ -146,10 +146,10 @@ Pop, collage, éditorial, typo, witchy, chic, automne, studio et doux passent pa
 - `"carnet"` : le titre du hook se tape lettre par lettre, sous-titres courts de 2 à 4 mots, plan fixe (`titreTape: true`, `cartons: 3`, `motAMot: false`, `rapprocher` sur 1-2 phrases perso). Pour le quotidien, les coulisses, le vlog.
 - `"energie"` : plan rapproché un plan sur deux, coupe sèche en gros plan sur LA phrase d'humeur (` #grosplan` à la fin de la ligne, une ou deux fois), étincelles, petits clics. Pour l'humour.
 
-**Le réseau** (`"plateforme"`) : demande-lui où elle va publier. `"instagram"` (par défaut), `"tiktok"`,
+**Le réseau** (`"plateforme"`) : ⛔ AVANT chaque montage, propose-lui le choix sous forme de boutons (Instagram, TikTok, Facebook, les trois) : les zones de sécurité changent avec. Si elle a déjà choisi pour ce projet, ne redemande pas. `"instagram"` (par défaut), `"tiktok"`,
 `"facebook"` ou `"toutes"`. Chaque appli pose ses boutons par-dessus la vidéo : les onglets en haut, le nom et la
 légende en bas, la colonne des j'aime à droite, et les côtés que les téléphones allongés rognent. Dans les 9 styles
-du moteur collage, un texte qui déborde dans ces zones est ramené dedans tout seul ; dans classique et prof, la
+du moteur collage, un texte OU UN EFFET (carte, téléphone, photos, liste) qui déborde dans ces zones est ramené dedans tout seul, un peu réduit s'il le faut ; s'il ne tient pas sans devenir riquiqui ou toucher son visage, il ne sort pas (choix d'Aurélie, le terminal l'écrit : « Zone … : pas de … ») ; dans classique et prof, la
 planche de contrôle les montre en rouge. Instagram a été mesuré sur un vrai reel ; TikTok et Facebook suivent les
 marges officielles des deux réseaux, prévues pour les pubs, donc plus larges en bas : si elle publie partout, `"toutes"`.
 
