@@ -111,6 +111,8 @@ Dis-lui : « ta charte est gardée sur ton ordinateur, je n'aurai plus jamais à
 `<charte>` = le nom du fichier de SA charte dans `chartes/`, sans `.json` ; `<nom-court>` = le nom du projet
 (un mot, sans espace : `defi-jour1`). C'est ce nom-là qui sert ensuite pour `monter <nom>`.
 
+⛔ **Si l'outil écrit « VIDÉO SANS VOIX »** (musique seule, vidéo déjà montée, son coupé) : l'écoute invente parfois des phrases sur un silence (« Merci d'avoir regardé cette vidéo », « abonnez-vous »…), l'outil les a déjà retirées. Ne pose AUCUNE question sur les sous-titres, n'en écris aucun, n'invente aucun texte : dis-lui la phrase que l'outil te donne, puis lance `monter <nom>` directement. Sa vidéo ressort entière.
+
 Puis montre-lui les sous-titres ligne par ligne, en texte simple (sans les temps), et
 demande-lui :
 - les mots mal compris à corriger ;

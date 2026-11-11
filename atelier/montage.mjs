@@ -86,9 +86,28 @@ function modeleWhisper() {
   return join(dir, m)
 }
 
+// Les phrases que l'oreille INVENTE quand elle n'entend pas de voix (silence, musique seule, vidéo déjà montée).
+// Vu le 11/11/2026 sur une vidéo sans voix : « Sous-titres réalisés par… », « Merci d'avoir regardé cette vidéo »,
+// puis au passage suivant « Je vous invite à partager… à vous abonner… ma chaîne ». Signe qui ne trompe pas :
+// ces mots inventés ont une durée nulle, empilés au même instant. Une vraie voix n'en a jamais 3.
+const INVENTEES = /sous-titr\w*( r[ée]alis[ée]s?| faits?)? par[^.!?]*|merci d['’]avoir regard[ée][^.!?]*|abonnez-vous[^.!?]*|vous abonner[^.!?]*|ma cha[îi]ne|partager avec vos amis[^.!?]*|n['’]oubliez pas de (vous abonner|liker|mettre un pouce)[^.!?]*|amara\.org[^.!?]*|merci de votre attention|à bientôt pour une nouvelle vidéo/gi
+function retirerInventions(j) {
+  const T = j.transcription || []
+  let texte = ''; const bornes = []
+  T.forEach((s, i) => { const d = texte.length; texte += s.text || ''; bornes.push([d, texte.length, i]) })
+  const enlever = new Set()
+  for (const m of texte.matchAll(INVENTEES)) { const a = m.index, b = a + m[0].length; for (const [d, f, i] of bornes) if (f > a && d < b) enlever.add(i) }
+  const nuls = T.map((s, i) => s.offsets && s.offsets.to - s.offsets.from <= 10 && (s.text || '').trim() ? i : -1).filter(i => i >= 0)
+  if (nuls.length >= 3) nuls.forEach(i => enlever.add(i))
+  if (enlever.size) j.transcription = T.filter((_, i) => !enlever.has(i))
+  return enlever.size
+}
+
 function transcrireMots(wav, sortieSansExt) {
   lancer('whisper-cli', ['-m', modeleWhisper(), '-f', wav, '-l', 'fr', '-t', '8', '-ml', '1', '-sow', '-oj', '-of', sortieSansExt, '-np'])
   const j = JSON.parse(readFileSync(sortieSansExt + '.json', 'utf8'))
+  const inventes = retirerInventions(j)
+  if (inventes) { copyFileSync(sortieSansExt + '.json', sortieSansExt + '.avant-nettoyage.json'); writeFileSync(sortieSansExt + '.json', JSON.stringify(j, null, 1)); console.log(inventes + ' mot(s) inventé(s) par l’écoute retiré(s)') }
   const mots = []
   for (const s of j.transcription) {
     const m = { t: s.offsets.from / 1000, fin: s.offsets.to / 1000, txt: s.text.trim() }
@@ -141,7 +160,17 @@ function lire(video, charte, nom) {
   writeFileSync(join(dir, 'sous-titres.txt'), [...entete, ...lignes.map(l => `${l.t.toFixed(2)}|${l.txt}`), `${(mots.at(-1)?.fin ?? D).toFixed(2)}|`].join('\n') + '\n')
   const projet = { charte, duree: D, titre: '', etiquette: '', hookFin: null, garder: [], embarquer: [], etirer: [], clavier: [],
     _aide: 'titre : texte du hook, / pour aller à la ligne, *mot* en manuscrite. garder : [[début, fin]] où ne rien couper. embarquer : [[début, fin]] zoom qui avance vers elle. etirer : [[début, fin, facteur]] pour allonger un blanc. clavier : [secondes] bruit de clavier 2 s. Tous les temps sont ceux de la vidéo d\'origine.' }
+  // Sans voix (moins de 3 vrais mots) : rien à couper, rien à sous-titrer. On garde TOUTE sa vidéo
+  // (« -1 » parce que le montage teste « début > x ») ; sinon elle sortait coupée à 2 s sur 6,7.
+  const sansVoix = mots.filter(m => /\p{L}|\d/u.test(m.txt)).length < 3
+  if (sansVoix) Object.assign(projet, { garder: [[-1, +(D + 1).toFixed(2)]], hesitations: false, vignette: false, sansVoix: true })
   if (!existsSync(join(dir, 'projet.json'))) writeFileSync(join(dir, 'projet.json'), JSON.stringify(projet, null, 2))
+  if (sansVoix) {
+    console.log(`\n⚠️ VIDÉO SANS VOIX : je n'entends personne parler dans « ${nom} ». Rien n'est coupé, aucun sous-titre : on garde toute la vidéo et on soigne l'image et le son.`)
+    console.log(`À dire à l'élève, simplement : « Je n'entends pas de voix dans ta vidéo, alors je la garde entière, sans sous-titres ni coupes. Si tu parles dedans, vérifie que le son est bien là et assez fort, puis renvoie-la-moi. »`)
+    console.log(`Ne rien écrire dans sous-titres.txt, ne pas inventer de texte. Montage : node montage.mjs monter ${nom}`)
+    return
+  }
   console.log(lignes.map(l => `${l.t.toFixed(2).padStart(6)}  ${l.txt}`).join('\n'))
   console.log(`\nProjet « ${nom} » prêt : ${dir}\nÀ relire avec elle : sous-titres.txt et projet.json, puis, depuis le dossier de l'outil : node montage.mjs monter ${nom}`)
 }
