@@ -89,7 +89,7 @@ function modeleWhisper() {
 // Les phrases que l'oreille INVENTE quand elle n'entend pas de voix (silence, musique seule, vidéo déjà montée).
 // Vu le 11/11/2026 sur une vidéo sans voix : « Sous-titres réalisés par… », « Merci d'avoir regardé cette vidéo »,
 // puis au passage suivant « Je vous invite à partager… à vous abonner… ma chaîne ». Signe qui ne trompe pas :
-// ces mots inventés ont une durée nulle, empilés au même instant. Une vraie voix n'en a jamais 3.
+// ces mots inventés ont une durée nulle, empilés au même instant.
 const INVENTEES = /sous-titr\w*( r[ée]alis[ée]s?| faits?)? par[^.!?]*|merci d['’]avoir regard[ée][^.!?]*|abonnez-vous[^.!?]*|vous abonner[^.!?]*|ma cha[îi]ne|partager avec vos amis[^.!?]*|n['’]oubliez pas de (vous abonner|liker|mettre un pouce)[^.!?]*|amara\.org[^.!?]*|merci de votre attention|à bientôt pour une nouvelle vidéo/gi
 function retirerInventions(j) {
   const T = j.transcription || []
@@ -97,8 +97,10 @@ function retirerInventions(j) {
   T.forEach((s, i) => { const d = texte.length; texte += s.text || ''; bornes.push([d, texte.length, i]) })
   const enlever = new Set()
   for (const m of texte.matchAll(INVENTEES)) { const a = m.index, b = a + m[0].length; for (const [d, f, i] of bornes) if (f > a && d < b) enlever.add(i) }
-  const nuls = T.map((s, i) => s.offsets && s.offsets.to - s.offsets.from <= 10 && (s.text || '').trim() ? i : -1).filter(i => i >= 0)
-  if (nuls.length >= 3) nuls.forEach(i => enlever.add(i))
+  // Durée nulle : une vraie voix en a AUSSI (aux jointures de l'écoute, toutes les 30 s : « depuis 3 mois » à 32,00 s, vu au banc d'essai du 11/11).
+  // Donc on ne s'en sert QUE pour dire « personne ne parle » : s'il ne reste pas 3 mots qui durent vraiment, tout est inventé.
+  const reste = T.filter((s, i) => !enlever.has(i) && s.offsets && s.offsets.to - s.offsets.from > 10 && /\p{L}|\d/u.test(s.text || ''))
+  if (reste.length < 3) T.forEach((s, i) => { if ((s.text || '').trim()) enlever.add(i) })
   if (enlever.size) j.transcription = T.filter((_, i) => !enlever.has(i))
   return enlever.size
 }
@@ -139,6 +141,36 @@ function lire(video, charte, nom) {
   const dir = join(PROJETS, nom); mkdirSync(dir, { recursive: true })
   const source = join(dir, 'source.mp4'); copyFileSync(video, source)
   const D = duree(source)
+  // (banc d'essai du 11/11) Vidéo filmée À L'HORIZONTALE : recadrée en vertical, on ne voyait plus qu'un visage énorme et flou,
+  // sans place pour les sous-titres. On la pose EN ENTIER au milieu, sur la même image floutée en fond (le téléphone tourné compte).
+  {
+    const [w, h, rot] = lancer('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height:stream_side_data=rotation', '-of', 'csv=p=0:nk=1', source]).trim().split(/[s,]+/).map(Number)
+    const [L, H] = Math.abs(rot || 0) === 90 ? [h, w] : [w, h]
+    if (L > H * 1.05) {
+      const tmp = join(dir, 'source-vertical.mp4')
+      lancer('ffmpeg', ['-y', '-v', 'error', '-i', source, '-filter_complex', '[0:v]split[a][b];[a]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=40:2,eq=brightness=-0.06[fond];[b]scale=1080:-2[img];[fond][img]overlay=(W-w)/2:(H-h)/2,setsar=1', '-c:v', 'libx264', '-crf', '17', '-preset', 'fast', '-pix_fmt', 'yuv420p', '-c:a', 'copy', tmp])
+      rmSync(source); copyFileSync(tmp, source); rmSync(tmp)
+      console.log('⚠️ Sa vidéo est filmée à l’horizontale : je l’ai posée en entier au milieu, sur un fond flouté. Dis-lui de tenir son téléphone debout la prochaine fois.')
+    }
+  }
+  // (banc d'essai du 11/11) Vidéo SANS PISTE SON (son coupé dans l'appli, export muet) : l'outil plantait. On lui pose un silence.
+  if (!lancer('ffprobe', ['-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=index', '-of', 'csv=p=0', source]).trim()) {
+    const tmp = join(dir, 'source-son.mp4')
+    lancer('ffmpeg', ['-y', '-v', 'error', '-i', source, '-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo', '-map', '0:v:0', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-t', String(D), tmp])
+    rmSync(source); copyFileSync(tmp, source); rmSync(tmp)
+    console.log('⚠️ Sa vidéo n’a AUCUN son (piste muette) : j’ai posé un silence pour pouvoir la monter.')
+  } else {
+    // (banc d'essai du 11/11) VOIX TRÈS BASSE (micro loin, téléphone posé au fond de la pièce) : tout passait pour du silence,
+    // et 20 s de vidéo ressortaient en 3 s. On remonte le son AVANT tout le reste, sans saturer.
+    const pic = +((lancer('ffmpeg', ['-hide_banner', '-nostats', '-i', source, '-vn', '-af', 'volumedetect', '-f', 'null', '-'], { sortie: true }).match(/max_volume: (-?[0-9.]+) dB/) || [])[1] ?? 0)
+    if (pic < -20) { // une voix normale au téléphone culmine entre -3 et -18 dB : en dessous de -20, tout passait pour du silence
+      copyFileSync(source, join(dir, 'source-origine.mp4'))
+      const gain = Math.min(36, -2 - pic).toFixed(1), tmp = join(dir, 'source-son.mp4')
+      lancer('ffmpeg', ['-y', '-v', 'error', '-i', source, '-map', '0:v:0', '-map', '0:a:0', '-c:v', 'copy', '-af', `volume=${gain}dB,alimiter=limit=0.9`, '-c:a', 'aac', '-b:a', '192k', tmp])
+      rmSync(source); copyFileSync(tmp, source); rmSync(tmp)
+      console.log(`⚠️ Sa voix est très basse (crête à ${pic} dB) : je l'ai remontée de ${gain} dB. Dis-lui de se rapprocher du téléphone ou de prendre un micro la prochaine fois.`)
+    }
+  }
   lancer('ffmpeg', ['-y', '-v', 'error', '-i', source, '-vn', '-ar', '16000', '-ac', '1', '-c:a', 'pcm_s16le', join(dir, 'audio.wav')])
   const mots = transcrireMots(join(dir, 'audio.wav'), join(dir, 'mots'))
   writeFileSync(join(dir, 'blancs.json'), JSON.stringify(silences(source, D)))
@@ -163,6 +195,9 @@ function lire(video, charte, nom) {
   // Sans voix (moins de 3 vrais mots) : rien à couper, rien à sous-titrer. On garde TOUTE sa vidéo
   // (« -1 » parce que le montage teste « début > x ») ; sinon elle sortait coupée à 2 s sur 6,7.
   const sansVoix = mots.filter(m => /\p{L}|\d/u.test(m.txt)).length < 3
+  // sans voix, on ne garde pas le son remonté (il ne remonterait que le souffle et la musique) : on rend le sien
+  if (sansVoix && existsSync(join(dir, 'source-origine.mp4'))) { rmSync(source); copyFileSync(join(dir, 'source-origine.mp4'), source) }
+  if (sansVoix && existsSync(join(dir, 'source-origine.mp4'))) console.log('(pas de voix : je lui rends son son d’origine, sans le remonter)')
   if (sansVoix) Object.assign(projet, { garder: [[-1, +(D + 1).toFixed(2)]], hesitations: false, vignette: false, sansVoix: true })
   if (!existsSync(join(dir, 'projet.json'))) writeFileSync(join(dir, 'projet.json'), JSON.stringify(projet, null, 2))
   if (sansVoix) {
@@ -951,6 +986,25 @@ function verifier(video, dir, raccourci = false) {
   const dernier = mots.at(-1); if (dernier && dernier.fin > dv - 0.08) console.log('⚠️  la vidéo s\'arrête juste sur le dernier mot : vérifie qu\'il n\'est pas coupé')
   if (!raccourci && mots.length < avant * 0.9) console.log('⚠️  il manque des mots : écouter avant de montrer')
   if (trous.length) console.log('⚠️  silence de plus de 3 s à ' + trous.map(([a]) => a.toFixed(1) + ' s').join(', '))
+  oreille(video, dir, mots)
+}
+
+// ── l'oreille fine (11/11) : ce que fait un ingé son avant de rendre une vidéo ─────
+// Volume perçu de toute la vidéo (LUFS, Instagram attend -14), crête réelle, et CHAQUE petit son comparé à sa voix :
+// un son qui passe par-dessus ses mots se remarque tout de suite à l'écoute, jamais sur une planche.
+function oreille(video, dir, mots) {
+  const eb = lancer('ffmpeg', ['-hide_banner', '-nostats', '-i', video, '-vn', '-af', 'ebur128=framelog=verbose:peak=true', '-f', 'null', '-'], { sortie: true })
+  const [trames, resume = ''] = eb.split(/Summary:/)
+  const I = +(resume.match(/I:\s+(-?[\d.]+) LUFS/) || [])[1], TP = +(resume.match(/Peak:\s+(-?[\d.]+) dBFS/) || [])[1]
+  const M = [...trames.matchAll(/t:\s*([\d.]+)\s+TARGET:[^M]*M:\s*(-?[\d.]+|-inf)/g)].map(m => [+m[1], m[2] === '-inf' ? -70 : +m[2]])
+  const parle = M.filter(([t]) => mots.some(w => t - 0.4 >= w.t - 0.05 && t - 0.4 <= w.fin + 0.05)).map(([, v]) => v).sort((a, b) => a - b)
+  const voix = parle.length ? parle[Math.floor(parle.length / 2)] : null
+  let sons = []; try { sons = readFileSync(join(dir, 'sons-places.txt'), 'utf8').split(/\r?\n/).map(l => l.match(/^\s*([\d.]+) s\s+(\S+)/)).filter(Boolean).map(m => [+m[1], m[2]]) } catch {}
+  const forts = voix == null ? [] : sons.map(([t, n]) => [t, n, Math.max(-70, ...M.filter(([x]) => x - 0.4 >= t - 0.05 && x - 0.4 <= t + 0.5).map(([, v]) => v)) - voix]).filter(([, , e]) => e > 6)
+  console.log(`Oreille : volume ${isNaN(I) ? '?' : I.toFixed(1)} LUFS (cible -14) · crête ${isNaN(TP) ? '?' : TP.toFixed(1)} dB · ${sons.length} petit(s) son(s) écouté(s)${voix != null ? ' · voix à ' + voix.toFixed(0) + ' LUFS' : ''}`)
+  if (voix != null && !isNaN(I) && Math.abs(I + 14) > 2.5) console.log(`⚠️  volume général à ${I.toFixed(1)} LUFS : ${I < -14 ? 'trop bas, elle sonnera plus faible que les autres reels' : 'trop fort'} (cible -14)`)
+  if (!isNaN(TP) && TP > -0.5) console.log(`⚠️  crête à ${TP.toFixed(1)} dB : risque de grésillement sur téléphone`)
+  for (const [t, n, e] of forts) console.log(`⚠️  le petit son « ${n} » à ${t.toFixed(1)} s passe ${e.toFixed(0)} dB au-dessus de sa voix : écoute ce moment, et s'il gêne, coupe cette famille de sons ("sons" dans projet.json, null) ou choisis un son plus doux`)
 }
 
 const [cmd, ...args] = process.argv.slice(2)
