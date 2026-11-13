@@ -386,7 +386,9 @@ async function monter(nom) {
     const { L, E, R, cx, cy } = infos[i]
     let z = ''
     if (L || E || R !== 1) {
-      const lent = L ? `${ZOOM_LENT / (L[1] - L[0])}*(t+${(a - L[0]).toFixed(3)})` : '0'
+      // max(0, …) : un morceau peut commencer jusqu'à 0,05 s AVANT son plan long ; sans ce plancher le zoom devient
+      // négatif, l'image passe sous 2880 px et le recadrage échoue (vidéo d'une élève, 13/11/2026).
+      const lent = L ? `max(0,${ZOOM_LENT / (L[1] - L[0])}*(t+${(a - L[0]).toFixed(3)}))` : '0'
       let emb = '0'
       if (E) { const u = `((${a.toFixed(3)}+t-${E[0]})/${(E[1] - E[0]).toFixed(3)})`; emb = `${EMBARQUE}*if(lt(${u},0),0,if(gt(${u},1),0,${u}*${u}*(3-2*${u})))` }
       z = `,scale=w='2*trunc(1440*${R}*(1+${lent}+${emb}))':h=-2:eval=frame:flags=bicubic,crop=2880:5120:${R > 1 && cx != null ? `'max(0,min(iw-2880,${(cx * 4).toFixed(1)}*iw/2880-1440))':'max(0,min(ih-5120,${(cy * 4).toFixed(1)}*ih/5120-${(0.36 * 5120).toFixed(0)}))'` : '(iw-2880)/2:(ih-5120)*0.35'},scale=${CADRE}:flags=bicubic`
