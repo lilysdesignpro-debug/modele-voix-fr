@@ -967,7 +967,14 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   //         capture et l'avant/après sous son visage ; jamais sur son visage.
   const filR = K.filRouge && (K.filRouge.etapes || []).length ? K.filRouge.etapes.map((x, k, l) => ({ type: 'filrouge', t: x.t, k, items: l.map(y => y.texte), titre: K.filRouge.titre, look: K.filRouge.look, duree: x.duree || K.filRouge.duree })) : []
   const GEANT = K.fin?.geant && K.fin?.motCle ? [{ type: 'motGeant', t: K.fin.t ?? (TOT - 3.5), texte: K.fin.motCle, avant: K.fin.avant, duree: 60 }] : []
-  for (let E of [...(K.effets || []), ...filR, ...GEANT, ...(LUXE ? (K.listes || []).map(L => ({ ...L, type: 'listeLuxe' })) : [])]) {
+  // (13/11/2026) en luxe, deux effets gardaient leur look d'origine et cassaient le style : la phrase-choc en feutre
+  // jaune et la feuille d'écolier. La feuille devient la liste en verre, la phrase-choc un grand italique sobre.
+  const enLuxe = E => !LUXE ? E
+    : E.type === 'feuille' ? { ...E, type: 'listeLuxe', items: E.items || E.lignes || [] }
+    : E.type === 'choc' && E.texte ? { t: E.t, type: 'duo', recette: 'douceur', grand: String(E.texte), couleur: '#FFFFFF', duree: E.duree }
+    : E.type === 'duo' && (!E.couleur || E.couleur === 'auto') ? { ...E, couleur: OR } // l'or pâle du luxe, pas la couleur du décor
+    : E
+  for (let E of [...(K.effets || []).map(enLuxe), ...filR, ...GEANT, ...(LUXE ? (K.listes || []).map(L => ({ ...L, type: 'listeLuxe' })) : [])]) {
     if (E.type === 'extrait') { // la vidéo dans la vidéo : ses images, 15 par seconde, préparées ici
       const f = E.video && (E.video.includes(':') || E.video.startsWith('/') ? E.video : join(dir, E.video)), dE = join(st, 'extrait-' + Math.round(tf(E.t) * 100)); rmSync(dE, { recursive: true, force: true }); mkdirSync(dE, { recursive: true })
       if (f && existsSync(f)) spawnSync('ffmpeg', ['-v', 'error', '-ss', String(E.debut || 0), '-t', String(Math.min(8, E.duree || 5)), '-i', f, '-vf', 'fps=15,scale=450:-2', '-q:v', '4', join(dE, 'i%04d.jpg')])
