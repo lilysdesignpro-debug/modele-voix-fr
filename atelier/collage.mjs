@@ -205,6 +205,18 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   // comme si elle parlait à l'oreille ; le mot fort passe en italique, à la couleur de sa charte.
   const accent = THEME === 'witchy' ? PALETTE.or : coul.mot || C?.motFort?.couleur || '#E8B4A0'
   const finCarte = K.fin?.motCle ? tf(K.fin.t ?? TOT - 3.5) : TOT
+  // (13/11/2026) le serif fin et blanc devenait illisible sur un fond agité (chemise rayée, motifs) ou clair.
+  // On regarde, une fois par phrase, ce qu'il y a SOUS le sous-titre ; s'il le faut, un voile sombre très doux
+  // se pose derrière les mots (rien ne change sur un fond calme : le look validé reste le même).
+  const voiles = new Map()
+  const voile = (p, y) => { if (voiles.has(p)) return voiles.get(p)
+    const W = 180, H = 24, y0 = pxV(Math.max(0, y - 10)), h = Math.min(HAUT - y0, pxV(130))
+    const o = spawnSync('ffmpeg', ['-v', 'error', '-ss', ((p.a + p.b) / 2).toFixed(2), '-i', join(st, 'base-av.mp4'), '-frames:v', '1', '-vf', `crop=iw*0.7:${h}:iw*0.15:${y0},scale=${W}:${H}:flags=area,format=gray`, '-f', 'rawvideo', '-']).stdout
+    let v = 0
+    if (o?.length >= W * H) { let g = 0, s = 0; for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { const x = o[j * W + i]; s += x; if (i) g += Math.abs(x - o[j * W + i - 1]) }
+      const agit = g / (H * (W - 1)), clair = s / (W * H) / 255
+      v = Math.max(clamp((agit - 5) / 8, 0, 1), clamp((clair - 0.5) / 0.2, 0, 1)) * 0.72 }
+    voiles.set(p, v); return v }
   el.push({ a: 0, b: TOT, calque: 'devant', dessin: t => {
     if (t < HOOK_ST || el.some(e => e.parle && t >= e.a && t < e.b) || el.some(e => e.duo && t >= e.a && t < e.b)) return ''
     const p = phrases.find(p => t >= p.a && t < p.b); if (!p) return ''
@@ -224,7 +236,9 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       : `<span style="font:italic 500 46px/1 DouxI,serif">${w}</span>`)
     const gerbe = THEME === 'witchy' && dit && pe < 1 ? Array.from({ length: 9 }, (_, k) => { const a = k / 9 * 6.28 + 0.4, d = 30 + 90 * doux(pe), o = Math.sin(pe * Math.PI)
       return WI.etoile4((360 + Math.cos(a) * d * 1.8 - 8).toFixed(1), (y + 20 + Math.sin(a) * d * 0.7 - 8).toFixed(1), 12 + (k % 3) * 5, (o * 0.9).toFixed(2)) }).join('') : ''
-    return `<div style="position:absolute;left:70px;right:110px;top:${y}px;text-align:center;text-wrap:balance;font:600 44px/1.18 Doux,serif;letter-spacing:0.01em;color:${THEME === 'witchy' ? PALETTE.creme : '#fff'};opacity:${q};transform:translateY(${(1 - q) * 6}px);text-shadow:0 1px 3px rgba(0,0,0,.7),0 2px 20px rgba(0,0,0,.65)">${html}</div>` + gerbe
+    const vo = sousCarte == null ? voile(p, y) : 0
+    const fondVoile = vo > 0.02 ? `<div style="position:absolute;inset:-34px -46px;z-index:-1;background:radial-gradient(ellipse 50% 50% at 50% 50%,rgba(18,10,8,${vo.toFixed(2)}),rgba(18,10,8,${(vo * 0.8).toFixed(2)}) 50%,rgba(18,10,8,0) 100%)"></div>` : ''
+    return `<div style="position:absolute;left:70px;right:110px;top:${y}px;text-align:center;text-wrap:balance;font:600 44px/1.18 Doux,serif;letter-spacing:0.01em;color:${THEME === 'witchy' ? PALETTE.creme : '#fff'};opacity:${q};transform:translateY(${(1 - q) * 6}px);text-shadow:0 0 2px rgba(0,0,0,.55),0 1px 3px rgba(0,0,0,.7),0 2px 20px rgba(0,0,0,.65)">${fondVoile}${html}</div>` + gerbe
   } })
   // l'en-tête discret, comme un magazine : son @ à gauche, le sujet à droite (seulement si elle les donne)
   if (K.entete) el.push({ a: HOOK, b: TOT, calque: 'devant', dessin: t => {

@@ -180,7 +180,9 @@ function lire(video, charte, nom) {
   for (const m of mots) {
     if (!cur) cur = { t: m.t, txt: '' }
     cur.txt += (cur.txt ? ' ' : '') + m.txt
-    if (/[.?!,]$/.test(m.txt) && cur.txt.length >= 10 || cur.txt.length >= 30) { lignes.push(cur); cur = null }
+    // (13/11/2026) une fin de phrase (. ? !) coupe toujours, même courte : sinon un sous-titre chevauchait
+    // deux phrases (« sans âme. Elle vient d'avoir un »).
+    if (/[.?!]$/.test(m.txt) && cur.txt.length >= 4 || /,$/.test(m.txt) && cur.txt.length >= 10 || cur.txt.length >= 30) { lignes.push(cur); cur = null }
   }
   if (cur) lignes.push(cur)
   const entete = [

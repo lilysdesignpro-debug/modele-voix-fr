@@ -107,18 +107,23 @@ export function effet(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) {
     const hG = Math.round(zG * R.g[3] * lignesG.length), zF = R.f[2], col = E.couleur && E.couleur !== 'auto' ? E.couleur : (couleurs.decor || couleurs.feutre)
     const fine = E.fine || '#FBF3EA', halo = 'text-shadow:0 0 2px rgba(30,10,15,.85),0 0 10px rgba(30,10,15,.5)'
     const dessus = E.dessus ? casse(E.dessus, R.f[3]) : '', dessous = E.dessous ? casse(E.dessous, R.f[3]) : ''
-    const autour = R.pose === 'autour', hauteur = hG + (autour ? (dessus ? zF * 0.8 : 0) + (dessous ? zF * 0.9 : 0) : zF * 0.5) + 20
-    const ecr = (t, dt, d0, z, extra) => { const q = clamp((dt - d0) / 0.55, 0, 1) // la fine s'écrit de gauche à droite
+    // (13/11/2026) « autour » : le petit mot au-dessus et celui du dessous mordaient sur le grand (« soit c'est du /
+    // DÉMARCHAGE / appelons un chat, un chat ») ; on laisse un vrai espace, accents des capitales compris.
+    const autour = R.pose === 'autour', ecartH = zF * 1.02 + (R.g[4] === 'upper' ? zG * 0.1 : 0), ecartB = zG * 0.06
+    const hauteur = hG + (autour ? (dessus ? ecartH : 0) + (dessous ? ecartB + zF * 1.1 : 0) : zF * 0.5) + 20
+    // une petite ligne trop longue sortait de l'écran : elle rapetisse pour tenir dans la largeur
+    const tient = (t, z) => Math.min(z, Math.floor(600 / Math.max(1, [...t].length * (R.f[3] === 'upper' ? 1.15 : 0.47))))
+    const ecr = (t, dt, d0, z0, extra) => { const q = clamp((dt - d0) / 0.55, 0, 1), z = tient(t, z0) // la fine s'écrit de gauche à droite
       return '<div style="font:' + R.f[1] + ' ' + z + 'px/1 ' + R.f[0] + ';color:' + fine + ';' + (R.f[3] === 'upper' ? 'letter-spacing:.5em;padding-left:.5em;' : '') + halo + ';clip-path:inset(-20% ' + ((1 - q) * 100).toFixed(1) + '% -20% -5%);' + (extra || '') + '">' + esc(t) + '</div>' }
     return { hauteur: Math.round(hauteur), anim: 1.6, duree: E.duree ?? 3.2,
-      dessin: (dt, y) => { const p = clamp(rebond(dt / 0.35), 0, 1.08), yG = autour && dessus ? zF * 0.8 : 0
+      dessin: (dt, y) => { const p = clamp(rebond(dt / 0.35), 0, 1.08), yG = autour && dessus ? ecartH : 0
         let h = '<div style="position:absolute;left:0;right:0;top:' + y + 'px;text-align:center">'
         h += '<div style="position:absolute;left:0;right:0;top:' + yG + 'px;font:' + R.g[1] + ' ' + zG + 'px/' + R.g[3] + ' ' + R.g[0] + ';color:' + col + ';letter-spacing:-.02em;transform:scale(' + p.toFixed(3) + ');filter:drop-shadow(0 6px 14px rgba(0,0,0,.25))">' + lignesG.map(esc).join('<br>') + '</div>'
         const pos = (top, txt, d0, extra) => txt ? '<div style="position:absolute;left:0;right:0;top:' + Math.round(top) + 'px">' + ecr(txt, dt, d0, txt === dessous && R.pose !== 'traverse' ? Math.round(zF * 1.1) : zF, extra) + '</div>' : ''
         if (R.pose === 'dessus') h += pos(-zF * 0.45, dessus, 0.25) + pos(hG - zF * 0.55, dessous, 0.6)
         else if (R.pose === 'traverse') h += pos(hG / 2 - zF / 2, dessus || dessous, 0.3)
         else if (R.pose === 'biais') h += pos(hG / 2 - zF * 0.6, dessus || dessous, 0.3, 'transform:rotate(-7deg)')
-        else h += pos(0, dessus, 0.2) + pos(yG + hG - 4, dessous, 0.55)
+        else h += pos(0, dessus, 0.2) + pos(yG + hG + ecartB, dessous, 0.55)
         if (E.etiquettes) { const q = clamp((dt - 0.9) / 0.3, 0, 1), chip = (x, yy, t) => '<div style="position:absolute;left:' + x + 'px;top:' + Math.round(yy) + 'px;padding:11px 24px;border-radius:14px;background:#1d1b1e;border:3px solid #fff;color:#fff;font:600 25px/1 Poppins,sans-serif;box-shadow:0 6px 16px rgba(0,0,0,.35);opacity:' + q + ';transform:scale(' + (0.8 + 0.2 * q).toFixed(2) + ')">' + esc(t) + '</div>'
           const fl = d => '<svg style="position:absolute;left:0;top:0;overflow:visible;opacity:' + q + '" width="720" height="10"><path d="' + d + '" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" style="filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))"/></svg>'
           h += chip(60, -100, R.g[5]) + fl('M150 -44 Q 120 -10 150 ' + Math.round(yG + 10)) + chip(420, hauteur + 10, R.f[4]) + fl('M500 ' + Math.round(hauteur + 8) + ' Q 530 ' + Math.round(hauteur - 30) + ' 505 ' + Math.round(hauteur - 50)) }

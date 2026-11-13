@@ -101,3 +101,5 @@ riser-c        montée avant une révélation         freesound.org/s/503815
 soyeux-a       transitions du look luxe            freesound.org/s/320144
 page-c         une page qui se tourne, la feuille lfreesound.org/s/136778
 page-d         une page qui se tourne, la feuille lfreesound.org/s/397548
+telephone-a    téléphone rétro qui sonne   freesound.org/s/556499
+moteur-a       moteur de bulldozer         freesound.org/s/118974
