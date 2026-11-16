@@ -156,7 +156,7 @@ du moteur collage, un texte OU UN EFFET (carte, téléphone, photos, liste) qui 
 planche de contrôle les montre en rouge. Instagram a été mesuré sur un vrai reel ; TikTok et Facebook suivent les
 marges officielles des deux réseaux, prévues pour les pubs, donc plus larges en bas : si elle publie partout, `"toutes"`.
 
-### Régler doux, pop, collage, éditorial, typo, witchy, chic, automne et studio
+### Régler doux, pop, collage, éditorial, typo, witchy, chic, luxe, automne et studio
 
 Tout se règle dans `"collage": { … }` (même nom pour tous), les temps sont ceux de la vidéo d'origine.
 Les sous-titres sont des phrases entières, déjà mises en forme par le style : ne mets pas `motAMot`.
@@ -190,7 +190,7 @@ une vidéo en plusieurs morceaux a la même lumière et la même couleur partout
 elle ; `"musiqueVolume": 0.15`) se baisse toute seule quand elle parle et remonte dans les silences ;
 `"stabiliser": true` stabilise une vidéo filmée à la main qui tremble (propose-le si tu vois l'image trembler).
 
-**Les titres de chapitre** (doux, pop, collage, éditorial, typo, witchy, chic, automne, studio) : pour une vidéo qui raconte
+**Les titres de chapitre** (doux, pop, collage, éditorial, typo, witchy, chic, luxe, automne, studio) : pour une vidéo qui raconte
 en étapes. `"chapitres": [{ "t": 20.2, "petit": "séance 1", "titre": "artiste et modèle" }]` dans `collage`, `t` = le
 moment où elle commence l'étape (temps de la vidéo d'origine). En haut de l'écran : la petite ligne en capitales espacées à SA
 couleur, le titre en serif blanc, sans bande, 3 s. 2 à 5 chapitres, titres de 1 à 4 mots, avec SES mots.
@@ -372,7 +372,7 @@ photo (une image de film, une photo Pinterest, son feed). Commence à 0.5 ou 0.6
 
 **L'intermède** `"medaillon": [[43.9, 48.6]]`, sur LA question ou LA phrase clé, 3 à 5 s, une fois par vidéo :
 en collage elle rétrécit dans un médaillon sur papier quadrillé, en pop c'est une carte inclinée sur fond bleu
-étoilé, en éditorial une page de magazine où ses mots se tapent au clavier, en witchy une page de grimoire. Pas en doux, typo, chic, automne ni studio.
+étoilé, en éditorial une page de magazine où ses mots se tapent au clavier, en witchy une page de grimoire. Pas en doux, typo, chic, luxe, automne ni studio.
 
 **En collage seulement :**
 - `"etiquettes": [{ "t": 7.2, "texte": "marketing de réseau" }]` : une bande de papier tapée à la machine (2 ou 3 mots, 1 ou 2 par vidéo) ;
@@ -402,7 +402,7 @@ Le hook n'est jamais rapproché. Un plan rapproché ou un gros plan à un endroi
 que soit le style : `"rapprocher": [[début, fin]]` ou ` #grosplan` sur la ligne.
 Jamais deux zooms empilés, jamais de zoom/dézoom à chaque phrase sauf en « energie ».
 
-D'office, pour classique, prof et leurs variantes (pas pour doux, pop, collage, éditorial, typo, witchy, chic, automne, studio) :
+D'office, pour classique, prof et leurs variantes (pas pour doux, pop, collage, éditorial, typo, witchy, chic, luxe, automne, studio) :
 - `"motAMot": true` : les sous-titres s'écrivent mot par mot au rythme de sa voix ;
 - `titre` : SES mots du hook (les premiers mots de sa vidéo), `/` pour aller à la ligne ;
 - `etincelles: true` ; `compteur` seulement si son hook contient un chiffre ;
@@ -469,7 +469,7 @@ si le ton de la vidéo est drôle.
 
 ## 6. Monter et vérifier
 
-⛔ **D'abord la planche avant fabrication** (styles doux, pop, collage, éditorial, typo, witchy, chic, automne,
+⛔ **D'abord la planche avant fabrication** (styles doux, pop, collage, éditorial, typo, witchy, chic, luxe, automne,
 studio) : `cd /tmp/montage && node montage.mjs apercu <nom>`. En une minute environ, sans rien fabriquer, elle sort
 `<nom>-apercu.jpg` : 8 images de SON futur montage, textes, effets, duos, fond vert et téléphone en place, avec en
 rouge ce que l'appli recouvre. Montre-la-lui, dis-lui à quels moments correspondent les images (le script les
@@ -491,7 +491,7 @@ laisser de la place au texte, le lui dire gentiment pour sa prochaine vidéo («
 téléphone d'un pas, qu'on voie tes épaules »). Tu ne lui montres JAMAIS une vidéo avec du
 texte sur son visage.
 **Le contrôle de fin de montage.** Il tourne tout seul. Dans doux, pop, collage, éditorial, typo,
-witchy, chic, automne et studio, il mesure chaque texte à l'écran deux fois par seconde. Il signale par « ⚠️ CONTRÔLE » :
+witchy, chic, luxe, automne et studio, il mesure chaque texte à l'écran deux fois par seconde. Il signale par « ⚠️ CONTRÔLE » :
 - un texte sur son visage, ou un titre caché derrière sa tête ;
 - le même mot deux fois à l'écran en même temps ;
 - un texte coupé au bord, ou sous les boutons de l'appli (légende en bas, onglets en haut, icônes à droite), selon
@@ -644,4 +644,4 @@ Elle utilise SES éléments avec SA licence Canva : tu ne lui proposes jamais de
 - « Abonne-toi » en fin de vidéo, un faux témoignage, un faux chiffre.
 - Lui montrer une vidéo que tu n'as pas vérifiée.
 - Citer le nom d'une autre élève ou d'une créatrice dont s'inspirent les styles : les styles
-  s'appellent doux, classique, prof, pop, collage, éditorial, typo, witchy, chic, automne, studio (et les variantes serie, carnet, energie), et c'est tout ce que l'élève voit.
+  s'appellent doux, classique, prof, pop, collage, éditorial, typo, witchy, chic, luxe, automne, studio (et les variantes serie, carnet, energie), et c'est tout ce que l'élève voit.
