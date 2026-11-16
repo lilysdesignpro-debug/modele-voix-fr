@@ -461,7 +461,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       // (06/11) le trait pointe vers le VRAI produit, repéré dans l'image (flacon, tasse, téléphone…), jamais vers sa bouche ;
       // pas de produit repéré, ou repéré sur son visage : pas de trait
       if (pr.vers == null || pr.vers === 'auto') { pr.vers = null
-        const o = spawnSync('node', [join(ICI, 'detourage', 'objets.mjs'), join(st, 'base-av.mp4'), a.toFixed(2), b.toFixed(2)], { encoding: 'utf8' }).stdout || ''
+        const o = spawnSync(process.execPath, [join(ICI, 'detourage', 'objets.mjs'), join(st, 'base-av.mp4'), a.toFixed(2), b.toFixed(2)], { encoding: 'utf8' }).stdout || ''
         let r = null; try { r = JSON.parse(o.trim().split('\n').pop()) } catch {}
         const v = vis((a + b) / 2), surVisage = r && v && r.x > v[0] && r.x < v[2] && r.y > v[1] && r.y < v[3]
         if (r && !surVisage) { pr.vers = [r.x, r.y]; console.log('Produit repéré pour « ' + (pr.nom || pr.sous) + ' » : ' + r.classe + ' en ' + r.x + ', ' + r.y) }
@@ -1015,7 +1015,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   // 7 sexies. Les effets détourés : son décor change, elle devient papier, un trait de feutre la dessine, une spirale l'aspire
   const detourTient = (a, b) => { // la silhouette est-elle assez stable pour un effet détouré ?
     const d = join(st, 'garde-' + a.toFixed(2)); rmSync(d, { recursive: true, force: true })
-    spawnSync('node', [join(ICI, 'detourage', 'detourer.mjs'), join(st, 'base-av.mp4'), a.toFixed(3), b.toFixed(3), d], { stdio: 'ignore' })
+    spawnSync(process.execPath, [join(ICI, 'detourage', 'detourer.mjs'), join(st, 'base-av.mp4'), a.toFixed(3), b.toFixed(3), d], { stdio: 'ignore' })
     const o = spawnSync('ffmpeg', ['-v', 'error', '-i', join(d, 'masque-%04d.png'), '-vf', 'scale=36:64', '-f', 'rawvideo', '-pix_fmt', 'gray', '-'], { maxBuffer: 1 << 26 }).stdout
     const n = o ? Math.floor(o.length / 2304) : 0; if (n < 10) return { ok: false, pourquoi: 'détourage impossible' }
     const im = k => { const r = []; for (let i = 0; i < 2304; i++) r.push(o[k * 2304 + i] > 128); return r }
@@ -1229,7 +1229,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       await page.evaluate(x => { document.getElementById('s').innerHTML = x }, html('devant')); await ranger(); await page.screenshot({ path: fV, omitBackground: true })
       lancer('ffmpeg', ['-y', '-v', 'error', '-ss', t.toFixed(3), '-i', join(st, 'base-av.mp4'), '-frames:v', '1', fI])
       const avecDerriere = html('derriere').length > 0
-      if (avecDerriere) spawnSync('node', [join(ICI, 'detourage', 'detourer.mjs'), join(st, 'base-av.mp4'), t.toFixed(3), (t + 0.04).toFixed(3), fM], { stdio: 'ignore' })
+      if (avecDerriere) spawnSync(process.execPath, [join(ICI, 'detourage', 'detourer.mjs'), join(st, 'base-av.mp4'), t.toFixed(3), (t + 0.04).toFixed(3), fM], { stdio: 'ignore' })
       const masque = join(fM, 'masque-0001.png'), detour = avecDerriere && existsSync(masque)
       const g = !avecDerriere ? '[0][2]overlay=0:0[o]'
         : !detour ? '[0][1]overlay=0:0[x];[x][2]overlay=0:0[o]'
@@ -1320,7 +1320,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
     const piste = new Array(N + 2).fill(null)
     for (const [k, [x, y]] of (FV && !FVok ? [] : unies.entries())) {
       const d = join(dt, `f${k}`)
-      spawnSync('node', [join(ICI, 'detourage', 'detourer.mjs'), base, x.toFixed(3), y.toFixed(3), d], { stdio: 'inherit' })
+      spawnSync(process.execPath, [join(ICI, 'detourage', 'detourer.mjs'), base, x.toFixed(3), y.toFixed(3), d], { stdio: 'inherit' })
       ;(existsSync(d) ? readdirSync(d) : []).filter(z => z.startsWith('masque-')).sort().forEach((m, i) => { const fr = Math.round(x * FPS) + i; if (fr < piste.length) piste[fr] = join(d, m) })
     }
     const noir = join(st, 'masque-noir.png'); lancer('ffmpeg', ['-y', '-v', 'error', '-f', 'lavfi', '-i', 'color=c=black:s=720x1280', '-frames:v', '1', '-pix_fmt', 'gray', noir])

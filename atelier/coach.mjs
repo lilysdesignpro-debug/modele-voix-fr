@@ -126,7 +126,7 @@ async function analyser(video, nom) {
   redites.splice(0, redites.length, ...fusion.map(({ fin1, ...r }) => r))
   // 6. Le regard, le cadrage, la lumière, le sourire
   const fr = join(dir, 'regard.json')
-  if (!existsSync(fr)) spawnSync('node', [join(ICI, 'detourage', 'regard.mjs'), source, fr], { stdio: 'inherit' })
+  if (!existsSync(fr)) spawnSync(process.execPath, [join(ICI, 'detourage', 'regard.mjs'), source, fr], { stdio: 'inherit' })
   const R = existsSync(fr) ? JSON.parse(readFileSync(fr, 'utf8')) : []
   const pendant = R.filter(r => parle(r.t)), vu = pendant.filter(r => r.v), pc = (a, b) => b.length ? Math.round(100 * a.length / b.length) : null
   const visage = {

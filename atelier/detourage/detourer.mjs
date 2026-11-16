@@ -49,7 +49,7 @@ async function navigateur() {
   const existe = f => { try { readFileSync(f); return true } catch { return false } }
   try {
     const pup = (await import('puppeteer')).default
-    const chrome = ['C:/Program Files/Google/Chrome/Application/chrome.exe', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'].find(existe)
+    const chrome = [process.env.NAVIGATEUR, 'C:/Program Files/Google/Chrome/Application/chrome.exe', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'].find(existe)
     return await pup.launch({ ...(chrome ? { executablePath: chrome } : {}), args: ['--enable-unsafe-swiftshader'] })
   } catch {
     const { createRequire } = await import('node:module')

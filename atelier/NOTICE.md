@@ -118,10 +118,10 @@ mots forts, et dis-lui ensuite ce que tu as corrigé, pour qu'elle puisse rectif
 Pars de `exemple-projet.json` (dans le dossier de la compétence) pour la structure :
 ses temps et ses textes sont fictifs, tu les refais pour CETTE vidéo.
 
-**Le style de montage** (`"style"`) : propose-lui les 11 styles avec leur phrase, elle choisit.
+**Le style de montage** (`"style"`) : propose-lui les 12 styles avec leur phrase, elle choisit.
 ⛔ **Si elle n'a pas dit de style, demande-le AVANT de monter**, même si elle t'a dit de monter sans
 questions : c'est la seule question qui change tout le résultat. Une ligne par style, en mots simples
-(doux, classique, prof, pop, collage, éditorial, typo, witchy, chic, automne, studio), avec celui que tu lui conseilles pour CETTE vidéo et
+(doux, classique, prof, pop, collage, éditorial, typo, witchy, chic, luxe, automne, studio), avec celui que tu lui conseilles pour CETTE vidéo et
 pourquoi en une phrase. Elle répond un mot, tu montes. Sa charte ne remplace pas le style : la charte
 donne ses couleurs et ses polices, le style donne le montage.
 Ils sont volontairement très différents les uns des autres : aide-la à choisir selon SA vidéo et son univers.
@@ -137,10 +137,11 @@ Ils sont volontairement très différents les uns des autres : aide-la à choisi
 | `"typo"` | Typo animée : chaque mot fort arrive avec sa police, sa couleur et son animation, qui tournent (tapé au clavier, lettres qui sautent, néon, arc de cercle, duo manuscrite + grand mot serré) ; sous-titres sobres en petit gras ; le hook saute lettre par lettre ; la fin tape son mot-clé | Énergie, astuces, vidéo phrase par phrase, contenu qui « percute » |
 | `"witchy"` | Sorcière moderne et chic : voile doux de nuit à SA couleur, poussière d'étoiles dorée et orbes de lumière derrière elle, étoile filante, hook en lettres de grimoire dorées avec les phases de la lune, phrases en serif crème dont le mot fort s'illumine en or avec une gerbe d'étoiles, page de grimoire en intermède (la nuit tombe, une constellation se dessine, ses mots s'écrivent en or), mot-clé dans un sceau de lune | Rituels, huiles, énergie, lune, bien-être holistique, spiritualité |
 | `"chic"` | Chic naturel : image naturelle, hook en capitales fines espacées avec un filet et un grand mot en italique raffinée, sous-titres phrase par phrase en sans-serif fin, le mot fort en italique à SA couleur souligné d'un trait, étiquettes produit reliées au produit par un trait fin, chiffres dans une pastille sable avec leurs bénéfices en petites capsules | Vidéo produit, beauté, soin, bien-être, lifestyle, vente en douceur |
+| `"luxe"` | Le plus haut de gamme : image réchauffée avec un léger grain et un vignettage doux, le hook en capitales fines espacées avec un grand mot en italique et un filet doré, ses phrases sur une seule ligne en serif italique blanc avec le mot fort en or pâle, des cartes en verre dépoli au bord lumineux, des coches et une barre de progression dorées, les produits reliés par un trait fin, et les sons de la famille luxe | Offre haut de gamme, produit premium, soin, image de marque élégante |
 | `"automne"` | Cosy automne : hook sur sa poitrine (petite manuscrite, grand titre crème au contour brun, fin en manuscrite rouille, petites étoiles), des feuilles d'automne qui tombent derrière elle pendant le hook, ses mots qui arrivent UN PAR UN en écriture ronde crème au contour brun (le mot fort en rouille, plus gros, avec deux feuilles), image légèrement réchauffée ; les polices changent d'une vidéo à l'autre | Saison, cocooning, routine, bien-être, contenu doux et chaleureux |
 | `"studio"` | Très créatif : par moments elle est détourée sur un fond quadrillé tracé à la main à SA couleur, un soleil pâle derrière sa tête, ses mots posés en escalier en serif d'affiche et en manuscrite (ou, en version claire, sur un fond blanc à carreaux avec un soleil jaune et ses mots à SA couleur) ; le reste du temps sa vidéo normale avec des sous-titres fins | Storytelling, coulisses, présentation, contenu « waouh » ; mieux en plan assez large, sur un fond simple |
 
-Pop, collage, éditorial, typo, witchy, chic, automne, studio et doux passent par un autre moteur (`collage.mjs`), qui se lance tout seul.
+Pop, collage, éditorial, typo, witchy, chic, luxe, automne, studio et doux passent par un autre moteur (`collage.mjs`), qui se lance tout seul.
 **Ils demandent de la place au-dessus de sa tête** (pour pop, collage et éditorial) : si elle est filmée très serrée, propose plutôt classique, prof ou doux.
 
 **Trois variantes de classique**, à proposer si sa vidéo s'y prête :

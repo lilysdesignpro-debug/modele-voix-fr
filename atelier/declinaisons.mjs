@@ -23,7 +23,7 @@ const DC = JSON.parse(readFileSync(join(dir, 'declinaisons.json'), 'utf8'))
 const sortie = join(dir, 'contenu'); mkdirSync(sortie, { recursive: true })
 const lancer = (cmd, args) => { const r = spawnSync(cmd, args, { encoding: 'utf8', maxBuffer: 1 << 28 }); if (r.status !== 0) throw new Error(`${cmd} : ${(r.stderr || r.stdout || '').slice(-600)}`); return r.stdout + r.stderr }
 const derniere = d => readdirSync(d).filter(f => /-v\d+\.mp4$/.test(f)).sort((a, b) => statSync(join(d, b)).mtimeMs - statSync(join(d, a)).mtimeMs)[0]
-const monter = n => { const r = spawnSync('node', [join(ICI, 'montage.mjs'), 'monter', n], { encoding: 'utf8', maxBuffer: 1 << 28 }); const alerte = (r.stdout + r.stderr).split('\n').filter(l => /VISAGE|rror|retirée/.test(l)); alerte.forEach(l => console.log('  ' + l.trim()))
+const monter = n => { const r = spawnSync(process.execPath, [join(ICI, 'montage.mjs'), 'monter', n], { encoding: 'utf8', maxBuffer: 1 << 28 }); const alerte = (r.stdout + r.stderr).split('\n').filter(l => /VISAGE|rror|retirée/.test(l)); alerte.forEach(l => console.log('  ' + l.trim()))
   // un titre d'ouverture sans place hors du visage (gros plan) : la phrase est à changer pour un plan plus large
   if (alerte.some(l => /VISAGE.*titre/.test(l))) console.log(`  ⚠️ ${n} : le titre touche son visage, choisis une phrase d'ouverture où elle est filmée plus large`)
   if (r.status !== 0) throw new Error(`le montage de ${n} a échoué`) }

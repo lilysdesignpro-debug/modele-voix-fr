@@ -62,7 +62,8 @@ const duree = f => +lancer('ffprobe', ['-v', 'error', '-show_entries', 'format=d
 async function ouvrirNavigateur() {
   try {
     const pup = (await import('puppeteer')).default
-    const chrome = ['C:/Program Files/Google/Chrome/Application/chrome.exe', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'].find(existsSync)
+    // (13/11/2026) Bizz Cut installé chez une élève : pas forcément de Chrome, mais Edge est sur tous les Windows
+    const chrome = [process.env.NAVIGATEUR, 'C:/Program Files/Google/Chrome/Application/chrome.exe', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', 'C:/Program Files/Microsoft/Edge/Application/msedge.exe'].filter(Boolean).find(existsSync)
     const nav = await pup.launch(chrome ? { executablePath: chrome } : {})
     // la mise en page reste en 720 x 1280 (pixels CSS) ; chaque capture sort à l'échelle de sortie, nette (echelle.mjs)
     const nouvelle = nav.newPage.bind(nav)
@@ -78,6 +79,7 @@ async function ouvrirNavigateur() {
 }
 
 function modeleWhisper() {
+  if (process.env.WHISPER_MODELE && existsSync(process.env.WHISPER_MODELE)) return process.env.WHISPER_MODELE // (13/11) le modèle livré dans Bizz Cut
   const dir = join(homedir(), '.cache', 'whisper')
   const pref = ['ggml-large-v3-turbo.bin', 'ggml-large-v3.bin', 'ggml-medium.bin', 'ggml-small.bin', 'ggml-base.bin']
   const la = existsSync(dir) ? readdirSync(dir) : []
@@ -223,7 +225,7 @@ async function monter(nom) {
   const blancs = JSON.parse(readFileSync(join(dir, 'blancs.json'), 'utf8'))
   const coupes = JSON.parse(readFileSync(join(dir, 'plans.json'), 'utf8'))
   // Le visage, repéré toutes les 0,25 s : RIEN ne se pose dessus (règle d'Aurélie, pour toutes les élèves).
-  if (!existsSync(join(dir, 'visages.json'))) spawnSync('node', [join(ICI, 'detourage', 'visages.mjs'), source, join(dir, 'visages.json')], { stdio: 'inherit' })
+  if (!existsSync(join(dir, 'visages.json'))) spawnSync(process.execPath, [join(ICI, 'detourage', 'visages.mjs'), source, join(dir, 'visages.json')], { stdio: 'inherit' })
   const VIS = existsSync(join(dir, 'visages.json')) ? JSON.parse(readFileSync(join(dir, 'visages.json'), 'utf8')) : []
   // Le détecteur rate souvent les premières images d'un plan (flou de mouvement) : sans visage repéré,
   // on prend le plus proche (jusqu’à 0,75 s après, 0,5 s avant), pour qu'aucune carte ne se pose sur elle au moment de la coupe.
@@ -886,7 +888,7 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
     const NBm = Math.ceil(TOT * 30) + 2, piste = new Array(NBm).fill(null)
     for (const [k, [x, y]] of fenetres.entries()) {
       const d = join(dt, `f${k}`)
-      spawnSync('node', [join(ICI, 'detourage', 'detourer.mjs'), base, x.toFixed(3), y.toFixed(3), d], { stdio: 'inherit' })
+      spawnSync(process.execPath, [join(ICI, 'detourage', 'detourer.mjs'), base, x.toFixed(3), y.toFixed(3), d], { stdio: 'inherit' })
       readdirSync(d).filter(z => z.startsWith('masque-')).sort().forEach((m, j) => { const fr = Math.round(x * 30) + j; if (fr < NBm) piste[fr] = join(d, m) })
     }
     // hors des fenêtres : un masque noir (personne de détourée), image par image comme la piste des petits plus
