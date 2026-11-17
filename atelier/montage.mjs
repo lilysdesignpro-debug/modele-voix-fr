@@ -917,7 +917,7 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
   // 4. Sons : la banque choisie par Aurélie (sons/), rangée par familles ; chaque famille tourne pour varier.
   const SONS = readdirSync(join(ICI, 'sons')).filter(x => x.endsWith('.wav')).map(x => x.slice(0, -4))
   const son = sonneur(SONS, P.sons, P.style) // (06/11) ses sons à elle : "sons" dans projet.json (pack, ou un son par famille) ; null = famille coupée
-  const iPlus = 4 + SONS.length // la piste des petits plus vient après tous les sons
+  const iPlus = 4 // (17/11) les sons passent EN DERNIER et seulement ceux qui servent : avec toute la banque, la ligne de commande dépassait la limite de Windows (« ffmpeg est introuvable »)
   const flous = (P.stickers || []).filter(s => s.flou).map(s => `between(t,${nt(s.t).toFixed(2)},${(nt(s.t) + (s.duree || 2)).toFixed(2)})`)
   if (process.env.MONTAGE_FLOUS) { console.log(flous); process.exit(0) }
   // givré : flou + un voile clair, pour que la carte se détache comme posée sur une vitre dépolie
@@ -1010,7 +1010,17 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
 
   // Chaque son accompagne ce qu'on voit, rien pendant le hook, jamais sur un mot fort.
   const ev = []
-  for (const B of P.bruitages || []) if (B && B.son && B.t != null) { const n = son(String(B.son)); if (n) ev.push([n, nt(B.t), B.vol ?? VOL_SON]) } // (08/11) bruitages posés à la main
+  // (17/11) l'élève place ses sons où elle veut, avec SES mots : { "mot": "explose", "son": "impact-c" } (et "fois": 2 pour la 2e fois qu'elle le dit) ;
+  // l'outil trouve tout seul le moment, seulement dans les passages gardés. Les temps à la main ("t") marchent toujours.
+  const MOTS_SON = existsSync(join(dir, 'mots.json')) ? (JSON.parse(readFileSync(join(dir, 'mots.json'), 'utf8')).transcription || []).map(w => ({ t: w.offsets.from / 1000, txt: sansAcc(w.text || '') })).filter(w => w.txt) : []
+  const garde_ = t => !RETIRER.some(([x, y]) => t >= x && t < y)
+  for (const B of P.bruitages || []) {
+    if (!B || !B.son) continue
+    let t = B.t
+    if (t == null && B.mot) { const cible = sansAcc(String(B.mot)).split(' ')[0], vus = MOTS_SON.filter(w => w.txt === cible && garde_(w.t)); const w = vus[(B.fois || 1) - 1]; if (w) t = w.t + 0.15; else console.log(`  (son « ${B.son} » : je n'entends pas « ${B.mot} » dans les passages gardés)`) }
+    if (t == null) continue
+    const n = son(String(B.son)); if (n) ev.push([n, nt(t), B.vol ?? VOL_SON])
+  } // (08/11) bruitages posés à la main
   if (OUV) ev.push([son('whoosh'), HOOK - 0.2, VOL_SON]) // passage de l'ouverture au début de la vidéo
   coupes.map(nt).filter(t => t > HOOK + 0.3).forEach(t => ev.push([son('whoosh'), t - 0.2, VOL_SON]))
   let k = 0, d = 0
@@ -1038,7 +1048,8 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
   if (P.clicsMotsForts) subs.filter(s => s.a >= HOOK && s.txt.includes('*') && !plus.some(p => p.son && Math.abs(p.a - (s.tFort ?? s.a)) < 0.4)).forEach(s => ev.push([son('clic'), s.tFort ?? s.a, P.clicsMotsForts]))
   writeFileSync(join(dir, 'sons-places.txt'), ev.slice().sort((x, y) => x[1] - y[1]).map(([n, t]) => `${t.toFixed(1).padStart(5)} s  ${n}`).join(String.fromCharCode(10)) + String.fromCharCode(10))
   ev.splice(0, ev.length, ...ev.filter(([n]) => n && SONS.includes(n))) // une famille coupée ou vide ne sonne pas
-  ev.forEach(([n, t, v], j) => { const ms = Math.max(0, Math.round(t * 1000)); f += `[${4 + SONS.indexOf(n)}:a]adelay=${ms}|${ms},volume=${v}[s${j}];` })
+  const UTILES = [...new Set(ev.map(([n]) => n))], iSons = iPlus + 2 + entreesTD.filter(x => x === '-i').length
+  ev.forEach(([n, t, v], j) => { const ms = Math.max(0, Math.round(t * 1000)); f += `[${iSons + UTILES.indexOf(n)}:a]adelay=${ms}|${ms},volume=${v}[s${j}];` })
   f += `[voix]${ev.map((_, j) => `[s${j}]`).join('')}amix=inputs=${ev.length + 1}:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100[ao]`
 
   // 5. Rendu
@@ -1048,7 +1059,7 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
   else if (VIS.length) console.log('Visage : rien ne le touche (sous-titres, titre, cartes vérifiés image par image).')
   console.log(`${segs.length} morceaux · ${TOT.toFixed(1)} s (origine ${D.toFixed(1)} s) · ${subs.length} sous-titres · hook jusqu'à ${HOOK.toFixed(1)} s · ${ev.length} sons`)
   lancer('ffmpeg', ['-y', '-v', 'error', '-i', source, '-f', 'concat', '-safe', '0', '-i', join(st, 'liste.txt'), '-loop', '1', '-i', join(st, 'titre.png'), '-loop', '1', '-i', join(st, 'etiquette.png'),
-    ...SONS.flatMap(s => ['-i', join(ICI, 'sons', s + '.wav')]), '-f', 'concat', '-safe', '0', '-i', join(st, 'plus.txt'), ...entreesTD, '-f', 'concat', '-safe', '0', '-i', join(st, 'plus-2.txt'), '-filter_complex', f, '-map', '[vo]', '-map', '[ao]', '-t', TOT.toFixed(3),
+    '-f', 'concat', '-safe', '0', '-i', join(st, 'plus.txt'), ...entreesTD, '-f', 'concat', '-safe', '0', '-i', join(st, 'plus-2.txt'), ...UTILES.flatMap(s => ['-i', join(ICI, 'sons', s + '.wav')]), '-filter_complex', f, '-map', '[vo]', '-map', '[ao]', '-t', TOT.toFixed(3),
     ...ENCODAGE, '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', sortie])
   verifier(sortie, dir, RETIRER.length > 0, RETRAITS.map(([, y]) => nt(y)).filter(t => t > 0.2 && t < TOT - 0.2))
   console.log(`\nVidéo : ${sortie}`)

@@ -507,6 +507,8 @@ une famille passe avant le pack, et le pack passe avant la rotation habituelle. 
 
 ### Les bruitages posés à la main (clé `"bruitages"`, banque choisie par Aurélie le 08/11)
 
+⛔ **Ses sons, c'est SON imagination.** Le réglage par défaut pose des sons sobres ; dès qu'elle veut un son à un endroit, tu le mets, sans discuter, même si ce n'est pas « la règle ». Le plus simple : elle dit le MOT sur lequel elle le veut, et l'outil trouve le moment tout seul : `"bruitages": [{ "mot": "explose", "son": "impact-c" }]` (`"fois": 2` si c'est la 2e fois qu'elle dit ce mot dans la vidéo). Rien à calculer, pas de temps à deviner. Si l'outil écrit « je n'entends pas … », demande-lui un autre mot de la même phrase.
+
 Pour un bruitage qui RACONTE ce qu'elle dit, au moment précis : `"bruitages": [{ "t": 12.4, "son": "impact" }, { "t": 31, "son": "argent" }]`
 (`t` = temps de la vidéo d'origine ; `son` = une famille, ou un son précis comme `"impact-c"` ; `"vol"` facultatif). Les familles (sélection d'Aurélie du 17/11, sons d'appli modernes) :
 `impact` (un mot-choc, un chiffre qui claque), `riser` (montée avant une révélation), `aspiration` (transition qui avale l'image), `swipe` (doigt qui glisse, page qui tourne), `photo` (capture d'écran), `argent` / `kaching` (une vente, un chiffre d'affaires), `message` (message envoyé ou reçu), `ding` (un rappel, une idée), `clavier` (texte qui se tape), `magie` (quelque chose apparaît), `cloche` (notification), `pop`, `clic`, `whoosh`. ⛔ Plus aucun son de dessin animé (boing, stop, cassette, glitch) : ils sont coupés. ⛔ Deux ou trois par vidéo au plus,
