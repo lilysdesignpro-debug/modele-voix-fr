@@ -689,7 +689,8 @@ Elle utilise SES éléments avec SA licence Canva : tu ne lui proposes jamais de
 ## Ce que tu ne fais jamais
 
 - Une version courte qui n'a pas de sens : une idée sans ce qui l'explique, un bout de phrase, un mot coupé.
-- Un son sur le hook, un bruitage long ou fort, un son qui couvre sa voix.
+- Un bruitage sur le hook (seule exception, validée par Aurélie le 17/11 : la montée de tension très basse posée d'office dès la première image ; `"sonHook": false` si elle n'en veut pas), un bruitage long ou fort, un son qui couvre sa voix.
+- Un surlignage jaune ou une couleur qui n'est pas dans SA charte.
 - Des zooms qui entrent et sortent à chaque phrase. Le noir et blanc (sauf le court arc du style pop).
 - Du texte ou une carte sur son visage.
 - « Abonne-toi » en fin de vidéo, un faux témoignage, un faux chiffre.

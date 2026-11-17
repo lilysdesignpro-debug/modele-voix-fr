@@ -503,6 +503,8 @@ Propose-les-lui, elle choisit :
 
 ### Ses sons à elle (clé `"sons"`)
 
+**Par défaut, l'outil prend la sélection d'Aurélie** (pack « pro », choisie à l'oreille le 17/11 : scintillement quand une liste ou un titre apparaît, bloop sur les pastilles et les grands mots, whoosh aux vraies transitions, clavier, tension d'intro). Pas de clic sur chaque mot, pas de glitch : peu de sons, et seulement là où il se passe quelque chose. Tu n'as rien à régler.
+
 Elle peut choisir ses sons. Elle te le dit avec ses mots, et tu traduis :
 
 | Elle te dit | Tu écris dans projet.json |

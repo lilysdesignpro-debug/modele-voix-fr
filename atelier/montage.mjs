@@ -1031,6 +1031,8 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
     // les petits pops/clics des émojis et des lignes qui s'écrivent restent, très légers
     plus.filter(p => p.leger).forEach(p => ev.push([son(p.son), p.a, P.volLegers ?? 0.12]))
   }
+  // (17/11) la montée de tension sous le hook, validée par Aurélie (« le whoosh oui ») : très basse, dès la première image. "sonHook": false pour l'enlever
+  if (P.sonHook !== false && !ev.some(([n, t]) => t < 0.5)) { const nh = son('riser'); if (nh) ev.push([nh, 0, P.volSonHook ?? 0.3]) }
   // « un petit clic à défi » : un clic de souris très discret à l'arrivée de chaque mot rouge (après le hook)
   // le clic tombe quand le mot rouge APPARAÎT (en mot à mot, c'est au milieu de la phrase, pas à son début)
   if (P.clicsMotsForts) subs.filter(s => s.a >= HOOK && s.txt.includes('*') && !plus.some(p => p.son && Math.abs(p.a - (s.tFort ?? s.a)) < 0.4)).forEach(s => ev.push([son('clic'), s.tFort ?? s.a, P.clicsMotsForts]))
