@@ -505,6 +505,8 @@ Propose-les-lui, elle choisit :
 
 **Par défaut, l'outil prend la sélection d'Aurélie** (pack « pro », choisie à l'oreille le 17/11 : scintillement quand une liste ou un titre apparaît, bloop sur les pastilles et les grands mots, whoosh aux vraies transitions, clavier, tension d'intro). Pas de clic sur chaque mot, pas de glitch : peu de sons, et seulement là où il se passe quelque chose. Tu n'as rien à régler.
 
+Elle a peut-être écouté le catalogue des sons (page « les sons de l'atelier ») et te dit un nom : scintillement 1 = `scintillement-a`, scintillement 2 = `scintillement-b`, bloop 1 = `bloop-a`, bloop 2 = `bloop-b`, whoosh 1 = `whoosh-pro-a`, whoosh 2 = `whoosh-pro-b`, clavier = `clavier-pro-a`, tension d'intro = `tension-a`. Pose-le au moment qu'elle dit avec `"bruitages": [{ "t": <temps d'origine>, "son": "scintillement-a" }]`. « Enlève la tension du début » = `"sonHook": false`.
+
 Elle peut choisir ses sons. Elle te le dit avec ses mots, et tu traduis :
 
 | Elle te dit | Tu écris dans projet.json |

@@ -115,3 +115,11 @@ whoosh-pro-b      transition                     freesound.org/s/127197
 clavier-pro-a     texte qui se tape              freesound.org/s/423648
 tension-a         tension d'intro                freesound.org/s/840719
 Sélection d'Aurélie = pack « pro » (sons-choix.mjs), utilisé par défaut.
+
+Ajoutés le 17/11/2026 (21h), choisis par Aurélie dans la grande planche (tous CC0) :
+notification-a/b            freesound.org/s/518850, /625174
+scintillement-c/d/e/f/g     freesound.org/s/248143, /452379, /511485, /562196, /715067
+succes-a/b                  freesound.org/s/531512, /878622
+whoosh-pro-c/d              freesound.org/s/623709, /701104
+pop-pro-a/b/c               freesound.org/s/319107, /69165, /97978
+bloop-c, tap-a/b/c, ouverture-a/b, clic-pro-a, interrupteur-a   Kenney Interface Sounds glass_004, select_003/4/5, maximize_006/009, click_003, switch_005 (CC0, kenney.nl)
