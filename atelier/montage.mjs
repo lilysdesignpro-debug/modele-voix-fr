@@ -239,7 +239,9 @@ function calerRetrait([x, y], E, alertes) {
     const dedans = r.find(([a, b]) => t >= a && t <= b); if (dedans) return marge(dedans, t)
     const apres = r.find(([a]) => a > t); if (apres) return marge(apres, null)
     if (t < E.e.length * E.pas - 0.3) alertes.push(t); return t }
-  const fin = cale(x, ([a, b], t) => Math.min(b - 0.02, Math.max(a + 0.06, t ?? a)))
+  // (17/11) la toute fin garde un vrai souffle (0,8 s) après son dernier mot : « ça se coupe trop rapidement sur sa phrase »
+  const finale = y >= E.e.length * E.pas - 0.3, souffle = finale ? 0.8 : 0.06
+  const fin = cale(x, ([a, b], t) => Math.min(b - 0.02, Math.max(a + souffle, t ?? a)))
   const debut = cale(y, ([a, b], t) => Math.max(a + 0.02, Math.min(b - 0.06, t ?? b)))
   return [+fin.toFixed(3), +Math.max(fin + 0.01, debut).toFixed(3)]
 }
@@ -305,6 +307,9 @@ async function monter(nom) {
     }
     segs.splice(0, segs.length, ...garde)
   }
+  // (17/11) la version courte finit sur un vrai souffle : le découpage par blancs ne doit pas le reprendre
+  { const fin = RETRAITS.find(([, y]) => y >= D - 0.3); const der = segs[segs.length - 1]
+    if (fin && der && der[1] < fin[0] && der[1] > fin[0] - 1.5) der[1] = fin[0] }
   for (const [x, y, k] of P.etirer) {
     const i = segs.findIndex(([a, b]) => a < x && b > y); if (i < 0) continue
     const [a, b] = segs[i]; segs.splice(i, 1, [a, x], [x, y, k], [y, b])
@@ -398,7 +403,7 @@ async function monter(nom) {
   // L'image : une correction légère d'office (un peu de lumière, moins de grain, un peu de netteté), qui améliore
   // sans se voir ; puis les options qu'elle demande. JAMAIS de grain, de vignette ou de teinte qui abîme une vidéo
   // de téléphone. "image": "aucun" pour garder l'image telle quelle.
-  const FILTRES = { auto: 'hqdn3d=3:2:4:3,eq=gamma=1.13:contrast=1.04:saturation=1.04,unsharp=5:5:0.45', lumineux: 'eq=brightness=0.05:gamma=1.18:contrast=1.03', grain: 'hqdn3d=5:4:7:5', net: 'unsharp=5:5:0.9', chaud: 'colorbalance=rs=.05:gs=.01:bs=-.05:rm=.03:bm=-.03,eq=saturation=1.06', froid: 'colorbalance=rs=-.04:bs=.05:rm=-.02:bm=.03' }
+  const FILTRES = { auto: 'hqdn3d=3:2:4:3,eq=gamma=1.13:contrast=1.04:saturation=1.04,unsharp=5:5:0.45', lumineux: 'eq=brightness=0.05:gamma=1.18:contrast=1.03', grain: 'hqdn3d=5:4:7:5', net: 'unsharp=5:5:0.9', chaud: 'colorbalance=rs=.05:gs=.01:bs=-.05:rm=.03:bm=-.03,eq=saturation=1.06', froid: 'colorbalance=rs=-.04:bs=.05:rm=-.02:bm=.03', contraste: 'eq=contrast=1.08:gamma=0.94:saturation=1.06' } // contraste (17/11) : une image délavée ou trop blanche (mur clair, lumière de face) reprend du relief
   const IMAGE0 = P.image === 'aucun' ? '' : ['auto', ...[].concat(P.image || []).filter(x => x !== 'auto')].map(n => FILTRES[n]).filter(Boolean).map(x => ',' + x).join('')
   // COLOR MATCH : les couleurs d'une photo qu'elle aime, posées sur sa vidéo (après la correction de base)
   let MATCH = ''

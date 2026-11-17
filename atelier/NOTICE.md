@@ -431,7 +431,7 @@ les polices du style sont fixes, c'est ce qui fait son allure. Montre-lui une im
 **L'image.** Une correction légère s'applique d'office à tous les styles (un peu de lumière, moins
 de grain, un peu de netteté) : elle améliore sans se voir. Si elle trouve sa vidéo sombre, granuleuse
 ou floue, ajoute ce qu'elle demande : `"image": ["lumineux"]`, `["grain"]`, `["net"]`, `["chaud"]` ou
-`["froid"]`, à combiner (`["lumineux", "grain"]`). `"image": "aucun"` garde l'image telle quelle.
+`["froid"]` ou `["contraste"]` (image délavée, trop blanche : elle reprend du relief), à combiner (`["lumineux", "grain"]`, `["net", "chaud", "contraste"]`). ⛔ Ne choisis pas à sa place : sors-lui une image AVANT / APRÈS de sa vidéo pour 2 ou 3 réglages (`ffmpeg -ss <t> -frames:v 1 -vf "<filtres>"` côte à côte) et laisse-la choisir. « lumineux » sur une vidéo déjà claire la délave. `"image": "aucun"` garde l'image telle quelle.
 Jamais de filtre qui abîme : pas de grain ajouté, pas de vignette, pas de noir et blanc.
 
 **L'ambiance**, seulement si elle la demande, par-dessus la correction : `"ambiance": "cocooning"`

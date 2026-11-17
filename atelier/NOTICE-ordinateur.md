@@ -133,6 +133,46 @@ voit en gros sur l'écran : c'est la première chose qu'on lui fera remarquer.
 Si elle t'a dit de monter directement sans questions, corrige toi-même à l'écoute et au contexte, choisis les
 mots forts, et dis-lui ensuite ce que tu as corrigé, pour qu'elle puisse rectifier.
 
+### ⛔ Une vidéo trop longue : la version courte doit raconter une histoire
+
+Dès que sa vidéo dépasse 90 secondes, ou qu'elle te demande « fais-en un reel court », tu fabriques une version
+courte (45 à 75 s). C'est l'étape où l'on rate le plus, et une vidéo sans queue ni tête la décevra plus que tout
+le reste. Dans cet ordre, jamais autrement :
+
+1. **Choisis UNE histoire**, pas un résumé. Lis toute la transcription, puis garde le fil qui a le plus de force,
+   celui que son hook promet (si le hook parle de ses « admiratrices silencieuses », la version courte raconte
+   cette histoire-là, jusqu'au bout). Le reste (les autres sujets, les autres chiffres) part, même si c'est bien :
+   propose-le-lui pour un autre reel.
+2. **Écris `projets/<nom>/histoire-prevue.txt`** : les phrases gardées, dans l'ordre, telles qu'elle les dit.
+   Relis-le à voix haute dans ta tête comme si tu découvrais la vidéo, et vérifie chaque point :
+   - un début qui accroche, un milieu, une fin (sa question, son pari ou son appel) ;
+   - chaque phrase se comprend sans ce qui a été coupé avant elle. Une phrase gardée qui commence par
+     « Mais », « Parce que », « Et donc », « Du coup », « ça », « elle », « ce truc » renvoie à quelque chose :
+     ce quelque chose doit être gardé juste avant ;
+   - aucune idée qui arrive de nulle part, aucune phrase qui en répète une autre ;
+   - quand elle a dit la même phrase plusieurs fois (prises ratées), une seule prise, la plus propre ;
+   - aucun bout de phrase : on garde des phrases ENTIÈRES.
+3. **Montre-lui ce texte** (sans les temps) : « voilà ce que je garde, dans cet ordre, ça te va ? ». Attends son oui.
+4. **Écris `retirer` à partir des MOTS, pas des lignes de sous-titres** : ouvre `projets/<nom>/mots.json`.
+   Une limite de `retirer` commence à la FIN du dernier mot gardé (celui qui porte le point ou le « ? ») et finit
+   au DÉBUT du premier mot gardé ensuite. Jamais entre deux mots d'une même phrase.
+   L'outil recale ensuite chaque limite sur le vrai silence de sa voix (il écrit « Coupe recalée… ») : les temps
+   de l'écoute dérivent de 0,2 à 0,4 s, c'est ce qui laissait des bouts de mots. S'il écrit « ⚠️ COUPE : aucun
+   silence près de… », elle enchaîne sans respirer à cet endroit : choisis une autre limite, une vraie fin de phrase.
+   **Puis écoute la version courte AVANT de fabriquer** : `cd "ATELIER" && node montage.mjs ecouter <nom>`.
+   En une trentaine de secondes, sans rien fabriquer, l'outil colle le son des passages gardés, le réécoute et
+   écrit `histoire.txt` + `coupes.txt`. Corrige `retirer` et relance `ecouter` autant de fois qu'il faut : c'est
+   gratuit en temps. On ne fabrique (10 minutes ou plus) qu'une fois l'histoire juste.
+   Attention : juste après une coupe, l'écoute oublie parfois le premier mot (« ✂ pour le bilan » au lieu de
+   « ✂ Bienvenue pour le bilan »). Avant de changer une limite, regarde dans `mots.json` si ce mot est bien après
+   ta limite : s'il y est, il sera dans la vidéo.
+5. **Corrige `sous-titres.txt`** pour que chaque ligne gardée contienne seulement les mots gardés (une ligne
+   « on lâche rien mais la » devient « on lâche rien. » si « mais la » est coupé).
+6. **Après le montage**, l'outil écrit `histoire.txt` (ce qu'on ENTEND dans la vidéo finie) et `coupes.txt` (chaque
+   coupe avec les mots juste avant ✂ et juste après). Lis les deux en entier. Une coupe est bonne si la ligne d'avant
+   finit une idée et celle d'après en commence une. Un mot coupé, un bout de phrase orphelin, un « ⚠️ COUPE » :
+   tu corriges `retirer` et tu remontes, AVANT de lui montrer quoi que ce soit.
+
 **Les mots forts (ceux qui ressortent en couleur)** : peu, et les bons. Un seul par phrase au plus, et pas plus d'un toutes les 4 à 5 secondes. Le mot qui porte l'émotion, le chiffre, la surprise ou la promesse (« *100 000 €* », « *30 jours* », « *psychopathe de l'organisation* »), jamais un mot outil. Trop de mots forts = plus aucun ne ressort. En mot à mot, le mot fort « pope » tout seul en arrivant.
 
 ## 5. Régler le montage (projets/<nom>/projet.json)
@@ -502,6 +542,8 @@ texte mal placé.
 `cd "ATELIER" && node montage.mjs monter <nom>`
 
 Le script réécoute toute la vidéo : s'il affiche ⚠️, corrige avant de lui montrer.
+Pour une version courte, lis `histoire.txt` et `coupes.txt` (section 4, « la version courte doit raconter une
+histoire ») : la vidéo doit avoir du sens d'un bout à l'autre, c'est la base.
 
 ⛔ **Son visage d'abord.** Le script repère son visage image par image et descend (ou monte)
 tout seul les sous-titres, le titre et les cartes pour ne jamais le toucher ; le plan
@@ -658,6 +700,7 @@ Elle utilise SES éléments avec SA licence Canva : tu ne lui proposes jamais de
 
 ## Ce que tu ne fais jamais
 
+- Une version courte qui n'a pas de sens : une idée sans ce qui l'explique, un bout de phrase, un mot coupé.
 - Un son sur le hook, un bruitage long ou fort, un son qui couvre sa voix.
 - Des zooms qui entrent et sortent à chaque phrase. Le noir et blanc (sauf le court arc du style pop).
 - Du texte ou une carte sur son visage.
