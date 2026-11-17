@@ -293,6 +293,13 @@ async function monter(nom) {
     if (!cuts.length) return []
     console.log('Vignette du début enlevée (' + Math.max(...cuts).toFixed(2) + ' s)'); return [[0, +Math.max(...cuts).toFixed(3)]] })()
   const ENERGIE = existsSync(join(dir, 'audio.wav')) ? energieVoix(join(dir, 'audio.wav')) : null
+  // (17/11) GARDE-FOUS DE LA VERSION COURTE, vus sur la vidéo d'une élève : un résumé à 4 sujets et 10 s où on ne la voyait plus
+  if ((P.retirer || []).length && !process.env.APERCU) {
+    const garde = []; let c = 0; for (const [x, y] of [...P.retirer].sort((a, b) => a[0] - b[0])) { if (x > c + 0.05) garde.push([c, x]); c = Math.max(c, y) } if (D - c > 0.05) garde.push([c, D])
+    const trous = []; for (const [a, b] of garde) { let d = null; for (let t = a; t <= b; t += 0.25) { const v = visageOrig(t); if (!v) { if (d === null) d = t } else { if (d !== null && t - d >= 1.5) trous.push([d, t]); d = null } } if (d !== null && b - d >= 1.5) trous.push([d, b]) }
+    if (trous.length && P.sansVisage !== 'garder') { console.log('⛔ ON NE LA VOIT PAS (temps de la vidéo d’origine) : ' + trous.map(([a, b]) => a.toFixed(1) + '–' + b.toFixed(1) + ' s').join(', ') + '. Retire ces passages (retirer) ou, si elle veut vraiment les garder, mets "sansVisage": "garder". Rien n’est fabriqué.'); process.exit(2) }
+    if (D > 90 && !(P.histoire && P.histoire.fil && P.histoire.validee)) { console.log('⛔ VERSION COURTE SANS HISTOIRE VALIDÉE : écris dans projet.json "histoire": { "fil": "<l’histoire en une phrase>", "validee": true } APRÈS lui avoir montré le texte gardé (histoire-prevue.txt) et reçu son oui. Une seule histoire, pas un résumé de plusieurs sujets. Rien n’est fabriqué.'); process.exit(2) }
+  }
   const alertesCoupe = []
   const RETRAITS = (P.retirer || []).map(r => ENERGIE ? calerRetrait(r, ENERGIE, alertesCoupe) : r)
   RETRAITS.forEach(([a, b], i) => { const [x, y] = P.retirer[i]; if (Math.abs(a - x) > 0.05 || Math.abs(b - y) > 0.05) console.log(`Coupe recalée sur un vrai silence : [${x}, ${y}] → [${a}, ${b}]`) })
@@ -560,15 +567,29 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
     const fin = join(st, 'titre-tape-fin.png'); await png(`<div class="ti" style="top:${hautTitre}px">${tag(E.taille)}<div>${rendu(lettres.length, false)}</div></div>${etincelles}`, fin)
     titreTape.push({ a: titreTape.at(-1).b, b: HOOK, fichier: fin })
   }
-  await png(P.etiquette ? `<div style="position:absolute;left:${Math.max(E.xApres, 48)}px;top:${Math.max(E.yApres, 172)}px">${tag(E.tailleApres)}</div>` : '', join(st, 'etiquette.png'))
+  // (17/11) l'étiquette ne doit jamais buter contre sa tête : si sa tête (cheveux compris) monte souvent jusqu'en haut, l'étiquette descend en bas à gauche
+  const ETIQ = { x0: Math.max(E.xApres, 48), y0: Math.max(E.yApres, 172) }; ETIQ.x1 = ETIQ.x0 + (P.etiquette || '').length * E.tailleApres * 0.62 + 30; ETIQ.h = E.tailleApres * 1.7
+  const touche = y0 => { let n = 0, t = 0; for (let T = HOOK; T <= TOT; T += 0.25) { t++; const v = visageFinal(T); if (v && v[0] < ETIQ.x1 && v[2] > ETIQ.x0 && v[1] - (v[3] - v[1]) * 0.5 < y0 + ETIQ.h + 8 && v[3] > y0) n++ } return t ? n / t : 0 }
+  if (P.etiquette && !P.titreFixe && touche(ETIQ.y0) > 0.15) { ETIQ.y0 = ZONE.bas - ETIQ.h - 12; console.log('Étiquette posée en bas à gauche : en haut, sa tête la touchait trop souvent') }
+  await png(P.etiquette ? `<div style="position:absolute;left:${ETIQ.x0}px;top:${ETIQ.y0}px">${tag(E.tailleApres)}</div>` : '', join(st, 'etiquette.png'))
   let liste = '', t0 = 0
   // Mot à mot (`motAMot: true`) : la phrase se construit au rythme de
   // la voix ; les mots pas encore dits sont là mais invisibles, pour que rien ne bouge quand ils apparaissent.
   const sansAcc = t => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
   let jm = 0
-  let yPrecedent = null
+  // (17/11) jamais deux sous-titres à l'écran en même temps (vu chez une élève : « on programme des actions » sous « et surtout… »)
+  subs.sort((x, y) => x.a - y.a); for (let i = 0; i < subs.length - 1; i++) if (subs[i].b > subs[i + 1].a) subs[i].b = Math.max(subs[i].a + 0.2, subs[i + 1].a)
+  let yPrecedent = null, Y_FIXE = null
+  // (17/11) Des sous-titres qui restent À LA MÊME PLACE toute la vidéo (« ils sautent de la poitrine à l'ordinateur ») :
+  // une seule hauteur, juste sous le point le plus bas de son visage sur toute la vidéo après le hook. `"sousTitresStables": false` pour l'ancien placement.
+  if (P.sousTitresStables !== false && !P.titreFixe) {
+    let bas = -1; for (let T = HOOK; T <= TOT; T += 0.25) { const v = visageFinal(T); if (v) bas = Math.max(bas, v[3]) }
+    const h2 = 2 * S.taille * 1.22 + (F.taille - S.taille)
+    if (bas > 0) Y_FIXE = yPrecedent = Math.round(Math.min(BAS_MAX - h2 / 2, Math.max(1280 * S.y, bas + 30 + h2 / 2)))
+  }
   // pendant une liste animée, les sous-titres se taisent : la liste dit déjà ses mots
   const fenetresEffets = (P.effets || []).map(E => [nt(E.t), nt(E.t) + (E.duree ?? 3)])
+    .concat((P.stickers || []).filter(k => k.type === 'notes' && k.progressif).map(k => [nt(k.t), nt(k.t) + (k.duree ?? 3)])) // (17/11) une liste Notes qui s'écrit dit déjà ses mots : le sous-titre se tait, la carte garde sa taille
   const fenetresListes = (P.listes || []).map(L => { const n = Math.min(5, (L.items || []).length), pas = L.type === 'ticket' ? 0.45 : 0.6; return [nt(L.t), nt(L.t) + (L.duree ?? Math.max(3.5, 1.2 + n * pas + 1.6))] })
   for (let i = 0; i < subs.length; i++) {
     const s = subs[i]
@@ -582,7 +603,7 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
     const nbLignes = Math.ceil(visible / Math.max(8, (720 - Math.max(S.marge, 48) - Math.max(S.marge, 96)) / (S.taille * 0.6)))
     const hauteur = nbLignes * S.taille * 1.22 + (s.txt.includes('*') ? F.taille - S.taille : 0)
     const haut = placer('sous-titre', Math.round(1280 * (s.a < HOOK ? S.yHook : S.y)), hauteur, s.a, s.b, 360, 720, s.a >= HOOK ? yPrecedent : null)
-    if (s.a >= HOOK) yPrecedent = haut
+    if (s.a >= HOOK) yPrecedent = Y_FIXE ?? haut // la hauteur fixe reste la référence, même si une ligne a dû se décaler
     const blocs = s.txt.match(/\*[^*]+\*|\S+/g) || []
     const tempsMots = blocs.map((bl, k) => {
       if (!(P.motAMot || P.cartons) || k === 0) return s.a
@@ -701,11 +722,11 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
     // Pastilles : jamais sur le texte ni sur le visage. Sans place à l'endroit prévu, on essaie à côté, puis de l'autre
     // côté ; toujours pas de place ? la pastille saute plutôt que de cacher un mot.
     if (s.type === 'groupe') {
-      const hP = HB ? 64 : 52
+      const hP = (HB ? 64 : 52) * (s.echelle || 1), lP = 190 * (s.echelle || 1) // (17/11) `echelle` : des pastilles plus grandes, lisibles sur téléphone
       s.items = s.items.map((it, k) => {
         const [e, x0, y, ...r] = it, T0 = nt(s.t) + k * (s.pas || 0.45) // chacune n'occupe sa place qu'à partir de son apparition
         for (const xe of [x0, x0 + 90, x0 - 90, 720 - x0, 140, 580]) {
-          const x = dansZone(xe, 190), yy = placer('pastille', Math.round(1280 * y), hP, T0, nt(s.t) + (s.duree || 3), x, 190, null, { essai: true })
+          const x = dansZone(xe, lP), yy = placer('pastille', Math.round(1280 * y), hP, T0, nt(s.t) + (s.duree || 3), x, lP, null, { essai: true })
           if (yy != null) return [e, x, yy / 1280, ...r]
         }
         console.log(`  (pastille « ${r[1] || e} » retirée : pas de place sans toucher le texte ou le visage)`)
@@ -761,7 +782,7 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
     if (s.type !== 'groupe') continue
     const debut = nt(s.t), fin = debut + (s.duree || 3), pas = s.pas || 0.45
     // [émoji, x, y, rotation, étiquette] : avec une étiquette, une petite pastille blanche « émoji + mot »
-    const pastille = ([e, x, y, r = -6, mot], dernier) => `<div style="position:absolute;left:${x}px;top:${Math.round(1280 * y)}px;transform:translate(-50%,-50%) rotate(${r}deg) scale(${dernier ? 1.06 : 1});${ombre}">${HB ? HB.pastille([e, mot]) : mot
+    const pastille = ([e, x, y, r = -6, mot], dernier) => `<div style="position:absolute;left:${x}px;top:${Math.round(1280 * y)}px;transform:translate(-50%,-50%) rotate(${r}deg) scale(${(s.echelle || 1) * (dernier ? 1.06 : 1)});${ombre}">${HB ? HB.pastille([e, mot]) : mot
       ? `<div style="${sys};display:flex;gap:8px;align-items:center;background:#fff;border-radius:999px;padding:8px 16px 8px 10px;font-size:21px;font-weight:700;color:#222;white-space:nowrap">${emojiImg(e, 34)}${mot}</div>`
       : emojiImg(e, 70)}</div>`
     for (let n = 1; n <= s.items.length; n++) {
@@ -861,7 +882,7 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
     const borne = (x, a, b) => Math.max(a, Math.min(b, x)), dx = x => 1 - Math.pow(1 - borne(x, 0, 1), 3)
     const rb = x => { x = borne(x, 0, 1); const c = 1.4; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2) }
     const decor = E.type === 'duo' && (!E.couleur || E.couleur === 'auto') ? couleurDecor(spawnSync('ffmpeg', ['-v', 'error', '-ss', String(E.t), '-i', join(dir, 'source.mp4'), '-frames:v', '1', '-vf', 'scale=36:64', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-']).stdout, null) : null
-    const Em = effetPonctuel(E, { clamp: borne, doux: dx, rebond: rb, esc: x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;'), dossier: dir, couleurs: { marqueur: E.couleur || '#FFE14D', contour: '#2b2416', feutre: accent, decor } })
+    const Em = effetPonctuel(E, { clamp: borne, doux: dx, rebond: rb, esc: x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;'), dossier: dir, couleurs: { marqueur: E.couleur || '#FFE14D', contour: '#2b2416', feutre: accent, decor }, polices: { fort: C.polices.fort.famille, texte: C.polices.texte.famille } })
     if (!Em) continue
     const t0 = nt(E.t), fin = Math.min(TOT, t0 + Em.duree), haut = E.type === 'choc' || E.type === 'commentaires'
     const y = Math.round(placer('effet', haut ? 260 : 780, Em.hauteur, t0, fin) - Em.hauteur / 2)
@@ -917,6 +938,8 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
     // le titre s'arrête au premier changement de plan (sinon il « traîne » sur le plan suivant)
     const coupe1 = coupes.map(nt).filter(t => t > 0.5).sort((x, y) => x - y)[0] ?? HOOK
     W = TD.fin != null ? nt(TD.fin) : Math.min(HOOK, coupe1 - 0.04)
+    // (17/11) le titre tient jusqu'à la vraie coupe d'image si elle arrive juste après le hook (« 35K clignote avant de passer à la suite »)
+    { const j1 = RETRAITS.map(([, y]) => nt(y)).filter(t => t > W).sort((x, y) => x - y)[0]; if (TD.fin == null && j1 && j1 - W < 0.8) W = j1 - 0.04 }
     fenetres.push([0, W])
   }
   const PORTRAIT = (P.portrait || []).map(([x, y]) => [nt(x), nt(y)]).filter(([x, y]) => y - x > 0.3)
@@ -929,7 +952,14 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
     const NBm = Math.ceil(TOT * 30) + 2, piste = new Array(NBm).fill(null)
     for (const [k, [x, y]] of fenetres.entries()) {
       const d = join(dt, `f${k}`)
-      spawnSync(process.execPath, [join(ICI, 'detourage', 'detourer.mjs'), base, x.toFixed(3), y.toFixed(3), d], { stdio: 'inherit' })
+      // (17/11) le détourage d'un passage déjà calculé est repris tel quel : une retouche de texte ne le refait plus (≈ 5 min gagnées)
+      const empreinte = (lancer('ffmpeg', ['-v', 'error', '-ss', x.toFixed(3), '-to', y.toFixed(3), '-i', base, '-map', '0:v', '-vf', 'scale=90:160', '-f', 'hash', '-hash', 'md5', '-'], { sortie: true }) || '').trim().split('=').pop()
+      const cache = join(dir, 'detour-cache', empreinte || 'x')
+      if (empreinte && existsSync(join(cache, 'fini'))) { mkdirSync(d, { recursive: true }); readdirSync(cache).filter(z => z.startsWith('masque-')).forEach(z => copyFileSync(join(cache, z), join(d, z))); console.log('Détourage repris (déjà calculé pour ce passage)') }
+      else {
+        spawnSync(process.execPath, [join(ICI, 'detourage', 'detourer.mjs'), base, x.toFixed(3), y.toFixed(3), d], { stdio: 'inherit' })
+        if (empreinte) { mkdirSync(cache, { recursive: true }); readdirSync(d).filter(z => z.startsWith('masque-')).forEach(z => copyFileSync(join(d, z), join(cache, z))); writeFileSync(join(cache, 'fini'), '') }
+      }
       readdirSync(d).filter(z => z.startsWith('masque-')).sort().forEach((m, j) => { const fr = Math.round(x * 30) + j; if (fr < NBm) piste[fr] = join(d, m) })
     }
     // hors des fenêtres : un masque noir (personne de détourée), image par image comme la piste des petits plus
@@ -965,7 +995,18 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
     f += `[${base}]nullsink;[${iPlus + 1}:v]fps=30[dto];`
     base = 'dto'
   }
-  f += `[1:v]fps=30,format=rgba[st];[${base}][st]overlay=0:0[c1];[c1][2:v]overlay=0:0:enable='lt(t,${(P.titreFixe ? (P.carteFin ? TOT - (P.carteFin.duree || 2.5) : TOT + 1) : HOOK).toFixed(3)})'[c2];[c2][3:v]overlay=0:0:enable='${P.titreFixe ? 'lt(t,0)' : `gte(t,${HOOK.toFixed(3)})`}'[c3];[${iPlus}:v]fps=30,format=rgba[pl];[c3][pl]overlay=0:0[c4];[${iPlus + 1 + entreesTD.filter(x => x === '-i').length}:v]fps=30,format=rgba[pl2];[c4][pl2]overlay=0:0[vo];`
+  // (17/11) « son visage bute avec le challenge noté en haut » : l'étiquette s'efface pendant que sa tête monte dessus
+  let CACHE_ETIQ = ''
+  if (P.etiquette && !P.titreFixe) {
+    const ex0 = ETIQ.x0, ey0 = ETIQ.y0, ex1 = ETIQ.x1, ey1 = ey0 + ETIQ.h
+    const genes = []; for (let T = HOOK; T <= TOT; T += 0.125) { const v = visageFinal(T); if (v && v[0] < ex1 && v[2] > ex0 && v[1] - (v[3] - v[1]) * 0.5 < ey1 + 8 && v[3] > ey0) genes.push(T) /* le visage repéré s'arrête au front : on ajoute ses cheveux */ }
+    // pendant une carte (liste, pastilles, rappel…), l'étiquette s'efface aussi : jamais deux choses l'une sur l'autre
+    for (const k of P.stickers || []) if (k.t != null) for (let T = nt(k.t); T <= nt(k.t) + (k.duree ?? 3); T += 0.125) genes.push(T)
+    genes.sort((x, y) => x - y)
+    const fen = []; for (const T of genes) { const d = fen[fen.length - 1]; if (d && T - d[1] < 0.8) d[1] = T; else fen.push([T, T]) }
+    if (fen.length) { CACHE_ETIQ = '*not(' + fen.map(([a, b]) => `between(t,${(a - 0.15).toFixed(2)},${(b + 0.3).toFixed(2)})`).join('+') + ')'; console.log(`Étiquette effacée ${fen.length} fois pendant que sa tête passe dessous (${fen.map(([a, b]) => a.toFixed(1) + '-' + b.toFixed(1) + ' s').join(', ')})`) }
+  }
+  f += `[1:v]fps=30,format=rgba[st];[${base}][st]overlay=0:0[c1];[c1][2:v]overlay=0:0:enable='lt(t,${(P.titreFixe ? (P.carteFin ? TOT - (P.carteFin.duree || 2.5) : TOT + 1) : HOOK).toFixed(3)})'[c2];[c2][3:v]overlay=0:0:enable='${P.titreFixe ? 'lt(t,0)' : `gte(t,${HOOK.toFixed(3)})${CACHE_ETIQ}`}'[c3];[${iPlus}:v]fps=30,format=rgba[pl];[c3][pl]overlay=0:0[c4];[${iPlus + 1 + entreesTD.filter(x => x === '-i').length}:v]fps=30,format=rgba[pl2];[c4][pl2]overlay=0:0[vo];`
 
   // Chaque son accompagne ce qu'on voit, rien pendant le hook, jamais sur un mot fort.
   const ev = []
@@ -1098,6 +1139,11 @@ function ecouter(nom) {
     lancer('ffmpeg', ['-y', '-v', 'error', '-ss', a.toFixed(3), '-to', b.toFixed(3), '-i', wav, '-af', 'apad=pad_dur=0.3', '-ar', '16000', '-ac', '1', '-c:a', 'pcm_s16le', w])
     const m = transcrireMots(w, join(dir, 'ecoute-' + k)).map(x => x.txt); rmSync(w, { force: true }); return m })
   console.log(`Version courte écoutée : ${(garde.reduce((t, [a, b]) => t + b - a, 0)).toFixed(1)} s (avant les petites hésitations coupées au montage)`)
+  // (17/11) les passages gardés où on ne la voit pas (téléphone qui a bougé, gros plan sur l'ordi) : signalés AVANT de fabriquer
+  const fv = join(dir, 'visages.json'); if (!existsSync(fv)) { console.log('Je repère son visage dans la vidéo (une seule fois)…'); spawnSync(process.execPath, [join(ICI, 'detourage', 'visages.mjs'), join(dir, 'source.mp4'), fv], { stdio: 'inherit' }) }
+  if (existsSync(fv)) { const VIS = JSON.parse(readFileSync(fv, 'utf8')), vu = t => { const i = Math.round(t / 0.25); return [0, 1, -1, 2, -2, 3].some(d => VIS[i + d]?.b) }
+    const trous = []; for (const [a, b] of garde) { let d = null; for (let t = a; t <= b; t += 0.25) { if (!vu(t)) { if (d === null) d = t } else { if (d !== null && t - d >= 1.5) trous.push([d, t]); d = null } } if (d !== null && b - d >= 1.5) trous.push([d, b]) }
+    if (trous.length) console.log('⚠️ ON NE LA VOIT PAS dans ces passages gardés (temps d’origine) : ' + trous.map(([a, b]) => a.toFixed(1) + '–' + b.toFixed(1) + ' s').join(', ') + ' : retire-les, le montage refusera de les fabriquer.') }
   if (alertes.length) console.log('⚠️ COUPE : aucun silence près de ' + alertes.map(t => t.toFixed(2) + ' s').join(', ') + ' : choisis une vraie fin de phrase.')
   writeFileSync(join(dir, 'histoire.txt'), passages.map(p => p.join(' ')).join(NL + '✂ ') + NL)
   let o = 0; const lignes = passages.slice(0, -1).map((p, k) => { o += garde[k][1] - garde[k][0]; return `${o.toFixed(1).padStart(5)} s  …${p.slice(-6).join(' ')}  ✂  ${passages[k + 1].slice(0, 6).join(' ')}…` })

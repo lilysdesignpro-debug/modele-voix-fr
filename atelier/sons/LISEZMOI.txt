@@ -103,3 +103,9 @@ page-c         une page qui se tourne, la feuille lfreesound.org/s/136778
 page-d         une page qui se tourne, la feuille lfreesound.org/s/397548
 telephone-a    téléphone rétro qui sonne   freesound.org/s/556499
 moteur-a       moteur de bulldozer         freesound.org/s/118974
+
+Ajoutés le 17/11/2026, choisis par Aurélie à l'écoute (posés sur une vraie vidéo), d'après l'étude des sons de @lise_favre :
+scintillement-a   apparition d'une liste, d'un titre, d'un badge   freesound.org/s/876012 (CC0)
+bloop-a, bloop-b  pastilles qui popent, mots en rafale            Kenney Interface Sounds drop_002 / drop_004 (CC0, kenney.nl)
+whoosh-pro-a      vraie transition (changement de prise, zoom)    freesound.org/s/72191 (CC0)
+scanner-arrivee, scanner-balayage, scanner-fin   effet scanner (17/11, choisis par Aurélie)   Kenney Interface Sounds maximize_003 / glitch_001 / select_003 (CC0, kenney.nl)

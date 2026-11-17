@@ -131,6 +131,12 @@ le reste. Dans cet ordre, jamais autrement :
    - quand elle a dit la même phrase plusieurs fois (prises ratées), une seule prise, la plus propre ;
    - aucun bout de phrase : on garde des phrases ENTIÈRES.
 3. **Montre-lui ce texte** (sans les temps) : « voilà ce que je garde, dans cet ordre, ça te va ? ». Attends son oui.
+   Quand elle a dit oui, écris dans `projet.json` : `"histoire": { "fil": "<l'histoire en une phrase>", "validee": true }`.
+   ⛔ Sans ça, pour une vidéo de plus de 90 s, l'outil REFUSE de fabriquer. Si tu n'arrives pas à dire l'histoire en une
+   seule phrase, c'est que tu as fait un résumé de plusieurs sujets : recommence l'étape 1.
+   ⛔ Les passages où on ne la voit pas (le téléphone a bougé, il filme l'ordinateur ou ses mains) : `ecouter` les signale
+   (« ON NE LA VOIT PAS ») et le montage refuse de les fabriquer. Retire-les. Seulement si elle veut vraiment les garder :
+   `"sansVisage": "garder"`.
 4. **Écris `retirer` à partir des MOTS, pas des lignes de sous-titres** : ouvre `projets/<nom>/mots.json`.
    Une limite de `retirer` commence à la FIN du dernier mot gardé (celui qui porte le point ou le « ? ») et finit
    au DÉBUT du premier mot gardé ensuite. Jamais entre deux mots d'une même phrase.

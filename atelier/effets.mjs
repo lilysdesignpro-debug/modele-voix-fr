@@ -42,7 +42,7 @@ export function couleurDecor(rgb, visage) {
   return '#' + [f(0), f(8), f(4)].map(v => v.toString(16).padStart(2, '0')).join('')
 }
 
-export function effet(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) {
+export function effet(E, { clamp, doux, rebond, esc, couleurs, dossier = '', polices = null }) {
   const chemin = f => f && (f.includes(':') || f.startsWith('/') ? f : dossier + '/' + f)
   /* (08/11) tri d'Aurélie dans le catalogue : ce qu'elle a retiré ne sort plus, même demandé */
   if (['timeline', 'trait'].includes(E.type)) return null
@@ -96,7 +96,8 @@ export function effet(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) {
       sons: t0 => [{ t: t0, fam: 'photo', vol: 0.08 }, { t: t0 + 0.5, fam: 'photo', vol: 0.08 }] }
   }
   if (E.type === 'duo') {
-    const R = DUOS[E.recette] || DUOS.affiche, grand = String(E.grand || '').trim(); if (!grand) return null
+    // (17/11) « charte » : le duo dans SES polices (son manuscrit pour le grand mot, sa police de texte pour le petit) : « tu respectes pas sa DA »
+    const R = (E.recette === 'charte' && polices ? { g: [polices.fort, 700, 170, 0.74, 'none', polices.fort, 0.42], f: [polices.texte, 800, 40, 'upper', polices.texte], pose: 'dessus', espacement: '.14em' } : null) || DUOS[E.recette] || DUOS.affiche, grand = String(E.grand || '').trim(); if (!grand) return null
     const casse = (t, c) => c === 'upper' ? t.toUpperCase() : c === 'lower' ? t.toLowerCase() : t
     const taille = ls => Math.min(R.g[2], 540 / (R.g[6] * Math.max(...ls.map(l => [...l].length))))
     let lignesG = E.lignes || [grand]
@@ -114,7 +115,7 @@ export function effet(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) {
     // une petite ligne trop longue sortait de l'écran : elle rapetisse pour tenir dans la largeur
     const tient = (t, z) => Math.min(z, Math.floor(600 / Math.max(1, [...t].length * (R.f[3] === 'upper' ? 1.15 : 0.47))))
     const ecr = (t, dt, d0, z0, extra) => { const q = clamp((dt - d0) / 0.55, 0, 1), z = tient(t, z0) // la fine s'écrit de gauche à droite
-      return '<div style="font:' + R.f[1] + ' ' + z + 'px/1 ' + R.f[0] + ';color:' + fine + ';' + (R.f[3] === 'upper' ? 'letter-spacing:.5em;padding-left:.5em;' : '') + halo + ';clip-path:inset(-20% ' + ((1 - q) * 100).toFixed(1) + '% -20% -5%);' + (extra || '') + '">' + esc(t) + '</div>' }
+      return '<div style="font:' + R.f[1] + ' ' + z + 'px/1 ' + R.f[0] + ';color:' + fine + ';' + (R.f[3] === 'upper' ? 'letter-spacing:' + (R.espacement || '.5em') + ';padding-left:' + (R.espacement || '.5em') + ';' : '') + halo + ';clip-path:inset(-20% ' + ((1 - q) * 100).toFixed(1) + '% -20% -5%);' + (extra || '') + '">' + esc(t) + '</div>' }
     return { hauteur: Math.round(hauteur), anim: 1.6, duree: E.duree ?? 3.2,
       dessin: (dt, y) => { const p = clamp(rebond(dt / 0.35), 0, 1.08), yG = autour && dessus ? ecartH : 0
         let h = '<div style="position:absolute;left:0;right:0;top:' + y + 'px;text-align:center">'
