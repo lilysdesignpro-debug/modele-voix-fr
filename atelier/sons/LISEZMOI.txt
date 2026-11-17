@@ -121,4 +121,4 @@ scintillement-c/d/e/f/g     freesound.org/s/248143, /452379, /511485, /562196, /
 succes-a/b                  freesound.org/s/531512, /878622
 whoosh-pro-c/d              freesound.org/s/623709, /701104
 pop-pro-a/b/c               freesound.org/s/319107, /69165, /97978
-bloop-c, tap-a/b/c, ouverture-a/b, clic-pro-a, interrupteur-a   Kenney Interface Sounds glass_004, select_003/4/5, maximize_006/009, click_003, switch_005 (CC0, kenney.nl)
+bloop-c, tap-a/b/c, ouverture-a/b, interrupteur-a   Kenney Interface Sounds glass_004, select_003/4/5, maximize_006/009, switch_005 (CC0, kenney.nl)
