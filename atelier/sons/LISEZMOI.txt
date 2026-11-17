@@ -122,3 +122,14 @@ succes-a/b                  freesound.org/s/531512, /878622
 whoosh-pro-c/d              freesound.org/s/623709, /701104
 pop-pro-a/b/c               freesound.org/s/319107, /69165, /97978
 bloop-c, tap-a/b/c, ouverture-a/b, interrupteur-a   Kenney Interface Sounds glass_004, select_003/4/5, maximize_006/009, switch_005 (CC0, kenney.nl)
+
+Ajoutés le 17/11/2026 (soir), choisis par Aurélie dans la planche des nouveaux sons (tous CC0, Freesound) :
+impact-a..f        /s/59540, /63138, /648729, /649061, /697057, /732783
+montee-a/b         /s/237373, /859482
+aspiration-a/b     /s/181889, /446010
+swipe-pro-a        /s/60007
+photo-pro-a..d     /s/238958, /353044, /431588, /455511
+argent-a/b         /s/184438, /456965
+message-pro-a/b    /s/760369, /760370
+ding-doux-a/b      /s/732267, /759840
+frappe-a/b/c       /s/348238, /348239, /380809

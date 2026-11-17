@@ -129,7 +129,7 @@ export function effet(E, { clamp, doux, rebond, esc, couleurs, dossier = '', pol
           const fl = d => '<svg style="position:absolute;left:0;top:0;overflow:visible;opacity:' + q + '" width="720" height="10"><path d="' + d + '" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" style="filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))"/></svg>'
           h += chip(60, -100, R.g[5]) + fl('M150 -44 Q 120 -10 150 ' + Math.round(yG + 10)) + chip(420, hauteur + 10, R.f[4]) + fl('M500 ' + Math.round(hauteur + 8) + ' Q 530 ' + Math.round(hauteur - 30) + ' 505 ' + Math.round(hauteur - 50)) }
         return h + '</div>' },
-      sons: t0 => [{ t: t0, fam: 'pop', vol: 0.07 }, ...(E.etiquettes ? [{ t: t0 + 0.9, fam: 'clic', vol: 0.06 }] : [])] }
+      sons: t0 => [{ t: t0, fam: 'impact', vol: 0.1 }, ...(E.etiquettes ? [{ t: t0 + 0.9, fam: 'clic', vol: 0.06 }] : [])] }
   }
   if (E.type === 'telephone') {
     const src = image(chemin(E.image)); if (!src) return null
