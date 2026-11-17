@@ -308,8 +308,9 @@ async function monter(nom) {
     segs.splice(0, segs.length, ...garde)
   }
   // (17/11) la version courte finit sur un vrai souffle : le découpage par blancs ne doit pas le reprendre
-  { const fin = RETRAITS.find(([, y]) => y >= D - 0.3); const der = segs[segs.length - 1]
-    if (fin && der && der[1] < fin[0] && der[1] > fin[0] - 1.5) der[1] = fin[0] }
+  { const fin = RETRAITS.find(([, y]) => y >= D - 0.3)
+    if (fin) { while (segs.length > 1 && segs[segs.length - 1][0] >= fin[0] - 0.01) segs.pop() // le bout de quelques ms après le passage retiré
+      const der = segs[segs.length - 1]; if (der && der[1] < fin[0] && der[1] > fin[0] - 1.5) der[1] = fin[0] } }
   for (const [x, y, k] of P.etirer) {
     const i = segs.findIndex(([a, b]) => a < x && b > y); if (i < 0) continue
     const [a, b] = segs[i]; segs.splice(i, 1, [a, x], [x, y, k], [y, b])
@@ -451,7 +452,7 @@ async function monter(nom) {
   // 3. Sous-titres
   const tout = readFileSync(join(dir, 'sous-titres.txt'), 'utf8').split(/\r?\n/).filter(l => l.trim() && !l.startsWith('#')).map(l => { const [t, ...r] = l.split('|'); return { t: +t, txt: r.join('|') } })
   // Les sous-titres d'un passage retiré disparaissent avec lui (sauf pour l'ouverture, qui le rejoue).
-  const brut = tout.filter((l, i) => i === tout.length - 1 || !RETIRER.some(([x, y]) => l.t >= x && l.t < y))
+  const brut = tout.filter((l, i) => i === tout.length - 1 || ![...RETIRER, ...(P.retirer || [])].some(([x, y]) => l.t >= x && l.t < y)) // (17/11) les limites choisies ET recalées : une ligne du passage retiré ne revient pas parce que la coupe a reculé
   let subs = brut.slice(0, -1).map((l, i) => {
     const tags = (l.txt.match(/#(ding|montee|rien|pop|grosplan)\b/g) || []).map(x => x.slice(1))
     return { o: l.t, a: nt(l.t), b: nt(brut[i + 1].t), txt: l.txt.replace(/#(ding|montee|rien|pop|grosplan)\b/g, '').trim(), tags }
@@ -941,8 +942,12 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
     const s = TD.style || {}
     await (async () => {
       const nav2 = await ouvrirNavigateur(); const pg = await nav2.newPage(); await pg.setViewport({ width: 720, height: 1280 })
-      await pg.setContent(`<html><head><style>${css}</style></head><body><div style="position:absolute;left:0;right:0;top:${s.top ?? 70}px;text-align:center;font-family:'${C.polices.titre.famille}',sans-serif;font-weight:${C.polices.titre.poids};font-size:${s.taille ?? 260}px;line-height:.86;letter-spacing:${s.espacement ?? '-8px'};color:${s.couleur || T.couleur};text-shadow:0 6px 24px rgba(0,0,0,.18)">${fort(TD.texte.replace(/\//g, '<br>'))}</div></body></html>`, { waitUntil: 'load' })
-      await pg.evaluate(() => document.fonts.ready); await pg.screenshot({ path: join(st, 'derriere.png'), omitBackground: true }); await nav2.close()
+      await pg.setContent(`<html><head><style>${css}</style></head><body><div style="position:absolute;left:0;right:0;top:${s.top ?? 70}px;text-align:center;font-family:'${C.polices.titre.famille}',sans-serif;font-weight:${C.polices.titre.poids};font-size:${s.taille ?? 260}px;line-height:.86;letter-spacing:${s.espacement ?? '-8px'};color:${s.couleur || T.couleur};text-shadow:0 6px 24px rgba(0,0,0,.18);white-space:nowrap">${fort(TD.texte.replace(/\//g, '<br>'))}</div></body></html>`, { waitUntil: 'load' })
+      await pg.evaluate(() => document.fonts.ready)
+      // (17/11) « 35 000 € » en 200 px débordait de l'écran et retombait sur son visage : le titre rapetisse jusqu'à tenir dans la largeur
+      const reduit = await pg.evaluate(() => { const d = document.querySelector('div'); let f = parseFloat(d.style.fontSize), f0 = f; const larg = () => { const r = document.createRange(); r.selectNodeContents(d); return r.getBoundingClientRect().width }; while (larg() > 660 && f > 60) { f -= 4; d.style.fontSize = f + 'px' } return f < f0 ? Math.round(f) : 0 })
+      if (reduit) console.log(`Titre derrière elle réduit à ${reduit} px pour tenir dans l'écran (un texte court, comme « 35K », reste plus grand)`)
+      await pg.screenshot({ path: join(st, 'derriere.png'), omitBackground: true }); await nav2.close()
     })()
   }
   if (fenetres.length) {
@@ -1042,12 +1047,16 @@ function relireHistoire(wav, dir, mots, jonctions) {
   const NL = String.fromCharCode(10)
   writeFileSync(join(dir, 'histoire.txt'), mots.map(m => m.txt).join(' ').replace(/\s+([,.?!])/g, '$1') + NL)
   if (!jonctions.length) return
-  const E = energieVoix(wav), tranches = []
-  const lignes = jonctions.map(j => {
-    const milieu = m => (m.t + m.fin) / 2, avant = mots.filter(m => milieu(m) < j).slice(-6).map(m => m.txt).join(' '), apres = mots.filter(m => milieu(m) >= j).slice(0, 6).map(m => m.txt).join(' ')
+  const E = energieVoix(wav), tranches = [], D = E.e.length * E.pas
+  // chaque morceau entre deux coupes est réécouté SEUL : les mots tombent du bon côté de la coupe
+  const bornes = [0, ...jonctions, D], morceaux = bornes.slice(0, -1).map((a, k) => {
+    const w = join(dir, 'coupe-' + k + '.wav')
+    lancer('ffmpeg', ['-y', '-v', 'error', '-ss', a.toFixed(3), '-to', bornes[k + 1].toFixed(3), '-i', wav, '-af', 'apad=pad_dur=0.3', '-ar', '16000', '-ac', '1', '-c:a', 'pcm_s16le', w])
+    const m = transcrireMots(w, join(dir, 'coupe-' + k)).map(x => x.txt); rmSync(w, { force: true }); return m })
+  const lignes = jonctions.map((j, k) => {
     const fort = (a, b) => { const v = E.e.slice(Math.floor(a / E.pas), Math.ceil(b / E.pas)); return v.length && Math.max(...v) > E.seuil + 6 }
     if (fort(j - 0.04, j) && fort(j, j + 0.04)) tranches.push(j)
-    return `${j.toFixed(1).padStart(5)} s  …${avant}  ✂  ${apres}…`
+    return `${j.toFixed(1).padStart(5)} s  …${morceaux[k].slice(-6).join(' ')}  ✂  ${morceaux[k + 1].slice(0, 6).join(' ')}…`
   })
   writeFileSync(join(dir, 'coupes.txt'), lignes.join(NL) + NL)
   console.log(NL + 'COUPES À RELIRE (coupes.txt) : chaque ligne doit finir une idée et la suivante en commencer une, sans mot coupé ni bout de phrase orphelin.' + NL + lignes.join(NL))
@@ -1083,15 +1092,18 @@ function ecouter(nom) {
   const garde = []; let cur = 0
   for (const [x, y] of R) { if (x > cur + 0.05) garde.push([cur, x]); cur = Math.max(cur, y) }
   if (D - cur > 0.05) garde.push([cur, D])
-  const f = garde.map(([a, b], i) => `[0:a]atrim=${a.toFixed(3)}:${b.toFixed(3)},asetpts=PTS-STARTPTS,apad=pad_dur=0.4[a${i}];`).join('') + garde.map((_, i) => `[a${i}]`).join('') + `concat=n=${garde.length}:v=0:a=1[o]`
-  // 0,4 s de silence entre deux passages : l'écoute n'avale plus le mot de la jonction
-  const sortie = join(dir, 'ecoute.wav')
-  lancer('ffmpeg', ['-y', '-v', 'error', '-i', wav, '-filter_complex', f, '-map', '[o]', '-ar', '16000', '-ac', '1', '-c:a', 'pcm_s16le', sortie])
-  const mots = transcrireMots(sortie, join(dir, 'ecoute'))
-  let o = 0; const jonctions = garde.slice(0, -1).map(([a, b]) => (o += b - a + 0.4) - 0.2)
+  // chaque passage gardé est écouté SEUL : on sait exactement quels mots il contient (l'écoute d'un collage plaçait mal les mots aux jonctions)
+  const NL = String.fromCharCode(10), passages = garde.map(([a, b], k) => {
+    const w = join(dir, 'ecoute-' + k + '.wav')
+    lancer('ffmpeg', ['-y', '-v', 'error', '-ss', a.toFixed(3), '-to', b.toFixed(3), '-i', wav, '-af', 'apad=pad_dur=0.3', '-ar', '16000', '-ac', '1', '-c:a', 'pcm_s16le', w])
+    const m = transcrireMots(w, join(dir, 'ecoute-' + k)).map(x => x.txt); rmSync(w, { force: true }); return m })
   console.log(`Version courte écoutée : ${(garde.reduce((t, [a, b]) => t + b - a, 0)).toFixed(1)} s (avant les petites hésitations coupées au montage)`)
   if (alertes.length) console.log('⚠️ COUPE : aucun silence près de ' + alertes.map(t => t.toFixed(2) + ' s').join(', ') + ' : choisis une vraie fin de phrase.')
-  relireHistoire(sortie, dir, mots, jonctions)
+  writeFileSync(join(dir, 'histoire.txt'), passages.map(p => p.join(' ')).join(NL + '✂ ') + NL)
+  let o = 0; const lignes = passages.slice(0, -1).map((p, k) => { o += garde[k][1] - garde[k][0]; return `${o.toFixed(1).padStart(5)} s  …${p.slice(-6).join(' ')}  ✂  ${passages[k + 1].slice(0, 6).join(' ')}…` })
+  writeFileSync(join(dir, 'coupes.txt'), lignes.join(NL) + NL)
+  console.log(NL + 'COUPES À RELIRE (coupes.txt) : chaque ligne doit finir une idée et la suivante en commencer une, sans mot coupé ni bout de phrase orphelin.' + NL + lignes.join(NL))
+  console.log("HISTOIRE (histoire.txt) : chaque passage gardé, dans l'ordre. Relis-la d'un bout à l'autre comme si tu découvrais la vidéo.")
 }
 
 const [cmd, ...args] = process.argv.slice(2)
@@ -1099,5 +1111,5 @@ if (cmd === 'lire') lire(...args)
 else if (cmd === 'monter') await monter(args[0])
 else if (cmd === 'ecouter') ecouter(args[0])
 else if (cmd === 'apercu') { process.env.APERCU = '1'; await monter(args[0]) }
-else if (cmd === 'verifier') verifier(args[0], dirname(args[0]))
+else if (cmd === 'verifier') verifier(args[0], dirname(args[0]), !!args[1], (args[1] || '').split(',').filter(Boolean).map(Number))
 else console.log('Usage :\n  node contenu/montage/montage.mjs lire <video> <charte> [nom]\n  node contenu/montage/montage.mjs monter <nom>')
