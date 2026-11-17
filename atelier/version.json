@@ -1,5 +1,5 @@
 {
- "version": "202611171754",
+ "version": "202611171755",
  "modeEmploi": 4,
  "fichiers": {
   "assembler.mjs": "84e1e6ca777c949268496e12a701648cd62106dbd7f13d848de116963e6731dd",
@@ -27,7 +27,7 @@
   "marges.mjs": "d1231909cc040fd2f3d459020eb0fbaf75dce9f73e3171c7e9ccb398cc08fb16",
   "mettre-a-jour.mjs": "5c8d749b5f60742efa0f5f76327c58eaaac85b72374fbebdf4ec1df47cdbab6e",
   "montage.mjs": "bc52836a714e2c08704b18952a6c82fea279b25ec0bf577eb3b96436de35a1b7",
-  "NOTICE-ordinateur.md": "a8639f6672c4a12e392387ea9a70044da439bbff016059fdaa4618383403033f",
+  "NOTICE-ordinateur.md": "09c2f5e4ccc0af7711f325b6ae5cd18441594612412d3a303729b9d8aeede290",
   "NOTICE.md": "c25d1af3579ecbb77bd5c6c889ddac1cc6e78fb91cf851696d3ad61a8a672a8f",
   "objets/ampoule-dessin.png": "645ad97c3f13efb22d00a1d38246dc2ae0638fd2f1486631bb8683c3215fc7b3",
   "objets/appareil-argentique.png": "396717f7e63ff7748b0b95b92b33273075dffbe6d9dd27efcd76a35057544720",
@@ -171,7 +171,7 @@
   "sons/kaching-d.wav": "e42ff9f226c13315ae8c0e0bf3fd636f6161ac580fdf8e5a84843c1596b2458c",
   "sons/kaching-e.wav": "9a3fc91e9dabe053c22f0390ed5872b304fdf16a4400dc6aa40cb8c08174188e",
   "sons/kaching-f.wav": "c41b86ae204d10d9caa71604111509ca2c7866e15bc6cfbf3b9a0719654b1bca",
-  "sons/LISEZMOI.txt": "83700b318a446027d160ce1096651381738bf210c492df955380609eee3b7744",
+  "sons/LISEZMOI.txt": "b5e4a7e0871f661329658fa2ca9aa5db5d5306eb2b78c48842a4f4e9e950c9f5",
   "sons/machine-a.wav": "ea5706f58acc6eb3294c14c89200dfadccd8fbc241ea7f5d9234a634c2e39c2f",
   "sons/machine-b.wav": "b724e355b7d92e038125bb88e07eff78dccafd2eedc32b530ea1793789e3fd8b",
   "sons/magie-a.wav": "0e5491cd4e0f6554e3d3cb67986c262f4ba7a92b23d4fbf900108ceb0ec46de1",
