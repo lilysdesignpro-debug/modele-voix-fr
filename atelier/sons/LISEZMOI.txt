@@ -108,7 +108,6 @@ Ajoutés le 17/11/2026, choisis par Aurélie à l'écoute (posés sur une vraie 
 scintillement-a   apparition d'une liste, d'un titre, d'un badge   freesound.org/s/876012 (CC0)
 bloop-a, bloop-b  pastilles qui popent, mots en rafale            Kenney Interface Sounds drop_002 / drop_004 (CC0, kenney.nl)
 whoosh-pro-a      vraie transition (changement de prise, zoom)    freesound.org/s/72191 (CC0)
-scanner-arrivee, scanner-balayage, scanner-fin   effet scanner (17/11, choisis par Aurélie)   Kenney Interface Sounds maximize_003 / glitch_001 / select_003 (CC0, kenney.nl)
 Ajoutés le 17/11/2026 au soir, choisis par Aurélie dans la planche d'écoute des sons pro (tous CC0) :
 scintillement-b   apparition                     freesound.org/s/264981
 whoosh-pro-b      transition                     freesound.org/s/127197
