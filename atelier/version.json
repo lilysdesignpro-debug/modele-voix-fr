@@ -1,5 +1,5 @@
 {
- "version": "202611160913",
+ "version": "202611171109",
  "modeEmploi": 4,
  "fichiers": {
   "assembler.mjs": "84e1e6ca777c949268496e12a701648cd62106dbd7f13d848de116963e6731dd",
@@ -26,9 +26,9 @@
   "listes.mjs": "fd78d30cfc799e00db5451e01ebcd4e662ace3d34a1e82df4d8682483212f64d",
   "marges.mjs": "d1231909cc040fd2f3d459020eb0fbaf75dce9f73e3171c7e9ccb398cc08fb16",
   "mettre-a-jour.mjs": "5c8d749b5f60742efa0f5f76327c58eaaac85b72374fbebdf4ec1df47cdbab6e",
-  "montage.mjs": "05b52b0ab5deb7f6aa57e0692d69ee2a6cd8ad4c07a2db2a142e057886dc185d",
+  "montage.mjs": "f3fcb306d86a6ac5c83a60e0a0c4dd5c6b24b8096f36be8497efa2d4652892e8",
   "NOTICE-ordinateur.md": "892b69b1442ba3cbeea6156c02178652ed64432331f52ab3546346ea1700d80c",
-  "NOTICE.md": "db793d4a8caba9f2322bd06bdd3e308d58f519f2d57f43bde3191b2a36e99500",
+  "NOTICE.md": "e4303837b655e9c3e9b0aabefaab54a9aba6d26a18bf37477b3c5df0d3b50d0e",
   "objets/ampoule-dessin.png": "645ad97c3f13efb22d00a1d38246dc2ae0638fd2f1486631bb8683c3215fc7b3",
   "objets/appareil-argentique.png": "396717f7e63ff7748b0b95b92b33273075dffbe6d9dd27efcd76a35057544720",
   "objets/appareil-instantane.png": "0ad1bed0ee8cdf940e73d1c6266746182db860389d975d80a30602128de4d777",

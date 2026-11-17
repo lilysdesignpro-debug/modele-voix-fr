@@ -214,6 +214,36 @@ function lire(video, charte, nom) {
   console.log(`\nProjet « ${nom} » prêt : ${dir}\nÀ relire avec elle : sous-titres.txt et projet.json, puis, depuis le dossier de l'outil : node montage.mjs monter ${nom}`)
 }
 
+// ── (17/11) Des coupes qui tombent dans un VRAI silence ───────────────────────
+// Les temps de la transcription dérivent de 0,2 à 0,4 s : couper « dans un blanc » d'après eux laissait des bouts
+// de mots (« Explose, les conversations… », « je les bl- », « on lâche. ») sur une vidéo de 5 min.
+// On mesure donc l'énergie de SA voix toutes les 10 ms et chaque passage retiré est recalé sur le silence réel le plus proche.
+function energieVoix(wav) {
+  const buf = readFileSync(wav); const o = buf.indexOf('data') + 8, n = (buf.length - o) >> 1, pas = 160, e = []
+  for (let i = 0; i + pas <= n; i += pas) { let q = 0; for (let k = 0; k < pas; k++) { const v = buf.readInt16LE(o + 2 * (i + k)) / 32768; q += v * v } e.push(10 * Math.log10(q / pas + 1e-10)) }
+  const tri = [...e].sort((a, b) => a - b), bas = tri[Math.floor(tri.length * 0.15)], voix = tri[Math.floor(tri.length * 0.7)]
+  return { e, pas: 0.01, seuil: bas + Math.max(6, (voix - bas) * 0.3), voix }
+}
+function silencesReels(E, a, b, min = 0.12) { // les vrais silences (au moins 120 ms : une respiration, pas le creux entre deux syllabes) entre a et b
+  const out = []; let d = null, n = Math.round(min / E.pas)
+  for (let i = Math.max(0, Math.floor(a / E.pas)); i <= Math.min(E.e.length - 1, Math.ceil(b / E.pas)); i++) {
+    if (E.e[i] < E.seuil) { if (d === null) d = i } else { if (d !== null && i - d >= n) out.push([d * E.pas, i * E.pas]); d = null } }
+  if (d !== null && Math.min(E.e.length, Math.ceil(b / E.pas)) - d >= n) out.push([d * E.pas, Math.min(b, E.e.length * E.pas)])
+  return out
+}
+// x = là où la partie gardée s'arrête, y = là où elle reprend. Mesuré sur 4 vidéos : l'écoute place les mots
+// 0,15 à 0,4 s TROP TÔT, jamais trop tard. Donc chaque limite qui tombe dans sa voix avance jusqu'au vrai silence suivant
+// (on finit son dernier mot, on attend le premier mot d'après) ; une limite déjà dans un silence y reste.
+function calerRetrait([x, y], E, alertes) {
+  const cale = (t, marge) => { const r = silencesReels(E, t - 0.8, t + 0.8)
+    const dedans = r.find(([a, b]) => t >= a && t <= b); if (dedans) return marge(dedans, t)
+    const apres = r.find(([a]) => a > t); if (apres) return marge(apres, null)
+    if (t < E.e.length * E.pas - 0.3) alertes.push(t); return t }
+  const fin = cale(x, ([a, b], t) => Math.min(b - 0.02, Math.max(a + 0.06, t ?? a)))
+  const debut = cale(y, ([a, b], t) => Math.max(a + 0.02, Math.min(b - 0.06, t ?? b)))
+  return [+fin.toFixed(3), +Math.max(fin + 0.01, debut).toFixed(3)]
+}
+
 // ── monter ────────────────────────────────────────────────────────────────────
 async function monter(nom) {
   const dir = join(PROJETS, nom)
@@ -260,7 +290,12 @@ async function monter(nom) {
     const cuts = [...o.matchAll(/pts_time:([0-9.]+)/g)].map(m => +m[1]).filter(t => t > 0.05 && t < 0.45)
     if (!cuts.length) return []
     console.log('Vignette du début enlevée (' + Math.max(...cuts).toFixed(2) + ' s)'); return [[0, +Math.max(...cuts).toFixed(3)]] })()
-  const RETIRER = [...(P.retirer || []), ...VIGNETTE, ...HESITATIONS]
+  const ENERGIE = existsSync(join(dir, 'audio.wav')) ? energieVoix(join(dir, 'audio.wav')) : null
+  const alertesCoupe = []
+  const RETRAITS = (P.retirer || []).map(r => ENERGIE ? calerRetrait(r, ENERGIE, alertesCoupe) : r)
+  RETRAITS.forEach(([a, b], i) => { const [x, y] = P.retirer[i]; if (Math.abs(a - x) > 0.05 || Math.abs(b - y) > 0.05) console.log(`Coupe recalée sur un vrai silence : [${x}, ${y}] → [${a}, ${b}]`) })
+  if (alertesCoupe.length) console.log('⚠️ COUPE : aucun silence près de ' + alertesCoupe.map(t => t.toFixed(2) + ' s').join(', ') + ' : elle parle sans respirer à cet endroit, un mot risque d’être tranché. Choisis une autre limite (fin de phrase) dans retirer.')
+  const RETIRER = [...RETRAITS, ...VIGNETTE, ...HESITATIONS]
   for (const [x, y] of RETIRER) {
     const garde = []
     for (const [a, b, k] of segs) {
@@ -962,12 +997,12 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
   lancer('ffmpeg', ['-y', '-v', 'error', '-i', source, '-f', 'concat', '-safe', '0', '-i', join(st, 'liste.txt'), '-loop', '1', '-i', join(st, 'titre.png'), '-loop', '1', '-i', join(st, 'etiquette.png'),
     ...SONS.flatMap(s => ['-i', join(ICI, 'sons', s + '.wav')]), '-f', 'concat', '-safe', '0', '-i', join(st, 'plus.txt'), ...entreesTD, '-f', 'concat', '-safe', '0', '-i', join(st, 'plus-2.txt'), '-filter_complex', f, '-map', '[vo]', '-map', '[ao]', '-t', TOT.toFixed(3),
     ...ENCODAGE, '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', sortie])
-  verifier(sortie, dir, RETIRER.length > 0)
+  verifier(sortie, dir, RETIRER.length > 0, RETRAITS.map(([, y]) => nt(y)).filter(t => t > 0.2 && t < TOT - 0.2))
   console.log(`\nVidéo : ${sortie}`)
 }
 
 // ── verifier : on réécoute TOUT avant de la montrer ───────────────────────────
-function verifier(video, dir, raccourci = false) {
+function verifier(video, dir, raccourci = false, jonctions = []) {
   const flux = lancer('ffprobe', ['-v', 'error', '-show_entries', 'stream=codec_type,duration', '-of', 'csv=p=0', video]).trim().split(/\r?\n/)
   const [dv, da] = ['video', 'audio'].map(t => +(flux.find(l => l.startsWith(t)) || ',0').split(',')[1])
   const wav = join(dir, 'controle.wav')
@@ -992,7 +1027,27 @@ function verifier(video, dir, raccourci = false) {
   const dernier = mots.at(-1); if (dernier && dernier.fin > dv - 0.08) console.log('⚠️  la vidéo s\'arrête juste sur le dernier mot : vérifie qu\'il n\'est pas coupé')
   if (!raccourci && mots.length < avant * 0.9) console.log('⚠️  il manque des mots : écouter avant de montrer')
   if (trous.length) console.log('⚠️  silence de plus de 3 s à ' + trous.map(([a]) => a.toFixed(1) + ' s').join(', '))
+  relireHistoire(wav, dir, mots, jonctions)
   oreille(video, dir, mots)
+}
+
+// (17/11) La vidéo finie doit se lire comme une histoire : on écrit ce qu'on ENTEND, et chaque jonction
+// de la version courte avec les mots juste avant et juste après, pour que Claude les relise AVANT de montrer.
+function relireHistoire(wav, dir, mots, jonctions) {
+  const NL = String.fromCharCode(10)
+  writeFileSync(join(dir, 'histoire.txt'), mots.map(m => m.txt).join(' ').replace(/\s+([,.?!])/g, '$1') + NL)
+  if (!jonctions.length) return
+  const E = energieVoix(wav), tranches = []
+  const lignes = jonctions.map(j => {
+    const milieu = m => (m.t + m.fin) / 2, avant = mots.filter(m => milieu(m) < j).slice(-6).map(m => m.txt).join(' '), apres = mots.filter(m => milieu(m) >= j).slice(0, 6).map(m => m.txt).join(' ')
+    const fort = (a, b) => { const v = E.e.slice(Math.floor(a / E.pas), Math.ceil(b / E.pas)); return v.length && Math.max(...v) > E.seuil + 6 }
+    if (fort(j - 0.04, j) && fort(j, j + 0.04)) tranches.push(j)
+    return `${j.toFixed(1).padStart(5)} s  …${avant}  ✂  ${apres}…`
+  })
+  writeFileSync(join(dir, 'coupes.txt'), lignes.join(NL) + NL)
+  console.log(NL + 'COUPES À RELIRE (coupes.txt) : chaque ligne doit finir une idée et la suivante en commencer une, sans mot coupé ni bout de phrase orphelin.' + NL + lignes.join(NL))
+  console.log("HISTOIRE (histoire.txt) : relis-la d'un bout à l'autre comme si tu découvrais la vidéo. Si une phrase arrive sans ce qui l'explique, ou en répète une autre, corrige retirer et remonte.")
+  if (tranches.length) console.log('⚠️ COUPE : elle parle encore pile à ' + tranches.map(t => t.toFixed(1) + ' s').join(', ') + ' : un mot est sans doute tranché, écoute et corrige retirer.')
 }
 
 // ── l'oreille fine (11/11) : ce que fait un ingé son avant de rendre une vidéo ─────
@@ -1013,9 +1068,31 @@ function oreille(video, dir, mots) {
   for (const [t, n, e] of forts) console.log(`⚠️  le petit son « ${n} » à ${t.toFixed(1)} s passe ${e.toFixed(0)} dB au-dessus de sa voix : écoute ce moment, et s'il gêne, coupe cette famille de sons ("sons" dans projet.json, null) ou choisis un son plus doux`)
 }
 
+// ── ecouter (17/11) : la version courte AVANT de fabriquer ──────────────────────────
+// Ne monte rien : colle seulement le son des passages gardés (quelques secondes de calcul), le réécoute et écrit
+// histoire.txt + coupes.txt. On corrige retirer autant de fois qu'il faut ICI, puis on ne fabrique qu'une fois.
+function ecouter(nom) {
+  const dir = join(PROJETS, nom), P = JSON.parse(readFileSync(join(dir, 'projet.json'), 'utf8'))
+  const wav = join(dir, 'audio.wav'), E = energieVoix(wav), D = E.e.length * E.pas, alertes = []
+  const R = (P.retirer || []).map(r => calerRetrait(r, E, alertes)).sort((a, b) => a[0] - b[0])
+  const garde = []; let cur = 0
+  for (const [x, y] of R) { if (x > cur + 0.05) garde.push([cur, x]); cur = Math.max(cur, y) }
+  if (D - cur > 0.05) garde.push([cur, D])
+  const f = garde.map(([a, b], i) => `[0:a]atrim=${a.toFixed(3)}:${b.toFixed(3)},asetpts=PTS-STARTPTS,apad=pad_dur=0.4[a${i}];`).join('') + garde.map((_, i) => `[a${i}]`).join('') + `concat=n=${garde.length}:v=0:a=1[o]`
+  // 0,4 s de silence entre deux passages : l'écoute n'avale plus le mot de la jonction
+  const sortie = join(dir, 'ecoute.wav')
+  lancer('ffmpeg', ['-y', '-v', 'error', '-i', wav, '-filter_complex', f, '-map', '[o]', '-ar', '16000', '-ac', '1', '-c:a', 'pcm_s16le', sortie])
+  const mots = transcrireMots(sortie, join(dir, 'ecoute'))
+  let o = 0; const jonctions = garde.slice(0, -1).map(([a, b]) => (o += b - a + 0.4) - 0.2)
+  console.log(`Version courte écoutée : ${(garde.reduce((t, [a, b]) => t + b - a, 0)).toFixed(1)} s (avant les petites hésitations coupées au montage)`)
+  if (alertes.length) console.log('⚠️ COUPE : aucun silence près de ' + alertes.map(t => t.toFixed(2) + ' s').join(', ') + ' : choisis une vraie fin de phrase.')
+  relireHistoire(sortie, dir, mots, jonctions)
+}
+
 const [cmd, ...args] = process.argv.slice(2)
 if (cmd === 'lire') lire(...args)
 else if (cmd === 'monter') await monter(args[0])
+else if (cmd === 'ecouter') ecouter(args[0])
 else if (cmd === 'apercu') { process.env.APERCU = '1'; await monter(args[0]) }
 else if (cmd === 'verifier') verifier(args[0], dirname(args[0]))
 else console.log('Usage :\n  node contenu/montage/montage.mjs lire <video> <charte> [nom]\n  node contenu/montage/montage.mjs monter <nom>')
