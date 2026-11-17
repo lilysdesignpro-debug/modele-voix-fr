@@ -1,5 +1,5 @@
 {
- "version": "202611171755",
+ "version": "202611172003",
  "modeEmploi": 4,
  "fichiers": {
   "assembler.mjs": "84e1e6ca777c949268496e12a701648cd62106dbd7f13d848de116963e6731dd",
@@ -28,7 +28,7 @@
   "mettre-a-jour.mjs": "5c8d749b5f60742efa0f5f76327c58eaaac85b72374fbebdf4ec1df47cdbab6e",
   "montage.mjs": "bc52836a714e2c08704b18952a6c82fea279b25ec0bf577eb3b96436de35a1b7",
   "NOTICE-ordinateur.md": "09c2f5e4ccc0af7711f325b6ae5cd18441594612412d3a303729b9d8aeede290",
-  "NOTICE.md": "c25d1af3579ecbb77bd5c6c889ddac1cc6e78fb91cf851696d3ad61a8a672a8f",
+  "NOTICE.md": "ae650737f935f8f141e0d473c7ce2f04a56dae30ed1cac691f8d1975922f0eb7",
   "objets/ampoule-dessin.png": "645ad97c3f13efb22d00a1d38246dc2ae0638fd2f1486631bb8683c3215fc7b3",
   "objets/appareil-argentique.png": "396717f7e63ff7748b0b95b92b33273075dffbe6d9dd27efcd76a35057544720",
   "objets/appareil-instantane.png": "0ad1bed0ee8cdf940e73d1c6266746182db860389d975d80a30602128de4d777",
@@ -144,6 +144,7 @@
   "sons/clavier-c.wav": "e379ced7dd5b985c7c5047bc5cd0233ec8f95ac1d2667d105baba8c6e72bb1fd",
   "sons/clavier-court.wav": "d18afe0e69ee455b513855e71599ef3f288b5ed95cfe05893ce235cf83281b61",
   "sons/clavier-d.wav": "7d720be806b595fbef10298eb7136fc2af817d64d40c2cf7809027315a734af4",
+  "sons/clavier-pro-a.wav": "5d1a99d207bb24a6fd4a302feee5a7da16dfb771b4ae2096815f9daa5af9306a",
   "sons/cles-a.wav": "015e76ccdb6b46251ec2b8dfb519d769e936f34d7d966ae14b3ed23e05367357",
   "sons/cles-b.wav": "1ce65cb436d32b39bfeedbad96f756cff7c039fdbd90f66134b3bec163b37691",
   "sons/cles-c.wav": "dad745096fae79f8292b14dc785a84f71c628682e8881e9e50c616c18286106a",
@@ -171,7 +172,7 @@
   "sons/kaching-d.wav": "e42ff9f226c13315ae8c0e0bf3fd636f6161ac580fdf8e5a84843c1596b2458c",
   "sons/kaching-e.wav": "9a3fc91e9dabe053c22f0390ed5872b304fdf16a4400dc6aa40cb8c08174188e",
   "sons/kaching-f.wav": "c41b86ae204d10d9caa71604111509ca2c7866e15bc6cfbf3b9a0719654b1bca",
-  "sons/LISEZMOI.txt": "b5e4a7e0871f661329658fa2ca9aa5db5d5306eb2b78c48842a4f4e9e950c9f5",
+  "sons/LISEZMOI.txt": "374cddd199babccff2c513ae8b831c7ab82ff68681a8ad39ed6dbb0525b02721",
   "sons/machine-a.wav": "ea5706f58acc6eb3294c14c89200dfadccd8fbc241ea7f5d9234a634c2e39c2f",
   "sons/machine-b.wav": "b724e355b7d92e038125bb88e07eff78dccafd2eedc32b530ea1793789e3fd8b",
   "sons/magie-a.wav": "0e5491cd4e0f6554e3d3cb67986c262f4ba7a92b23d4fbf900108ceb0ec46de1",
@@ -206,6 +207,7 @@
   "sons/scanner-balayage.wav": "c9fc7d50cf0e25ef542daed72ad067b324a5b489d2e7b105bb3ec8a4bca113b1",
   "sons/scanner-fin.wav": "40aaf69796022be1b3002c203848d909b0be31a0779a057b466cff8bdc323e14",
   "sons/scintillement-a.wav": "3193c2fbd3bd06e7d7e1c3e3e39a2132600e20993b4d04a11000bd8ade92796b",
+  "sons/scintillement-b.wav": "167f04607502b42c65f7edeea7ce3c474b14fe87eb7e3a3b959152361888e43b",
   "sons/scotch-a.wav": "987ca0e3eec19f130a61b86594858fc5678beaa8be602d61f6b09e82e29140e2",
   "sons/scotch-b.wav": "a02418833dfd20e123a136cfd1cab7ecd170ffc97839f4e36a9b0c5cd832b495",
   "sons/scotch-c.wav": "196af31cd3287d67b6df21b2d84cc5f21fa94c20141ce502e12c12360ef13902",
@@ -217,6 +219,7 @@
   "sons/tampon-a.wav": "6e6b789dbdc12dd6e5e20dc7eb74e31e1c324a14f6447cdfe327e6c0b6cf2aee",
   "sons/tampon-b.wav": "96336bb968d0a0ae016e2dca05a519285a558fa7fcf74804023bc5348a1f301c",
   "sons/telephone-a.wav": "6ed24fcc80d49783b9eaa3d8e1150d2c09954991dbc27a19fe24748b8aecba08",
+  "sons/tension-a.wav": "0dce4aa56b29a29ad89d60f727423152c3d45fb6f96dcdf6369fe100164555f9",
   "sons/ticket-a.wav": "94fde5d6746491ca1405bbc1a4f8bf2068c79ef333b3a56469421d1c8b2479da",
   "sons/ticket-b.wav": "e81dee908c78ee44bb24c0422041e6423a17d730ce491c88b6e80b88ca7e3dbc",
   "sons/tirage-a.wav": "26e4c826404216fe73dfbf3d0ee34694604e5081e62362003f01924aa888e9f6",
@@ -230,9 +233,10 @@
   "sons/whoosh-e.wav": "8bac9ab54719b175c396558b324f08a90160eeb6e5c2eb2c0d2a8301256c3425",
   "sons/whoosh-f.wav": "247ddeede444b4091f242c29b8ee526ddef16221348676e1ec734983efd2391d",
   "sons/whoosh-pro-a.wav": "b28afd9cc92c1bc8bd52e243c5d2be21996145dc1457e10641d180a45ef91e7a",
+  "sons/whoosh-pro-b.wav": "904724cbdd82c894491e165a9cacb0e863da9f579cae1b26565b02947aa9ede6",
   "sons/zip-a.wav": "5213f9454876cc2d5f0ead2e0aaed234c7377c320c9981b2e4fcfaa677ccef88",
   "sons/zip-b.wav": "d3dc33aa2bae3bfc920e4e2edd3946999f2955e14f8268b4d614528653909bac",
-  "sons-choix.mjs": "5ec652c358ddb18e4d249c32ebef2e0c2fdbf53a4abbc301dedb8f758b2c13ce",
+  "sons-choix.mjs": "bedd46e95f1caae9105820640405ca06c1b8237d5eb35a833ef9c2f42ea89e68",
   "zone-effets.mjs": "47e33e35e99b9f741babf78671b02bceaaa6d21aef759964819132094f8a5b67"
  }
 }

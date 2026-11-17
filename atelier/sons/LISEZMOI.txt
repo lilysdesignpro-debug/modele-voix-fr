@@ -109,3 +109,9 @@ scintillement-a   apparition d'une liste, d'un titre, d'un badge   freesound.org
 bloop-a, bloop-b  pastilles qui popent, mots en rafale            Kenney Interface Sounds drop_002 / drop_004 (CC0, kenney.nl)
 whoosh-pro-a      vraie transition (changement de prise, zoom)    freesound.org/s/72191 (CC0)
 scanner-arrivee, scanner-balayage, scanner-fin   effet scanner (17/11, choisis par Aurélie)   Kenney Interface Sounds maximize_003 / glitch_001 / select_003 (CC0, kenney.nl)
+Ajoutés le 17/11/2026 au soir, choisis par Aurélie dans la planche d'écoute des sons pro (tous CC0) :
+scintillement-b   apparition                     freesound.org/s/264981
+whoosh-pro-b      transition                     freesound.org/s/127197
+clavier-pro-a     texte qui se tape              freesound.org/s/423648
+tension-a         tension d'intro                freesound.org/s/840719
+Sélection d'Aurélie = pack « pro » (sons-choix.mjs), utilisé par défaut.

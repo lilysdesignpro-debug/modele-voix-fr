@@ -15,6 +15,9 @@
 export const PACKS = {
   doux: { pop: ['pop-c', 'pop-a'], clic: ['clic-a'], whoosh: ['whoosh-d', 'whoosh-doux'], cloche: ['cloche-b'], kaching: ['cloche-b'], glitch: [], photo: ['photo-c'], clavier: ['clavier-d'] },
   pop: { pop: ['pop-c', 'pop-a', 'pop-b'], whoosh: ['whoosh-c', 'whoosh-a'], kaching: ['kaching-e', 'kaching-a'], photo: ['photo-c', 'photo-d'] },
+  // (17/11/2026) LA SÉLECTION D'AURÉLIE (planche d'écoute des sons pro, d'après l'étude des sons d'une créatrice de référence) :
+  // le pack par défaut, pour elle et pour toutes les élèves. [] = famille coupée (« les sons par défaut sont très moches »).
+  pro: { pop: ['bloop-a', 'bloop-b'], clic: [], whoosh: ['whoosh-pro-a', 'whoosh-pro-b'], cloche: ['bloop-b'], kaching: ['scintillement-b'], photo: ['scintillement-a'], magie: ['scintillement-a', 'scintillement-b'], glitch: [], clavier: ['clavier-pro-a'], riser: ['tension-a'], papier: ['whoosh-pro-b'], tampon: ['bloop-b'], page: ['whoosh-pro-b'], tirage: ['scintillement-a'], boite: ['whoosh-pro-b'], punaise: ['bloop-a'], coffre: ['bloop-b'], enveloppe: ['whoosh-pro-b'], stylo: ['clavier-pro-a'] },
   luxe: { pop: ['clic-a'], whoosh: ['whoosh-d', 'whoosh-doux'], cloche: ['cloche-b'], kaching: ['cloche-b'], glitch: [], magie: ['magie-a'], photo: ['photo-d'], page: ['page-b'] },
 }
 
@@ -27,7 +30,7 @@ const AUCUN = new Set(['aucun', 'non', 'rien', 'off'])
 // Renvoie son(fam) -> nom du son, ou null si la famille est coupée ou vide.
 export function sonneur(SONS, prefs, theme) {
   const P = prefs && typeof prefs === 'object' ? prefs : {}
-  const pack = PACKS[P.pack] || (theme === 'luxe' ? PACKS.luxe : null) || {}
+  const pack = PACKS[P.pack] || (theme === 'luxe' ? PACKS.luxe : null) || (P.pack === 'ancien' ? {} : PACKS.pro) // (17/11) « pro » par défaut ; "pack": "ancien" pour l'ancienne rotation
   const tours = {}
   const famille = fam => SONS.filter(x => x.startsWith(fam + '-') || x === fam || (fam === 'clavier' && x.startsWith('clavier')))
   const garde = v => [].concat(v ?? []).map(String).filter(x => SONS.includes(x))
