@@ -180,8 +180,16 @@ deux fois la même animation de suite.
 **1. LA BASE, posée d'office dans toutes les vidéos** (sobre, sûre, à sa charte) :
 - le chiffre de son hook en énorme derrière sa tête (« 35 000 € » → « 35K ») ;
 - ses mots forts en couleur, s'il y en a trop peu (il garde son texte d'avant dans `sous-titres.avant-plan.txt`) ;
-- ses grands mots à SA charte (sa police, sa couleur de mot fort) : ses chiffres et ses mots-chocs, avec un impact doux ;
+- un mot géant à SA charte (sa manuscrite en grand, deux ou trois petits mots de sa police au-dessus) toutes les 3 à
+  4 secondes : ses chiffres, ses mots-chocs, puis le nom qui porte la phrase. Le monteur se trompe parfois de mot
+  (« commence » au lieu de « visibilité ») : relis-les avec elle et change ceux qui ne portent rien ;
+- un petit son doux sur un mot géant sur deux, jamais le même deux fois de suite (jamais d'impact métallique) ;
+- la caméra qui respire : chaque morceau avance ou recule très légèrement, en alternance, l'image n'est jamais figée ;
 - des plans rapprochés là où rien ne bouge.
+
+⛔ **Jamais de flou ni de carte qui rétrécit sa vidéo** (choix d'Aurélie, 18/11) : ni décor flouté, ni mode portrait,
+ni carte givrée, ni vidéo réduite dans une carte de chapitre. Seulement si l'élève le demande elle-même, avec
+`"flou": true` dans `projet.json`.
 
 **2. LES OPTIONS, numérotées dans `plan.txt`** : tout ce qui peut venir s'ajouter sans rien casser, au bon moment.
 Rien n'est posé tant qu'elle ne dit pas oui. Tu lui lis la liste en mots simples (« 1. des petites pastilles 🎬 vidéos
@@ -191,6 +199,8 @@ Les options possibles :
 - ses énumérations (« un seul like, un seul commentaire, rien pour booster ») en liste qui s'écrit ;
 - des pastilles « émoji + son mot » sur les choses concrètes qu'elle nomme (like, café, argent, TikTok, idée…) ;
 - un vrai objet quand elle dit « mon café », « mon ordi » ;
+- un petit fantôme tout mignon qui flotte à côté d'elle quand elle parle d'abonnées fantômes ou silencieuses
+  (effet `{ "type": "flotte", "nom": "fantome" }`, qui vole au lieu de se poser comme un objet) ;
 - sa phrase de relance (« le problème… », « et là… ») au marqueur au-dessus de sa tête ;
 - un rappel en notification quand elle dit « n'oubliez pas » ;
 - un gros plan sec sur sa phrase d'humeur ;
@@ -527,7 +537,7 @@ Propose-les-lui, elle choisit :
   Un mot ou un chiffre court de SON hook, énorme, qui passe derrière sa tête. Seulement si elle est
   filmée en plan assez large (sa tête ne touche pas le haut de l'image) et s'il y a du décor derrière elle.
 - **Mode portrait** : `"portrait": [[début, fin]]`, sur LA phrase forte (2 à 4 s) : le décor se floute,
-  elle reste nette. Une seule fois par vidéo.
+  elle reste nette. Une seule fois par vidéo, et SEULEMENT si elle le demande (jamais proposé d'office).
 - **Carnet vivant** : `{ "type": "annotation", "t": 6.2, "duree": 1.8, "texte": "mon agenda", "vers": [x, y] }`.
   Quand elle MONTRE un objet (son agenda, son téléphone, un produit) : un mot au feutre et une flèche
   tracée vers l'objet. Pour trouver `vers`, regarde une image du montage à ce moment-là (extrais-la

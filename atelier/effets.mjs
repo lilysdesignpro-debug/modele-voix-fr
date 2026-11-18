@@ -97,7 +97,7 @@ export function effet(E, { clamp, doux, rebond, esc, couleurs, dossier = '', pol
   }
   if (E.type === 'duo') {
     // (17/11) « charte » : le duo dans SES polices (son manuscrit pour le grand mot, sa police de texte pour le petit) : « tu respectes pas sa DA »
-    const R = (E.recette === 'charte' && polices ? { g: [polices.fort, 700, 170, 0.74, 'none', polices.fort, 0.42], f: [polices.texte, 800, 40, 'upper', polices.texte], pose: 'dessus', espacement: '.14em' } : null) || DUOS[E.recette] || DUOS.affiche, grand = String(E.grand || '').trim(); if (!grand) return null
+    const R = (E.recette === 'charte' && polices ? { g: [polices.fort, 700, 220, 0.74, 'none', polices.fort, 0.42], f: [polices.texte, 800, 44, 'upper', polices.texte], pose: 'dessus', espacement: '.14em' } : null) || DUOS[E.recette] || DUOS.affiche, grand = String(E.grand || '').trim(); if (!grand) return null
     const casse = (t, c) => c === 'upper' ? t.toUpperCase() : c === 'lower' ? t.toLowerCase() : t
     const taille = ls => Math.min(R.g[2], 540 / (R.g[6] * Math.max(...ls.map(l => [...l].length))))
     let lignesG = E.lignes || [grand]
@@ -129,7 +129,7 @@ export function effet(E, { clamp, doux, rebond, esc, couleurs, dossier = '', pol
           const fl = d => '<svg style="position:absolute;left:0;top:0;overflow:visible;opacity:' + q + '" width="720" height="10"><path d="' + d + '" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" style="filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))"/></svg>'
           h += chip(60, -100, R.g[5]) + fl('M150 -44 Q 120 -10 150 ' + Math.round(yG + 10)) + chip(420, hauteur + 10, R.f[4]) + fl('M500 ' + Math.round(hauteur + 8) + ' Q 530 ' + Math.round(hauteur - 30) + ' 505 ' + Math.round(hauteur - 50)) }
         return h + '</div>' },
-      sons: t0 => [{ t: t0, fam: 'impact', vol: 0.1 }, ...(E.etiquettes ? [{ t: t0 + 0.9, fam: 'clic', vol: 0.06 }] : [])] }
+      sons: t0 => [{ t: t0, fam: 'mot', vol: 0.1 }, ...(E.etiquettes ? [{ t: t0 + 0.9, fam: 'clic', vol: 0.06 }] : [])] }
   }
   if (E.type === 'telephone') {
     const src = image(chemin(E.image)); if (!src) return null

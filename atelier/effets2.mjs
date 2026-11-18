@@ -104,6 +104,19 @@ export function effet2(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) 
           + '<img src="' + O.src + '" style="position:absolute;left:' + xo.toFixed(1) + 'px;top:' + (sol - ho + chute + flotte).toFixed(1) + 'px;width:' + lo.toFixed(1) + 'px;transform-origin:50% 100%;transform:rotate(' + rot.toFixed(1) + 'deg) scale(' + (1 + ecrase - 0.25 * sortie).toFixed(3) + ',' + (1 - ecrase - 0.25 * sortie).toFixed(3) + ');opacity:' + (1 - sortie).toFixed(2) + ';filter:drop-shadow(0 10px 14px rgba(0,0,0,.28))">' },
       sons: t0 => [{ t: t0 + POSE - 0.02, fam: 'pop', vol: 0.06 }] }
   }
+  // (18/11) flotte : un petit personnage mignon (le fantôme des « abonnées fantômes ») qui APPARAÎT en douceur à côté d'elle,
+  // flotte en se balançant, puis s'efface. Jamais posé comme un objet sur la table : il vole. { type: 'flotte', t, nom: 'fantome' }
+  if (E.type === 'flotte') {
+    const O = objet(...[].concat(E.nom || [])); if (!O) return null
+    const W = E.largeur || 210, duree = E.duree ?? 2.6, H = Math.round(W * O.h / O.l)
+    return { hauteur: H + 40, anim: duree, duree, place: cote,
+      dessin: (dt, y) => { const x = cote === 'droite' ? 720 - W - 70 : 70
+        const entree = clamp(dt / 0.45, 0, 1), e = 1 - Math.pow(1 - entree, 3), sortie = clamp((dt - (duree - 0.4)) / 0.4, 0, 1)
+        const vol = Math.sin(dt * 3.2) * 9, balance = Math.sin(dt * 2.4) * 6 * (cote === 'droite' ? -1 : 1)
+        const op = (e * (1 - sortie)).toFixed(3), monte = (1 - e) * 40 - sortie * 30
+        return '<img src="' + O.src + '" style="position:absolute;left:' + x + 'px;top:' + (y + 20 + vol + monte).toFixed(1) + 'px;width:' + W + 'px;opacity:' + op + ';transform-origin:50% 60%;transform:rotate(' + balance.toFixed(1) + 'deg) scale(' + (0.7 + 0.3 * e).toFixed(3) + ');filter:drop-shadow(0 10px 14px rgba(40,20,60,.25))">' },
+      sons: t0 => [{ t: t0, fam: 'mot', vol: 0.08 }] }
+  }
   // (07/11) motTasse : un mot en géant dont le O est une VRAIE tasse vue de dessus (« POSSIBLE », « MOINS DE SCROLL »…).
   // { type: 'motTasse', t, texte: 'possible', nom: 'matcha-latte', transition: 'pose' | 'glisse' | 'tourne' | 'zoom', lettre: 3 }
   //   pose : la tasse est posée dans le trou du mot, d'en haut (elle descend vers la table, son ombre se resserre)

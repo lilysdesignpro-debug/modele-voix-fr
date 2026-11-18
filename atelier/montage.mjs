@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url'
 import { habillage } from './habillages.mjs'
 import { liste as listeAnimee, POLICES_LISTES } from './listes.mjs'
 import { effet as effetPonctuel, POLICES_EFFETS, couleurDecor } from './effets.mjs'
-import { ECHELLE, CADRE, px, ENCODAGE } from './echelle.mjs'
+import { ECHELLE, CADRE, px, pxPair, TAILLE, ENCODAGE } from './echelle.mjs'
 import { sonneur } from './sons-choix.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
@@ -556,7 +556,7 @@ async function monter(nom) {
   const nav = await ouvrirNavigateur()
   const page = await nav.newPage(); await page.setViewport({ width: 720, height: 1280 })
   const face = (p) => `@font-face{font-family:'${p.famille}';font-weight:${p.poids};src:url(data:font/${p.fichier.split('.').pop().toLowerCase()};base64,${readFileSync(join(ICI, 'polices', p.fichier)).toString('base64')})}`
-  const S = C.sousTitres, F = C.motFort, T = C.titre, E = C.etiquette
+  const S = { ...C.sousTitres, ...(P.sousTitres || {}) }, F = C.motFort, T = C.titre, E = C.etiquette
   const css = `${face(C.polices.texte)}${face(C.polices.fort)}${face(C.polices.titre)}${face({ fichier: 'Caveat-700.woff2', famille: 'Main', poids: 700 })}${face({ fichier: 'DMSerifDisplay-400.woff2', famille: 'Serif', poids: 400 })}${POLICES_LISTES.map(([fichier, famille, poids]) => face({ fichier, famille, poids })).join('')}${POLICES_EFFETS.filter(([, f]) => f !== 'Carnet').map(([fichier, famille, poids, style]) => face({ fichier, famille, poids, style })).join('')}
 html,body{margin:0;width:720px;height:1280px;background:transparent}
 .fort{font-family:'${C.polices.fort.famille}',cursive;font-weight:${C.polices.fort.poids};color:${F.couleur};letter-spacing:${F.espacement};text-transform:${F.majuscules ? 'uppercase' : 'none'};${F.contour ? `-webkit-text-stroke:${F.contourEpaisseur}px ${F.contour};paint-order:stroke fill;` : ''}${F.fond ? `background:${F.fond};padding:0 14px 2px;border-radius:3px;` : ''}display:inline-block;transform:rotate(${F.rotation}deg);text-shadow:none;line-height:1}
@@ -805,7 +805,7 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
     s.x = pose.x; s.y = pose.y / 1280; s.echelle = pose.ech
     // Effet givré : une carte sur un plan sans visage (l'ordi, les mains, un objet) floute l'action derrière elle.
     // `flou: false` dans le projet pour l'empêcher.
-    if (s.flou === undefined && !visageFinal(T0) && !visageFinal(T0 + Math.min(1, (s.duree || 1.4) / 2))) s.flou = true
+    if (s.flou === undefined && P.flou === true && !visageFinal(T0) && !visageFinal(T0 + Math.min(1, (s.duree || 1.4) / 2))) s.flou = true
   }
   if (process.env.MONTAGE_SEGS) { for (const g of infos) console.log(g.o.toFixed(2), g.a.toFixed(2), g.b.toFixed(2), g.k ?? 1); process.exit(0) }
   if (process.env.MONTAGE_VISAGES) { for (let T = 0; T < TOT; T += 0.5) console.log(T.toFixed(1), JSON.stringify(visageFinal(T)?.map(Math.round) ?? null)); process.exit(0) }
@@ -910,16 +910,24 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
     for (const x of Lm.sons(t0)) if (x.fam === 'clavier') for (let u = 0; u < x.duree; u += 0.16) sonsListes.push(['clic', x.t + u]); else sonsListes.push([x.fam, x.t])
   }
   // Les effets ponctuels (effets.mjs) : choc et commentaires en haut, capture et avant/après plus bas, jamais sur son visage
+  // pendant une carte de chapitre, aucun effet par-dessus : la carte a déjà son titre
+  let nDuo = 0
+  const fenCartes = (P.cartes || []).map(K => [nt(K.t) - 0.3, nt(K.t) + (K.duree || 2.2) + 0.2])
   for (const [k, E] of (P.effets || []).entries()) {
+    // un effet qui commence assez tôt avant la carte est gardé, mais s'arrête quand la carte arrive
+    const carteApres = fenCartes.find(([a, b]) => nt(E.t) < b && nt(E.t) + 1.6 > a)
+    if (carteApres && nt(E.t) > carteApres[0] - 0.7) continue
     const borne = (x, a, b) => Math.max(a, Math.min(b, x)), dx = x => 1 - Math.pow(1 - borne(x, 0, 1), 3)
     const rb = x => { x = borne(x, 0, 1); const c = 1.4; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2) }
     const decor = E.type === 'duo' && E.recette === 'charte' && (!E.couleur || E.couleur === 'auto') ? (C.motFort?.couleur || accent) : E.type === 'duo' && (!E.couleur || E.couleur === 'auto') ? couleurDecor(spawnSync('ffmpeg', ['-v', 'error', '-ss', String(E.t), '-i', join(dir, 'source.mp4'), '-frames:v', '1', '-vf', 'scale=36:64', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-']).stdout, null) : null
     const Em = effetPonctuel(E, { clamp: borne, doux: dx, rebond: rb, esc: x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;'), dossier: dir, couleurs: { marqueur: E.couleur || '#FFE14D', contour: '#2b2416', feutre: accent, decor }, polices: { fort: C.polices.fort.famille, texte: C.polices.texte.famille } })
     if (!Em) continue
-    const t0 = nt(E.t), fin = Math.min(TOT, t0 + Em.duree), haut = E.type === 'choc' || E.type === 'commentaires'
+    const t0 = nt(E.t), fin = Math.min(TOT, t0 + Em.duree, carteApres ? carteApres[0] + 0.3 : 1e9), haut = E.type === 'choc' || E.type === 'commentaires'
     const y = Math.round(placer('effet', haut ? 260 : 780, Em.hauteur, t0, fin) - Em.hauteur / 2)
     const IPS = 15, nImg = Math.ceil(Em.anim * IPS)
     for (let j = 0; j <= nImg; j++) { const fichier = join(st, `effet-${k}-${j}.png`); await png(Em.dessin(j / IPS, y), fichier); plus.push({ a: t0 + j / IPS, b: j < nImg ? t0 + (j + 1) / IPS : fin, fichier }) }
+    // (18/11) « les sons c'est toujours les mêmes » : un mot géant sur deux seulement a son petit son, et jamais le même deux fois de suite
+    if (E.type === 'duo' && (nDuo++ % 2)) continue
     for (const x of Em.sons(t0)) sonsListes.push([x.fam, x.t])
   }
   if (P.carteFin) {
@@ -929,6 +937,24 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
       ? `<div style="position:absolute;left:0;right:0;top:${Math.round(placer('carte de fin', 215, 56, TOT - (P.carteFin.duree || 2.5), TOT) - 28)}px;text-align:center;font-family:'${C.polices.titre.famille}',sans-serif;font-weight:${C.polices.titre.poids};font-size:38px;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.5);letter-spacing:-0.3px"><span style="font-size:24px">✦</span> ${fort(P.carteFin.texte)} <span style="font-size:24px">✦</span></div>`
       : `<div style="position:absolute;left:0;right:0;top:200px;text-align:center"><span class="tag" style="font-size:50px;padding:12px 26px;border-radius:10px;${ombre}">${fort(P.carteFin.texte)}</span></div>`, fichier)
     plus.push({ a: TOT - (P.carteFin.duree || 2.5), b: TOT + 0.5, fichier, son: P.carteFin.son || 'magie' })
+  }
+  // (18/11) LA CARTE DE CHAPITRE (sa signature, relevée sur ses reels d'octobre) : à chaque nouvelle
+  // partie, sa vidéo continue EN PETIT dans une carte arrondie sur un fond uni de SA charte ; en haut « partie n° 1/3 »,
+  // en bas le titre de la partie qui arrive mot par mot. `cartes: [{ t, titre, num, total, haut, duree }]` (temps d'origine).
+  const CARTE = { x: 150, y: 215, w: 420, h: 746 }
+  const cartesF = (P.cartes || []).map((K, i) => ({ ...K, i, a: nt(K.t), b: Math.min(TOT, nt(K.t) + (K.duree || 2.2)) }))
+  for (const K of cartesF) {
+    const ff = C.polices.titre.famille, fw = C.polices.titre.poids, fo = C.polices.fort.famille
+    const haut = `<div style="position:absolute;left:${CARTE.x - 10}px;top:${CARTE.y - 70}px;font-family:'${fo}',cursive;font-size:44px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.35)">${(K.haut || 'partie n°').replace(/</g, '&lt;')}<span style="font-family:'${ff}',sans-serif;font-weight:${fw};font-size:52px"> ${K.num ?? K.i + 1}</span>${K.total ? `<span style="font-family:'${ff}',sans-serif;font-weight:${fw};font-size:34px;color:${accent}">/${K.total}</span>` : ''}</div>`
+    const mots = String(K.titre || '').split(/\s+/).filter(Boolean)
+    for (let j = 0; j <= mots.length; j++) {
+      const fichier = join(st, `carte-${K.i}-${j}.png`)
+      const bas = mots.slice(0, j).map(m => m.replace(/</g, '&lt;')).join(' ')
+      await png(`${haut}<div style="position:absolute;left:60px;right:96px;top:${CARTE.y + CARTE.h - 70}px;text-align:center;font-family:'${ff}',sans-serif;font-weight:${fw};font-size:46px;line-height:1.05;text-transform:uppercase;color:#fff;text-shadow:0 3px 0 ${accent},0 4px 14px rgba(0,0,0,.4)">${bas}</div>`, fichier)
+      const pas = Math.min(0.28, ((K.b - K.a) * 0.5) / Math.max(1, mots.length))
+      plus.push({ a: K.a + 0.15 + j * pas - (j ? 0 : 0.15), b: j < mots.length ? K.a + 0.15 + (j + 1) * pas : K.b, fichier })
+    }
+    sonsListes.push(['whoosh', K.a]) // un whoosh léger quand la vidéo rétrécit dans la carte, rien à la sortie
   }
   plus.sort((x, y) => x.a - y.a)
   // Deux pistes calculées image par image (30/s). Ce qui se chevauche (titre tapé + compteur) va sur la seconde,
@@ -950,7 +976,8 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
   const SONS = readdirSync(join(ICI, 'sons')).filter(x => x.endsWith('.wav')).map(x => x.slice(0, -4))
   const son = sonneur(SONS, P.sons, P.style) // (06/11) ses sons à elle : "sons" dans projet.json (pack, ou un son par famille) ; null = famille coupée
   const iPlus = 4 // (17/11) les sons passent EN DERNIER et seulement ceux qui servent : avec toute la banque, la ligne de commande dépassait la limite de Windows (« ffmpeg est introuvable »)
-  const flous = (P.stickers || []).filter(s => s.flou).map(s => `between(t,${nt(s.t).toFixed(2)},${(nt(s.t) + (s.duree || 2)).toFixed(2)})`)
+  // (18/11, Aurélie) « on enlève complètement les flous » : aucun flou, sauf si on le demande exprès ("flou": true dans le projet)
+  const flous = P.flou !== true ? [] : [...(P.stickers || []), ...(P.listes || []).map(l => ({ ...l, duree: l.duree || 4 }))].filter(s => s.flou).map(s => `between(t,${nt(s.t).toFixed(2)},${(nt(s.t) + (s.duree || 2)).toFixed(2)})`)
   if (process.env.MONTAGE_FLOUS) { console.log(flous); process.exit(0) }
   // givré : flou + un voile clair, pour que la carte se détache comme posée sur une vitre dépolie
   if (flous.length) f += `[cv]boxblur=${px(14)}:2:enable='${flous.join('+')}',eq=brightness=0.07:saturation=0.8:enable='${flous.join('+')}'[cvf];`
@@ -1026,6 +1053,8 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
     entreesTD = ['-i', detoure]
     f += `[${base}]nullsink;[${iPlus + 1}:v]fps=30[dto];`
     base = 'dto'
+    // (18/11) la vidéo détourée repart de l'image sans flou : on remet le flou des listes et des cartes givrées par-dessus
+    if (flous.length) { f += `[dto]boxblur=${px(14)}:2:enable='${flous.join('+')}',eq=brightness=0.07:saturation=0.8:enable='${flous.join('+')}'[dtf];`; base = 'dtf' }
   }
   // (17/11) « son visage bute avec le challenge noté en haut » : l'étiquette s'efface pendant que sa tête monte dessus
   let CACHE_ETIQ = ''
@@ -1037,6 +1066,16 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
     genes.sort((x, y) => x - y)
     const fen = []; for (const T of genes) { const d = fen[fen.length - 1]; if (d && T - d[1] < 0.8) d[1] = T; else fen.push([T, T]) }
     if (fen.length) { CACHE_ETIQ = '*not(' + fen.map(([a, b]) => `between(t,${(a - 0.15).toFixed(2)},${(b + 0.3).toFixed(2)})`).join('+') + ')'; console.log(`Étiquette effacée ${fen.length} fois pendant que sa tête passe dessous (${fen.map(([a, b]) => a.toFixed(1) + '-' + b.toFixed(1) + ' s').join(', ')})`) }
+  }
+  // la carte de chapitre : fond uni de sa charte, sa vidéo à 58 % aux coins arrondis, le temps de la carte seulement
+  for (const K of cartesF) {
+    const fond = P.carteFond || C.carte?.fond || C.etiquette?.fond || accent
+    const w = pxPair(CARTE.w), h = pxPair(CARTE.h), r = px(26), d = (K.b - K.a).toFixed(3)
+    const coin = `(lt(X,${r})*lt(Y,${r})*gt(hypot(${r}-X,${r}-Y),${r})+gt(X,W-${r})*lt(Y,${r})*gt(hypot(X-W+${r},${r}-Y),${r})+lt(X,${r})*gt(Y,H-${r})*gt(hypot(${r}-X,Y-H+${r}),${r})+gt(X,W-${r})*gt(Y,H-${r})*gt(hypot(X-W+${r},Y-H+${r}),${r}))`
+    f += `[${base}]split[ka${K.i}][kb${K.i}];[kb${K.i}]trim=start=${K.a.toFixed(3)}:end=${K.b.toFixed(3)},setpts=PTS-STARTPTS,scale=${w}:${h},format=yuva420p,geq=lum='lum(X,Y)':cb='cb(X,Y)':cr='cr(X,Y)':a='if(${coin},0,255)'[kv${K.i}];`
+    f += `color=c=${fond}:s=${TAILLE}:r=30:d=${d},format=yuv420p[kc${K.i}];[kc${K.i}][kv${K.i}]overlay=${px(CARTE.x)}:${px(CARTE.y)}:shortest=1,setpts=PTS+${K.a.toFixed(3)}/TB[kk${K.i}];`
+    f += `[ka${K.i}][kk${K.i}]overlay=0:0:eof_action=pass:enable='between(t,${K.a.toFixed(3)},${K.b.toFixed(3)})'[kz${K.i}];`
+    base = `kz${K.i}`
   }
   f += `[1:v]fps=30,format=rgba[st];[${base}][st]overlay=0:0[c1];[c1][2:v]overlay=0:0:enable='lt(t,${(P.titreFixe ? (P.carteFin ? TOT - (P.carteFin.duree || 2.5) : TOT + 1) : HOOK).toFixed(3)})'[c2];[c2][3:v]overlay=0:0:enable='${P.titreFixe ? 'lt(t,0)' : `gte(t,${HOOK.toFixed(3)})${CACHE_ETIQ}`}'[c3];[${iPlus}:v]fps=30,format=rgba[pl];[c3][pl]overlay=0:0[c4];[${iPlus + 1 + entreesTD.filter(x => x === '-i').length}:v]fps=30,format=rgba[pl2];[c4][pl2]overlay=0:0[vo];`
 

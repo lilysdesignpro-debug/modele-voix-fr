@@ -52,7 +52,7 @@ const PASTILLES = [
   [/^(adore|amour|coeur)$/, '😍'], [/^(force|motivation|muscle)$/, '💪'], [/^(magie|magique|paillettes)$/, '✨'], [/^(note|notes|ecrire)$/, '📝'],
 ]
 // Les vrais objets de la bibliothèque, quand elle DIT le mot (loupe et calculatrice refusées par Aurélie le 17/11)
-const OBJETS = [[/^(cafe|cafes|latte)$/, 'latte'], [/^(the)$/, 'tasse-the'], [/^(matcha)$/, 'matcha-latte-2'], [/^(ordi|ordinateur)$/, 'ordinateur']]
+const OBJETS = [[/^(cafe|cafes|latte)$/, 'latte'], [/^(the)$/, 'tasse-the'], [/^(matcha)$/, 'matcha-latte-2'], [/^(ordi|ordinateur)$/, 'ordinateur'], [/^(fantomes?|silencieuses?|silencieux)$/, 'fantome']]
 // Sa phrase de relance (« le problème… », « et là… ») → au marqueur au-dessus de sa tête
 const RELANCE = /^(et la|le probleme|le pire|mais attention|attention|vous savez quoi|spoiler|la verite|le secret|sauf que|du coup voila|devinez|resultat)\b/
 
@@ -110,7 +110,20 @@ export function planMontage(dir, P, C = null) {
         grand = chiffre[1].trim().replace(/euros?/i, '€')
         if (/^0{3}/.test(grand)) { const m = L[i - 1] && brut(L[i - 1]).match(/(\d{1,3})\s*$/); grand = m ? m[1] + ' ' + grand : null } // « les 100 » / « 000 euros »
       }
-      if (grand) cand.push({ type: 'grandMot', t: l.t, duree: 1.6, poids: chiffre ? 8 : 7, grand: grand.toLowerCase(), dessus, cle: nu(grand) })
+      // (18/11 : un mot géant toutes les 3-4 s) sans mot-choc ni chiffre, le mot qui porte la phrase :
+      // une chose concrète, ou un mot plein de 6 lettres et plus (jamais un mot outil), avec les 2-3 mots d'avant en petit
+      let poidsG = chiffre ? 8 : 7
+      if (!grand) {
+        const OUTILS = /^(alors|donc|parce|quand|comme|aussi|encore|toujours|vraiment|vous|nous|elles?|ils?|cette|celle|celui|leurs?|votre|notre|quelque|quelqu|beaucoup|maintenant|seulement|justement|pourquoi|comment|surtout|semaine|semaines|bienvenue|apparemment|certaines?|certains?|petite?s?|chose|choses|faire|avoir|etait|serait|fait|finit|sont|suis|est|probleme)$/
+        // un nom porte mieux qu'un verbe conjugué (« bilan » plutôt que « deuxième », « société » plutôt que « regardent »)
+        const verbe = x => /(ez|ent|ait|aient|ions|iez|ons|er|ir)$/.test(x) || /(ieme|iemes)$/.test(x)
+        const note = w => { const x = nu(w); return !x || OUTILS.test(x) || /^\d/.test(x) ? 0 : PASTILLES.some(([re]) => re.test(x)) ? 2 + x.length / 20 : x.length >= 5 && !verbe(x) ? 1.5 + x.length / 20 : 0 }
+        const notes = mots.map(note), best = Math.max(0, ...notes)
+        if (best > 0) { const k = notes.indexOf(best); grand = mots[k].replace(/[,?!.]/g, ''); dessus = mots.slice(Math.max(0, k - 3), k).map(w => w.replace(/[,?!.]/g, '')).filter(Boolean)
+          while (dessus.length && /^(et|de|du|des|le|la|les|un|une|a|au|en|que|qui|mon|ma|mes)$/.test(nu(dessus.at(-1)))) dessus.pop()
+          dessus = dessus.join(' '); poidsG = 5 }
+      }
+      if (grand) cand.push({ type: 'grandMot', t: l.t, duree: 1.6, poids: poidsG, grand: grand.toLowerCase(), dessus, cle: nu(grand) })
     }
     // sa phrase de relance → au marqueur au-dessus de sa tête (3 à 8 de SES mots)
     if (effets && veut('relance') && RELANCE.test(n) && mots.length >= 3 && mots.length <= 8) cand.push({ type: 'relance', t: l.t, duree: 1.8, poids: 6, texte: b.replace(/[,.]$/, '') })
@@ -129,7 +142,7 @@ export function planMontage(dir, P, C = null) {
   const places = [], deja = new Set(), compte = {}
   const libre = (f, d) => !places.some(p => f < p.fin + 0.6 && f + d > p.f - 0.6) && !pris.some(x => Math.abs(x - f) < 3)
   const NOMS = { grandMot: 'grandsMots', pastilles: 'pastilles', liste: 'liste', relance: 'relance', rappel: 'rappel', objet: 'objets' }, aime = t => creatif.aime.includes(NOMS[t])
-  const plafond = { grandMot: R.grandsMots, pastilles: R.pastilles, liste: 1, relance: 2, rappel: 1, objet: 2 }
+  const plafond = { grandMot: Math.max(R.grandsMots, Math.ceil(final(L.at(-1)?.t ?? 0) / (R.ecart + 0.5))), pastilles: R.pastilles, liste: 1, relance: 2, rappel: 1, objet: 2 }
   for (const t in plafond) if (aime(t)) plafond[t]++ // ce qu'elle aime passe devant, et revient un peu plus
   for (const c of cand) if (aime(c.type)) c.poids += 3
   let dernierType = ''
@@ -141,7 +154,7 @@ export function planMontage(dir, P, C = null) {
   }
   places.sort((a, b) => a.f - b.f)
   // jamais deux fois la même animation de suite : la deuxième d'une paire cède sa place s'il existe une autre idée à ce moment-là
-  for (let k = 1; k < places.length; k++) if (places[k].type === places[k - 1].type) {
+  for (let k = 1; k < places.length; k++) if (places[k].type === places[k - 1].type && places[k].type !== 'grandMot') { // les mots géants se suivent, c'est le principe
     const autre = cand.find(c => c.type !== places[k].type && Math.abs(final(c.t) - places[k].f) < 1.5 && (compte[c.type] || 0) < plafond[c.type] && !(c.cle && deja.has(c.type + c.cle)))
     if (autre) { compte[places[k].type]--; compte[autre.type] = (compte[autre.type] || 0) + 1; if (autre.cle) deja.add(autre.type + autre.cle); places[k] = { ...autre, f: final(autre.t), fin: final(autre.t) + autre.duree } }
   }
@@ -154,7 +167,7 @@ export function planMontage(dir, P, C = null) {
     if (p.type === 'liste') mettre('listes', { t: p.t, type: creatif.liste || 'etiqueteuse', items: p.items }, 'Liste', `« ${p.items.join(' / ')} » qui s'écrit quand elle les dit`)
     if (p.type === 'grandMot') mettre('effets', { t: p.t, type: 'duo', recette: 'charte', grand: p.grand, ...(p.dessus ? { dessus: p.dessus } : {}), duree: 1.5 }, 'Grand mot', `${p.dessus ? p.dessus.toUpperCase() + ' / ' : ''}« ${p.grand} » à sa charte, avec un impact doux, quand elle dit « ${/^\d/.test(p.grand) ? p.grand : dit} »`)
     if (p.type === 'relance') mettre('effets', { t: p.t, type: 'choc', texte: p.texte }, 'Relance', `« ${p.texte} » écrit au marqueur au-dessus de sa tête`)
-    if (p.type === 'objet') mettre('effets', { t: p.t, type: 'objet', nom: p.nom }, 'Objet', `un vrai ${p.nom.replace(/-\d$/, '').replace(/-/g, ' ')} qui se pose à côté d'elle quand elle dit « ${dit} »`)
+    if (p.type === 'objet') mettre('effets', { t: p.t, type: p.nom === 'fantome' ? 'flotte' : 'objet', nom: p.nom }, 'Objet', `un vrai ${p.nom.replace(/-\d$/, '').replace(/-/g, ' ')} qui se pose à côté d'elle quand elle dit « ${dit} »`)
     if (p.type === 'rappel') mettre('stickers', { t: p.t, type: 'notif', titre: 'Rappel', texte: p.texte, emoji: '⏰', x: 360, y: 0.7, duree: 2.6 }, 'Rappel', `notification « ${p.texte} »`)
     if (p.type === 'pastilles') { const xs = cote++ % 2 ? [560, 170] : [170, 560]
       mettre('stickers', { t: p.t, type: 'groupe', duree: 2.6, pas: 0.5, echelle: 1.7, items: p.items.map(([e, mot], k) => [e, xs[k], 0.3 + k * 0.06, k ? 5 : -6, mot]) },
@@ -214,6 +227,9 @@ export function planMontage(dir, P, C = null) {
 
   if (effets && effets.length) P.effets = effets.sort((a, b) => a.t - b.t)
   if (listes && listes.length) P.listes = listes
+  // (18/11, Aurélie) « que ça floute l'arrière-plan mais qu'on garde son visage », et pas trop longtemps : pendant une liste,
+  // le décor se floute (mode portrait, elle reste nette) 3 s au plus. Jamais tout l'écran flouté longtemps.
+  if (listes && listes.length && creatif.listeFlou === true && vide('portrait')) P.portrait = listes.map(l => [l.t, l.t + 3])
   if (stickers.length) P.stickers = stickers.sort((a, b) => a.t - b.t)
   if (creatif.sons && !P.sons) P.sons = creatif.sons
   // (18/11, crash test) pas de doublon : le chiffre derrière sa tête remplace le titre sur le torse, le sondage remplace la carte de fin
