@@ -14,7 +14,7 @@
 // dans polices/. Tout se passe sur l'ordinateur : la vidéo ne part nulle part.
 import { spawnSync } from 'node:child_process'
 import { zones as zonesPlateforme, dessinZones } from './marges.mjs'
-import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync, readdirSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync, readdirSync, rmSync, appendFileSync } from 'node:fs'
 import { join, dirname, basename } from 'node:path'
 import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -234,8 +234,9 @@ function silencesReels(E, a, b, min = 0.12) { // les vrais silences (au moins 12
 // x = là où la partie gardée s'arrête, y = là où elle reprend. Mesuré sur 4 vidéos : l'écoute place les mots
 // 0,15 à 0,4 s TROP TÔT, jamais trop tard. Donc chaque limite qui tombe dans sa voix avance jusqu'au vrai silence suivant
 // (on finit son dernier mot, on attend le premier mot d'après) ; une limite déjà dans un silence y reste.
-function calerRetrait([x, y], E, alertes) {
-  const cale = (t, marge) => { const r = silencesReels(E, t - 0.8, t + 0.8)
+function calerRetrait([x, y], E, alertes, blancs = []) {
+  // (18/11, crash test) dans une pièce bruyante l'énergie ne voit pas le silence : on prend alors les blancs repérés à la lecture (blancs.json)
+  const cale = (t, marge) => { let r = silencesReels(E, t - 0.8, t + 0.8); if (!r.length) r = blancs.filter(([a, b]) => b > t - 0.8 && a < t + 0.8 && b - a >= 0.12)
     const dedans = r.find(([a, b]) => t >= a && t <= b); if (dedans) return marge(dedans, t)
     const apres = r.find(([a]) => a > t); if (apres) return marge(apres, null)
     if (t < E.e.length * E.pas - 0.3) alertes.push(t); return t }
@@ -301,7 +302,7 @@ async function monter(nom) {
     if (D > 90 && !(P.histoire && P.histoire.fil && P.histoire.validee)) { console.log('⛔ VERSION COURTE SANS HISTOIRE VALIDÉE : écris dans projet.json "histoire": { "fil": "<l’histoire en une phrase>", "validee": true } APRÈS lui avoir montré le texte gardé (histoire-prevue.txt) et reçu son oui. Une seule histoire, pas un résumé de plusieurs sujets. Rien n’est fabriqué.'); process.exit(2) }
   }
   const alertesCoupe = []
-  const RETRAITS = (P.retirer || []).map(r => ENERGIE ? calerRetrait(r, ENERGIE, alertesCoupe) : r)
+  const RETRAITS = (P.retirer || []).map(r => ENERGIE ? calerRetrait(r, ENERGIE, alertesCoupe, blancs) : r)
   RETRAITS.forEach(([a, b], i) => { const [x, y] = P.retirer[i]; if (Math.abs(a - x) > 0.05 || Math.abs(b - y) > 0.05) console.log(`Coupe recalée sur un vrai silence : [${x}, ${y}] → [${a}, ${b}]`) })
   if (alertesCoupe.length) console.log('⚠️ COUPE : aucun silence près de ' + alertesCoupe.map(t => t.toFixed(2) + ' s').join(', ') + ' : elle parle sans respirer à cet endroit, un mot risque d’être tranché. Choisis une autre limite (fin de phrase) dans retirer.')
   const RETIRER = [...RETRAITS, ...VIGNETTE, ...HESITATIONS]
@@ -353,6 +354,17 @@ async function monter(nom) {
     if (style === 'energique') return i % 2 ? RAPPROCHE : 1
     return 1
   }
+  // (18/11, v2 « pas le mal de mer, des effets bien calés ») : le mouvement ne change plus de sens à chaque morceau.
+  // Les morceaux sont regroupés en MOUVEMENTS d'au moins 5 s : un seul zoom lent et continu traverse tout le groupe,
+  // coupes comprises (chaque morceau reprend exactement où le précédent s'est arrêté), départ et arrivée en douceur.
+  // Le sens alterne d'un groupe à l'autre seulement ; le hook est un groupe à lui seul, qui avance vers elle.
+  const GROUPES = []
+  { let g = null
+    segs.forEach(([a, b, k], i) => { if (map[i][4]) return
+      const d = (b - a) * (k || 1), hook = a < finHook
+      if (!g || (g.hook !== hook) || (!hook && g.dur >= 5)) { g = { debut: map[i][2], dur: 0, hook, avance: hook || !(GROUPES.at(-1)?.avance ?? false) }; GROUPES.push(g) }
+      g.dur += d; segs[i].groupe = g }) }
+  for (const g of GROUPES) g.amp = Math.min(g.hook ? 0.09 : 0.06, 0.012 * g.dur + 0.01)
   // Pour chaque morceau : son zoom, et le centre du visage (le plan rapproché se cadre SUR le visage).
   const infos = segs.map(([a, b, k], i) => {
     const L = style === 'prof' || style === 'carnet' || P.fixe ? null : longs.find(([x, y]) => a >= x - 0.05 && a < y)
@@ -364,13 +376,30 @@ async function monter(nom) {
     // le plan rapproché s'arrête avant que le menton n'atteigne la ligne des sous-titres
     const limite = 1280 * C.sousTitres.y - C.sousTitres.taille - 30
     const Rmax = cy != null && bas > cy ? (limite - 0.36 * 1280) / (bas - cy) : R
-    return { a, b, k, o: map[i][2], ouv: map[i][4], L, E, R: R > 1 ? Math.max(1, Math.min(R, Rmax)) : R, cx, cy }
+    // (18/11, Aurélie) LA CAMÉRA QUI RESPIRE : « ce qu'on recherche c'est les zooms, les dézooms même minimes, la fluidité »
+    // (vu en veille sur les comptes vidéo). Chaque morceau avance OU recule doucement, en alternance : l'image ne reste
+    // jamais figée. Avancer puis reculer s'enchaînent sans saut (l'un finit où l'autre commence). Sur le hook, on avance
+    // vers elle (tension). Amplitude minime, proportionnelle à la durée : un morceau court bouge peu, jamais d'à-coup.
+    // "camera": false pour la couper ; aucun mouvement en prof, carnet ou fixe.
+    let M = null
+    const G = segs[i].groupe
+    if (P.camera !== false && G && !E && !P.fixe && style !== 'prof' && style !== 'carnet') {
+      // (18/11) Aurélie préfère la version « par morceau » (v2) : la version en longs mouvements de groupe faisait
+      // « trop trop saccadé ». Par défaut : chaque morceau avance ou recule, en alternance, départ franc et arrivée douce.
+      // "camera": "long" garde l'autre façon (un mouvement lent par groupe de 5 s), si une élève la préfère.
+      const dur = (b - a) * (k || 1)
+      M = P.camera === 'long'
+        ? { amp: G.amp * (P.cameraDose ?? 1), avance: G.avance, u0: (map[i][2] - G.debut) / G.dur, gdur: G.dur, ease: 'doux' }
+        : { amp: Math.min(a < finHook ? 0.09 : 0.07, (a < finHook ? 0.035 : 0.028) * dur) * (P.cameraDose ?? 1), avance: a < finHook || i % 2 === 0, u0: 0, gdur: dur, ease: 'sortie' }
+    }
+    return { a, b, k, o: map[i][2], ouv: map[i][4], L: M ? null : L, E, M, R: R > 1 ? Math.max(1, Math.min(R, Rmax)) : R, cx, cy }
   })
   // facteur de zoom et décalage du cadre à l'instant tt (temps d'origine) d'un morceau
   const cadrage = (g, tt) => {
     const lent = g.L ? ZOOM_LENT / (g.L[1] - g.L[0]) * (tt - g.L[0]) : 0
     let emb = 0; if (g.E) { const u = (tt - g.E[0]) / (g.E[1] - g.E[0]); emb = u < 0 || u > 1 ? 0 : EMBARQUE * u * u * (3 - 2 * u) }
-    const zf = g.R * (1 + lent + emb)
+    let mv = 0; if (g.M) { const u = Math.max(0, Math.min(1, g.M.u0 + (tt - g.a) * (g.k || 1) / g.M.gdur)), e = g.M.ease === 'doux' ? u * u * (3 - 2 * u) : 1 - (1 - u) * (1 - u); mv = g.M.amp * (g.M.avance ? e : 1 - e) }
+    const zf = g.R * (1 + lent + emb + mv)
     const surVisage = g.R > 1 && g.cx != null
     const offX = surVisage ? Math.max(0, Math.min(720 * zf - 720, g.cx * zf - 360)) : (720 * zf - 720) / 2
     const offY = surVisage ? Math.max(0, Math.min(1280 * zf - 1280, g.cy * zf - 0.36 * 1280)) : (1280 * zf - 1280) * 0.35
@@ -435,15 +464,18 @@ async function monter(nom) {
   const IMG = i => IMAGE + (amb ? `,format=rgb24,${amb[0]},format=gbrp,split[ha${i}][hb${i}];[hb${i}]gblur=sigma=${px(24)}[hc${i}];[ha${i}][hc${i}]blend=all_mode=screen:all_opacity=${amb[1]},format=yuv420p` : '')
   let f = ''
   segs.forEach(([a, b, k], i) => {
-    const { L, E, R, cx, cy } = infos[i]
+    const { L, E, M, R, cx, cy } = infos[i]
     let z = ''
-    if (L || E || R !== 1) {
+    if (L || E || M || R !== 1) {
       // max(0, …) : un morceau peut commencer jusqu'à 0,05 s AVANT son plan long ; sans ce plancher le zoom devient
       // négatif, l'image passe sous 2880 px et le recadrage échoue (vidéo d'une élève, 13/11/2026).
       const lent = L ? `max(0,${ZOOM_LENT / (L[1] - L[0])}*(t+${(a - L[0]).toFixed(3)}))` : '0'
       let emb = '0'
       if (E) { const u = `((${a.toFixed(3)}+t-${E[0]})/${(E[1] - E[0]).toFixed(3)})`; emb = `${EMBARQUE}*if(lt(${u},0),0,if(gt(${u},1),0,${u}*${u}*(3-2*${u})))` }
-      z = `,scale=w='2*trunc(1440*${R}*(1+${lent}+${emb}))':h=-2:eval=frame:flags=bicubic,crop=2880:5120:${R > 1 && cx != null ? `'max(0,min(iw-2880,${(cx * 4).toFixed(1)}*iw/2880-1440))':'max(0,min(ih-5120,${(cy * 4).toFixed(1)}*ih/5120-${(0.36 * 5120).toFixed(0)}))'` : '(iw-2880)/2:(ih-5120)*0.35'},scale=${CADRE}:flags=bicubic`
+      // la caméra qui respire : un seul mouvement par groupe, départ et arrivée en douceur (smoothstep)
+      let mv = '0'
+      if (M) { const u = `min(1,${M.u0.toFixed(4)}+t/${M.gdur.toFixed(3)})`, e = M.ease === 'doux' ? `(${u}*${u}*(3-2*${u}))` : `(1-(1-${u})*(1-${u}))`; mv = `${M.amp.toFixed(4)}*${M.avance ? e : `(1-${e})`}` }
+      z = `,scale=w='2*trunc(1440*${R}*(1+${lent}+${emb}+${mv}))':h=-2:eval=frame:flags=bicubic,crop=2880:5120:${R > 1 && cx != null ? `'max(0,min(iw-2880,${(cx * 4).toFixed(1)}*iw/2880-1440))':'max(0,min(ih-5120,${(cy * 4).toFixed(1)}*ih/5120-${(0.36 * 5120).toFixed(0)}))'` : '(iw-2880)/2:(ih-5120)*0.35'},scale=${CADRE}:flags=bicubic`
     }
     const cadre = `,scale=${CADRE}:force_original_aspect_ratio=increase${ECHELLE > 1 ? ':flags=lanczos' : ''},crop=${CADRE}` + IMG(i)
     if (k) { f += `[0:v]trim=${a}:${b},setpts=${k}*(PTS-STARTPTS)${cadre}${z},setsar=1,fps=30[v${i}];anullsrc=r=44100:cl=stereo,atrim=0:${((b - a) * k).toFixed(3)}[a${i}];`; return }
@@ -881,7 +913,7 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
   for (const [k, E] of (P.effets || []).entries()) {
     const borne = (x, a, b) => Math.max(a, Math.min(b, x)), dx = x => 1 - Math.pow(1 - borne(x, 0, 1), 3)
     const rb = x => { x = borne(x, 0, 1); const c = 1.4; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2) }
-    const decor = E.type === 'duo' && (!E.couleur || E.couleur === 'auto') ? couleurDecor(spawnSync('ffmpeg', ['-v', 'error', '-ss', String(E.t), '-i', join(dir, 'source.mp4'), '-frames:v', '1', '-vf', 'scale=36:64', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-']).stdout, null) : null
+    const decor = E.type === 'duo' && E.recette === 'charte' && (!E.couleur || E.couleur === 'auto') ? (C.motFort?.couleur || accent) : E.type === 'duo' && (!E.couleur || E.couleur === 'auto') ? couleurDecor(spawnSync('ffmpeg', ['-v', 'error', '-ss', String(E.t), '-i', join(dir, 'source.mp4'), '-frames:v', '1', '-vf', 'scale=36:64', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-']).stdout, null) : null
     const Em = effetPonctuel(E, { clamp: borne, doux: dx, rebond: rb, esc: x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;'), dossier: dir, couleurs: { marqueur: E.couleur || '#FFE14D', contour: '#2b2416', feutre: accent, decor }, polices: { fort: C.polices.fort.famille, texte: C.polices.texte.famille } })
     if (!Em) continue
     const t0 = nt(E.t), fin = Math.min(TOT, t0 + Em.duree), haut = E.type === 'choc' || E.type === 'commentaires'
@@ -1102,6 +1134,7 @@ function relireHistoire(wav, dir, mots, jonctions) {
   writeFileSync(join(dir, 'histoire.txt'), mots.map(m => m.txt).join(' ').replace(/\s+([,.?!])/g, '$1') + NL)
   if (!jonctions.length) return
   const E = energieVoix(wav), tranches = [], D = E.e.length * E.pas
+  let sonsPoses = []; try { sonsPoses = readFileSync(join(dir, 'sons-places.txt'), 'utf8').split(NL).map(l => parseFloat(l)).filter(x => !isNaN(x)) } catch {}
   // chaque morceau entre deux coupes est réécouté SEUL : les mots tombent du bon côté de la coupe
   const bornes = [0, ...jonctions, D], morceaux = bornes.slice(0, -1).map((a, k) => {
     const w = join(dir, 'coupe-' + k + '.wav')
@@ -1109,7 +1142,7 @@ function relireHistoire(wav, dir, mots, jonctions) {
     const m = transcrireMots(w, join(dir, 'coupe-' + k)).map(x => x.txt); rmSync(w, { force: true }); return m })
   const lignes = jonctions.map((j, k) => {
     const fort = (a, b) => { const v = E.e.slice(Math.floor(a / E.pas), Math.ceil(b / E.pas)); return v.length && Math.max(...v) > E.seuil + 6 }
-    if (fort(j - 0.04, j) && fort(j, j + 0.04)) tranches.push(j)
+    if (fort(j - 0.04, j) && fort(j, j + 0.04) && !sonsPoses.some(s => Math.abs(s - j) < 0.4)) tranches.push(j) // un bruitage posé sur la coupe n'est pas sa voix
     return `${j.toFixed(1).padStart(5)} s  …${morceaux[k].slice(-6).join(' ')}  ✂  ${morceaux[k + 1].slice(0, 6).join(' ')}…`
   })
   writeFileSync(join(dir, 'coupes.txt'), lignes.join(NL) + NL)
@@ -1142,7 +1175,8 @@ function oreille(video, dir, mots) {
 function ecouter(nom) {
   const dir = join(PROJETS, nom), P = JSON.parse(readFileSync(join(dir, 'projet.json'), 'utf8'))
   const wav = join(dir, 'audio.wav'), E = energieVoix(wav), D = E.e.length * E.pas, alertes = []
-  const R = (P.retirer || []).map(r => calerRetrait(r, E, alertes)).sort((a, b) => a[0] - b[0])
+  const blancs = existsSync(join(dir, 'blancs.json')) ? JSON.parse(readFileSync(join(dir, 'blancs.json'), 'utf8')) : []
+  const R = (P.retirer || []).map(r => calerRetrait(r, E, alertes, blancs)).sort((a, b) => a[0] - b[0])
   const garde = []; let cur = 0
   for (const [x, y] of R) { if (x > cur + 0.05) garde.push([cur, x]); cur = Math.max(cur, y) }
   if (D - cur > 0.05) garde.push([cur, D])
@@ -1157,6 +1191,9 @@ function ecouter(nom) {
   if (existsSync(fv)) { const VIS = JSON.parse(readFileSync(fv, 'utf8')), vu = t => { const i = Math.round(t / 0.25); return [0, 1, -1, 2, -2, 3].some(d => VIS[i + d]?.b) }
     const trous = []; for (const [a, b] of garde) { let d = null; for (let t = a; t <= b; t += 0.25) { if (!vu(t)) { if (d === null) d = t } else { if (d !== null && t - d >= 1.5) trous.push([d, t]); d = null } } if (d !== null && b - d >= 1.5) trous.push([d, b]) }
     if (trous.length) console.log('⚠️ ON NE LA VOIT PAS dans ces passages gardés (temps d’origine) : ' + trous.map(([a, b]) => a.toFixed(1) + '–' + b.toFixed(1) + ' s').join(', ') + ' : retire-les, le montage refusera de les fabriquer.') }
+  // (18/11) un bout de mot collé au début ou à la fin d'un passage gardé (« habilité » restait de « visibilité ») : l'écoute ne l'entend pas, l'énergie si
+  const fort = (a, b) => { const v = E.e.slice(Math.max(0, Math.floor(a / E.pas)), Math.ceil(b / E.pas)); return v.length && Math.max(...v) > E.seuil + 6 }
+  for (const [a, b] of garde) { if (a > 0.05 && fort(a, a + 0.03)) alertes.push(a); if (b < D - 0.05 && fort(b - 0.03, b)) alertes.push(b) }
   if (alertes.length) console.log('⚠️ COUPE : aucun silence près de ' + alertes.map(t => t.toFixed(2) + ' s').join(', ') + ' : choisis une vraie fin de phrase.')
   writeFileSync(join(dir, 'histoire.txt'), passages.map(p => p.join(' ')).join(NL + '✂ ') + NL)
   let o = 0; const lignes = passages.slice(0, -1).map((p, k) => { o += garde[k][1] - garde[k][0]; return `${o.toFixed(1).padStart(5)} s  …${p.slice(-6).join(' ')}  ✂  ${passages[k + 1].slice(0, 6).join(' ')}…` })
@@ -1169,6 +1206,38 @@ const [cmd, ...args] = process.argv.slice(2)
 if (cmd === 'lire') lire(...args)
 else if (cmd === 'monter') await monter(args[0])
 else if (cmd === 'ecouter') ecouter(args[0])
+else if (cmd === 'ajouter') {
+  // (18/11) les options du monteur qu'elle choisit : node montage.mjs ajouter <nom> 2 5   (ou « tout »)
+  const dir = join(PROJETS, args[0]), f = join(dir, 'projet.json'), P = JSON.parse(readFileSync(f, 'utf8'))
+  const opts = P.options || []; if (!opts.length) { console.log('Aucune option à ajouter : lance d\'abord « plan ».'); process.exit(0) }
+  const veut = args.slice(1).join(' ').toLowerCase().includes('tout') ? opts.map(o => o.n) : args.slice(1).map(Number).filter(Boolean)
+  const choisies = opts.filter(o => veut.includes(o.n)); if (!choisies.length) { console.log('Numéros possibles : ' + opts.map(o => o.n).join(', ')); process.exit(0) }
+  for (const o of choisies) {
+    if (o.cible === 'grosplan') { const fST = join(dir, 'sous-titres.txt'), st = readFileSync(fST, 'utf8').split(/\r?\n/)
+      const k = st.findIndex(l => /^\d/.test(l) && Math.abs(+l.slice(0, l.indexOf('|')) - o.t) < 0.01)
+      if (k >= 0 && !/#grosplan/.test(st[k])) { st[k] = st[k].replace(/\s*$/, ' #grosplan'); writeFileSync(fST, st.join('\n')) } }
+    else P[o.cible] = [...(P[o.cible] || []), o.obj].sort((a, b) => a.t - b.t)
+    // un plan rapproché qui tombe au même moment laisse la place à ce qu'elle a choisi
+    if (P.rapprocher) P.rapprocher = P.rapprocher.filter(([a, b]) => b < o.t - 1 || a > o.t + 3)
+    console.log(`✓ ${o.n}. ${o.texte}`)
+  }
+  P.options = opts.filter(o => !veut.includes(o.n)); if (!P.options.length) delete P.options
+  writeFileSync(f, JSON.stringify(P, null, 1))
+  appendFileSync(join(dir, 'plan.txt'), `\nAJOUTÉ À SA DEMANDE : ${choisies.map(o => o.n).join(', ')}\n`)
+  console.log('Relance « monter » pour fabriquer la vidéo avec.')
+}
+else if (cmd === 'plan') { const { planMontage } = await import('./monteur.mjs'); const f = join(PROJETS, args[0], 'projet.json'); const { P, texte } = planMontage(join(PROJETS, args[0]), JSON.parse(readFileSync(f, 'utf8'))); writeFileSync(f, JSON.stringify(P, null, 1)); console.log(texte) }
+// (18/11, crash test) lire les mots d'un passage avec leurs temps, sans fouiller le JSON brut de l'écoute
+else if (cmd === 'mots') { const [nom, a = 0, b = 1e9] = args, j = JSON.parse(readFileSync(join(PROJETS, nom, 'mots.json'), 'utf8'))
+  const ligne = (j.transcription || []).filter(w => /\p{L}|\d/u.test(w.text || '')).map(w => [w.offsets.from / 1000, w.offsets.to / 1000, w.text.trim()]).filter(([x]) => x >= +a && x <= +b)
+  console.log(ligne.map(([x, y, t]) => `${x.toFixed(2).padStart(7)} → ${y.toFixed(2).padEnd(7)} ${t}`).join('\n') || 'aucun mot dans ce passage')
+  const bl = existsSync(join(PROJETS, nom, 'blancs.json')) ? JSON.parse(readFileSync(join(PROJETS, nom, 'blancs.json'), 'utf8')).filter(([x, y]) => y >= +a && x <= +b) : []
+  if (bl.length) console.log('Vrais silences (pour couper) : ' + bl.map(([x, y]) => x.toFixed(2) + '–' + y.toFixed(2)).join(', ')) }
+// (18/11, crash test) réécouter un passage seul quand un mot est douteux (l'écoute d'un passage court est souvent plus juste)
+else if (cmd === 'reecouter') { const [nom, a, b] = args, dir = join(PROJETS, nom), w = join(dir, 'reecoute.wav')
+  lancer('ffmpeg', ['-y', '-v', 'error', '-ss', String(Math.max(0, +a - 0.3)), '-to', String(+b + 0.3), '-i', join(dir, 'audio.wav'), '-af', 'apad=pad_dur=0.3', '-ar', '16000', '-ac', '1', '-c:a', 'pcm_s16le', w])
+  console.log('J\'entends : « ' + transcrireMots(w, join(dir, 'reecoute')).map(x => x.txt).join(' ') + ' »'); rmSync(w, { force: true })
+  console.log('Toujours douteux ? Demande-lui ce qu\'elle dit à ce moment-là : elle le sait.') }
 else if (cmd === 'apercu') { process.env.APERCU = '1'; await monter(args[0]) }
 else if (cmd === 'verifier') verifier(args[0], dirname(args[0]), !!args[1], (args[1] || '').split(',').filter(Boolean).map(Number))
 else console.log('Usage :\n  node contenu/montage/montage.mjs lire <video> <charte> [nom]\n  node contenu/montage/montage.mjs monter <nom>')

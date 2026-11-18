@@ -24,7 +24,7 @@ mon outil de montage », lance `cd /tmp/montage && node mettre-a-jour.mjs` et di
 
 Sa vidéo est dans `/mnt/user-data/uploads/`. Il la faut **sans texte incrusté** (l'export
 brut, avant tout sous-titre). Si elle a déjà du texte dessus, demande-lui la version sans
-texte. Format vertical 9:16, une minute et demie au plus.
+texte. Format vertical 9:16. Plus d'une minute et demie : on en fait une version courte qui raconte une histoire (section 4).
 
 **Elle a filmé en plusieurs fois** (une vidéo par phrase, par plan ou par endroit) : c'est très bien, ne lui
 demande pas de tout refaire. Mets les vidéos dans l'ordre (celui qu'elle te donne ; sinon l'ordre de leurs
@@ -108,7 +108,11 @@ foi / fois / foie, mer / mère / maire, quand / camp, peu / peut, prêt / près,
 Relis CHAQUE ligne avec le sens de la phrase et le sujet de la vidéo (une prof de yoga « tient la
 pose », une coach fait « une pause »), et corrige avant de lui montrer. Une faute dans un sous-titre se
 voit en gros sur l'écran : c'est la première chose qu'on lui fera remarquer.
-Si elle t'a dit de monter directement sans questions, corrige toi-même à l'écoute et au contexte, choisis les
+Un mot douteux (une phrase qui ne veut rien dire, comme « les spectaces tristent autour ») : réécoute ce passage seul,
+`cd /tmp/montage && node montage.mjs reecouter <nom> <début> <fin>` (temps de la vidéo d'origine). Toujours douteux ?
+**Demande-lui ce qu'elle dit à ce moment-là, avec la phrase d'avant et d'après : elle le sait, toi non.** Ne retire jamais
+une phrase importante (sa prise de position, sa chute) parce qu'un mot est mal entendu.
+Si elle t'a dit de monter directement sans questions, corrige toi-même au contexte, choisis les
 mots forts, et dis-lui ensuite ce que tu as corrigé, pour qu'elle puisse rectifier.
 
 ### ⛔ Une vidéo trop longue : la version courte doit raconter une histoire
@@ -137,14 +141,16 @@ le reste. Dans cet ordre, jamais autrement :
    ⛔ Les passages où on ne la voit pas (le téléphone a bougé, il filme l'ordinateur ou ses mains) : `ecouter` les signale
    (« ON NE LA VOIT PAS ») et le montage refuse de les fabriquer. Retire-les. Seulement si elle veut vraiment les garder :
    `"sansVisage": "garder"`.
-4. **Écris `retirer` à partir des MOTS, pas des lignes de sous-titres** : ouvre `projets/<nom>/mots.json`.
+4. **Écris `retirer` à partir des MOTS, pas des lignes de sous-titres** : lis-les avec
+   `cd /tmp/montage && node montage.mjs mots <nom> <début> <fin>` : chaque mot avec son début et sa fin, puis les vrais
+   silences de ce passage (c'est DANS l'un d'eux qu'on coupe). N'ouvre pas mots.json à la main.
    Une limite de `retirer` commence à la FIN du dernier mot gardé (celui qui porte le point ou le « ? ») et finit
    au DÉBUT du premier mot gardé ensuite. Jamais entre deux mots d'une même phrase.
    L'outil recale ensuite chaque limite sur le vrai silence de sa voix (il écrit « Coupe recalée… ») : les temps
    de l'écoute dérivent de 0,2 à 0,4 s, c'est ce qui laissait des bouts de mots. S'il écrit « ⚠️ COUPE : aucun
    silence près de… », elle enchaîne sans respirer à cet endroit : choisis une autre limite, une vraie fin de phrase.
    **Puis écoute la version courte AVANT de fabriquer** : `cd /tmp/montage && node montage.mjs ecouter <nom>`.
-   En une trentaine de secondes, sans rien fabriquer, l'outil colle le son des passages gardés, le réécoute et
+   En 1 à 3 minutes (la première fois, il repère aussi son visage), sans rien fabriquer, l'outil colle le son des passages gardés, le réécoute et
    écrit `histoire.txt` + `coupes.txt`. Corrige `retirer` et relance `ecouter` autant de fois qu'il faut : c'est
    gratuit en temps. On ne fabrique (10 minutes ou plus) qu'une fois l'histoire juste.
    Attention : juste après une coupe, l'écoute oublie parfois le premier mot (« ✂ pour le bilan » au lieu de
@@ -160,6 +166,62 @@ le reste. Dans cet ordre, jamais autrement :
 **Les mots forts (ceux qui ressortent en couleur)** : peu, et les bons. Un seul par phrase au plus, et pas plus d'un toutes les 4 à 5 secondes. Le mot qui porte l'émotion, le chiffre, la surprise ou la promesse (« *100 000 €* », « *30 jours* », « *psychopathe de l'organisation* »), jamais un mot outil. Trop de mots forts = plus aucun ne ressort. En mot à mot, le mot fort « pope » tout seul en arrivant.
 
 ## 5. Régler le montage (projets/<nom>/projet.json)
+
+### ⭐ Le monteur : il prépare le montage à sa place (`plan`)
+
+C'est le travail d'un monteur que les élèves ont du mal à faire seules : mettre les bonnes animations au bon
+moment, dans SA charte, avec les bons sons. Une fois la charte, le style, `retirer` et `sous-titres.txt` réglés :
+
+`cd /tmp/montage && node montage.mjs plan <nom>`
+
+En quelques secondes, il écoute ce qu'elle DIT et fait deux choses, toujours sur SES mots, selon SON énergie, jamais
+deux fois la même animation de suite.
+
+**1. LA BASE, posée d'office dans toutes les vidéos** (sobre, sûre, à sa charte) :
+- le chiffre de son hook en énorme derrière sa tête (« 35 000 € » → « 35K ») ;
+- ses mots forts en couleur, s'il y en a trop peu (il garde son texte d'avant dans `sous-titres.avant-plan.txt`) ;
+- ses grands mots à SA charte (sa police, sa couleur de mot fort) : ses chiffres et ses mots-chocs, avec un impact doux ;
+- des plans rapprochés là où rien ne bouge.
+
+**2. LES OPTIONS, numérotées dans `plan.txt`** : tout ce qui peut venir s'ajouter sans rien casser, au bon moment.
+Rien n'est posé tant qu'elle ne dit pas oui. Tu lui lis la liste en mots simples (« 1. des petites pastilles 🎬 vidéos
+quand tu dis… »), elle choisit, et tu lances `node montage.mjs ajouter <nom> 2 5` (ou `tout`). Ce qu'elle choisit
+souvent, ajoute-le dans `"aime"` de son profil : la prochaine fois ce sera d'office. `"aime": ["tout"]` = tout d'office.
+Les options possibles :
+- ses énumérations (« un seul like, un seul commentaire, rien pour booster ») en liste qui s'écrit ;
+- des pastilles « émoji + son mot » sur les choses concrètes qu'elle nomme (like, café, argent, TikTok, idée…) ;
+- un vrai objet quand elle dit « mon café », « mon ordi » ;
+- sa phrase de relance (« le problème… », « et là… ») au marqueur au-dessus de sa tête ;
+- un rappel en notification quand elle dit « n'oubliez pas » ;
+- un gros plan sec sur sa phrase d'humeur ;
+- sa question finale en sondage.
+
+#### ⛔ Son profil créatif : à régler UNE fois, à sa première vidéo
+
+C'est ce qui fait que son montage ne ressemble pas à celui d'une autre. Si sa charte n'a pas de clé `"creatif"`,
+pose-lui ces questions AVANT le premier `plan`, une par une, simplement :
+1. **Son énergie** : « Dans tes vidéos, tu es plutôt posée, pétillante, ou complètement déjantée ? »
+   → `"energie": "posee"` (un temps fort toutes les 5,5 s, peu de zooms), `"petillante"` (3,5 s) ou `"dejantee"` (2,5 s, gros plans, plein de pastilles).
+2. **Ce qu'elle aime** : donne-lui le lien du catalogue en vidéo (plus bas) et demande-lui les animations qui lui
+   plaisent → `"aime": [...]` : elles seront posées d'office, sans passer par les options. « J'adore quand ça bouge,
+   mets tout » → `"aime": ["tout"]`. Elle ne sait pas → laisse vide : elle choisira dans les options à chaque vidéo.
+3. **Ce qu'elle ne veut jamais** → `"jamais": [...]`, avec ces noms : `hook`, `etoiles`, `grandsMots`, `liste`,
+   `pastilles`, `objets`, `relance`, `rappel`, `zooms`, `grosPlan`, `sondage`. Ex. « pas d'émojis » → `"jamais": ["pastilles"]`.
+4. **Sa liste préférée** : des bandes d'étiqueteuse, des notes de téléphone, des post-it ? → `"liste": "etiqueteuse"` / `"notes"` / `"postit"`.
+5. **Ses sons** : le catalogue des sons (plus bas) ; si elle en choisit, mets-les dans `"sons"` comme décrit dans « Ses sons à elle ».
+
+Écris la réponse dans SA charte (`chartes/<son-nom>.json`), une fois pour toutes :
+`"creatif": { "energie": "petillante", "aime": ["pastilles", "grandsMots"], "jamais": ["objets"], "liste": "etiqueteuse" }`
+Elle peut la changer quand elle veut : « plus calme » → énergie d'un cran plus bas, « plus fou » → un cran plus haut.
+Pour une seule vidéo, la même clé `"creatif"` dans `projet.json` passe avant celle de la charte.
+
+⛔ Il n'écrase JAMAIS ce qu'elle a déjà choisi : il remplit seulement ce qui est vide. Il écrit `plan.txt` en clair.
+Lance `plan` AVANT de régler toi-même titre, compteur ou carte de fin : il te dit lesquels ne pas rajouter (pas de doublon).
+**Montre-lui `plan.txt` AVANT de fabriquer** (en mots simples, sans les temps). ⛔ Pas d'`apercu` en style classique ou prof :
+il fabrique toute la vidéo (7 minutes) et saute les contrôles. L'aperçu n'existe que pour les styles du moteur collage. C'est une proposition, pas une
+cage : elle change tout avec ses mots (« enlève la liste », « mets une explosion quand je dis exploser »,
+« pas de sondage », « un son de clavier quand je parle d'écrire ») et tu modifies `projet.json` en conséquence.
+Ses sons, c'est son imagination : le plan ne fait que poser une base propre, et lui proposer le reste.
 
 Pars de `exemple-projet.json` (dans le dossier de la compétence) pour la structure :
 ses temps et ses textes sont fictifs, tu les refais pour CETTE vidéo.
