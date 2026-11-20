@@ -214,8 +214,8 @@ deux fois la même animation de suite.
 - des plans rapprochés là où rien ne bouge.
 
 ⛔ **Jamais de flou ni de carte qui rétrécit sa vidéo** (choix d'Aurélie, 18/11) : ni décor flouté, ni mode portrait,
-ni carte givrée, ni vidéo réduite dans une carte de chapitre. Seule exception, voulue par Aurélie : les cartes en verre
-dépoli du style luxe. Seulement si l'élève le demande elle-même, avec
+ni carte givrée, ni vidéo réduite dans une carte de chapitre. Deux exceptions, voulues par Aurélie : les cartes en verre
+dépoli du style luxe, et les bandes autour d'une photo ou d'une vidéo horizontale, remplies de la même image floutée. Seulement si l'élève le demande elle-même, avec
 `"flou": true` dans `projet.json`.
 
 ⛔ **Toutes les couleurs suivent SA charte** (20/11) : la phrase au marqueur, les bandes d'étiqueteuse, les mots géants
