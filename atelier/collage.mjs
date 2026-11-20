@@ -83,7 +83,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   //                  la tête, entrées en flou vers net, étalonnage chaud, presque aucun son.
   const THEME = ({ pop: 'pop', editorial: 'editorial', doux: 'doux', confidence: 'doux', aurelie: 'aurelie', typo: 'typo', witchy: 'witchy', chic: 'chic', luxe: 'luxe', automne: 'automne', cosy: 'automne', studio: 'studio' })[P.style] || 'collage'
   // luxe (06/11, validé par Aurélie) : le chic en plus premium : serif italique fin, or pâle, verre dépoli, étalonnage chaud et grain
-  const LUXE = THEME === 'luxe', CHIC = THEME === 'chic' || LUXE, OR = coul.mot || C?.motFort?.couleur || '#E3C38A' /* (20/11) « ça s'adapte à leur DA obligatoirement » : l'or devient SA couleur de mot fort */
+  const LUXE = THEME === 'luxe', CHIC = THEME === 'chic' || LUXE, OR = K.or || '#E3C38A' /* (20/11) l'or pâle EST le style luxe (Aurélie) : il ne prend pas la couleur de la charte ; "or" dans collage pour un autre or */
   // le verre dépoli : le navigateur ne voit pas la vidéo, donc ffmpeg floute la vidéo elle-même sous chaque carte (x, y, l, h en 720, a et b en secondes)
   const VERRES = []
   const VERRE = 'background:linear-gradient(160deg,rgba(60,42,30,.30),rgba(30,20,14,.38));backdrop-filter:blur(26px) saturate(1.5) brightness(1.04);-webkit-backdrop-filter:blur(26px) saturate(1.5) brightness(1.04);/* (20/11) le verre dépoli du luxe est voulu (Aurélie) : seule exception à « aucun flou » */box-shadow:inset 0 1px 0 rgba(255,255,255,.75),inset 0 0 0 1px rgba(255,255,255,.28),0 24px 50px rgba(30,15,5,.22)'
