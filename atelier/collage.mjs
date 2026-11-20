@@ -86,7 +86,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   const LUXE = THEME === 'luxe', CHIC = THEME === 'chic' || LUXE, OR = coul.mot || C?.motFort?.couleur || '#E3C38A' /* (20/11) « ça s'adapte à leur DA obligatoirement » : l'or devient SA couleur de mot fort */
   // le verre dépoli : le navigateur ne voit pas la vidéo, donc ffmpeg floute la vidéo elle-même sous chaque carte (x, y, l, h en 720, a et b en secondes)
   const VERRES = []
-  const VERRE = 'background:linear-gradient(160deg,rgba(40,28,20,.62),rgba(22,15,10,.70));/* (20/11) plus aucun flou : la carte reste teintée, sans verre dépoli */box-shadow:inset 0 1px 0 rgba(255,255,255,.75),inset 0 0 0 1px rgba(255,255,255,.28),0 24px 50px rgba(30,15,5,.22)'
+  const VERRE = 'background:linear-gradient(160deg,rgba(60,42,30,.30),rgba(30,20,14,.38));backdrop-filter:blur(26px) saturate(1.5) brightness(1.04);-webkit-backdrop-filter:blur(26px) saturate(1.5) brightness(1.04);/* (20/11) le verre dépoli du luxe est voulu (Aurélie) : seule exception à « aucun flou » */box-shadow:inset 0 1px 0 rgba(255,255,255,.75),inset 0 0 0 1px rgba(255,255,255,.28),0 24px 50px rgba(30,15,5,.22)'
   const PALETTE = { pop: { fond: '#7DB3E8', mot: '#6FA3DE', marine: '#2B3F6B', etoile: '#F2C94C', rose: '#F4A6C4' }, editorial: { rose: '#F2B8AE', bordeaux: '#6B1E24', peche: '#F6C7A8', nuit: '#2A0306' } }[THEME] || {}
   // typo : sa couleur signature + quatre couleurs vives qui tournent d'un mot fort à l'autre (surchargeables)
   if (THEME === 'typo') Object.assign(PALETTE, { mot: coul.mot || C?.motFort?.couleur || '#F4E04D', jaune: '#F4E04D', lilas: '#C9B8FF', cyan: '#8FE3EA', rose: '#FFB8D6' }, K.couleurs || {})
