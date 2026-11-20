@@ -5,6 +5,13 @@
 // Toujours SES mots : la liste ne fait que mettre en scène ce qu'elle dit.
 export const POLICES_LISTES = [['SpaceMono-700.woff2', 'Mono', 700], ['GloriaHallelujah-400.woff2', 'Carnet', 400], ['CourierPrime-700.woff2', 'Machine', 700], ['Montserrat-900.woff2', 'Rond', 900]]
 
+// (20/11) un post-it à la couleur de sa charte : sa couleur très éclaircie (le papier) et un peu moins (le pli), deux teintes en alternance
+function postitTeintes(hex, k) {
+  const v = parseInt(String(hex || '#F25C9A').replace('#', '').slice(0, 6), 16) || 0xF25C9A, rgb = [v >> 16, (v >> 8) & 255, v & 255]
+  const mix = f => '#' + rgb.map(c => Math.round(c + (255 - c) * f).toString(16).padStart(2, '0')).join('')
+  return k % 2 ? [mix(0.62), mix(0.5)] : [mix(0.78), mix(0.66)]
+}
+
 export function liste(L, { clamp, doux, rebond, esc, couleurs }) {
   if (['ticket', 'tampon'].includes(L.type)) L = { ...L, type: 'notes' } /* (08/11) retirés par Aurélie : la to-do d'appli à la place */
   const items = (L.items || []).slice(0, 5), n = items.length
@@ -59,7 +66,7 @@ export function liste(L, { clamp, doux, rebond, esc, couleurs }) {
     // encre qui boit le papier ; il est plaqué d'en haut (grand + ombre haute), se colle, puis on le lisse d'un petit tassement.
     postit: (dt, y) => items.map((x, k) => { const t0 = 0.15 + k * pas; if (dt < t0) return ''
       const u = clamp((dt - t0) / 0.26, 0, 1), e = 1 - Math.pow(1 - u, 3), ecr = u >= 1 ? Math.exp(-(dt - t0 - 0.26) * 14) * Math.sin((dt - t0 - 0.26) * 30) * 0.025 : 0
-      const col = k % 2, lig = Math.floor(k / 2), rot = [-6, 5, 3, -4, 6][k], h = 1 - e, c = [['#FFF27E', '#F4DE5C'], ['#FFC9DE', '#F3AFCB'], ['#C4E9FF', '#A9D8F2'], ['#CDF3BD', '#B3E2A1'], ['#FFDCAD', '#F5C68A']][k]
+      const col = k % 2, lig = Math.floor(k / 2), rot = [-6, 5, 3, -4, 6][k], h = 1 - e, c = postitTeintes(couleurs.accent, k) /* (20/11) les post-it prennent SA couleur, en deux teintes douces */
       const grain = 'url(data:image/svg+xml;base64,' + Buffer.from("<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' seed='" + (k + 3) + "'/><feColorMatrix values='0 0 0 0 .35 0 0 0 0 .3 0 0 0 0 .2 0 0 0 .5 0'/></filter><rect width='200' height='200' filter='url(#g)'/></svg>").toString('base64') + ')'
       return '<div style="position:absolute;left:' + (n === 1 ? 260 : 120 + col * 250) + 'px;top:' + (y + lig * 205) + 'px;width:200px;height:190px;transform:rotate(' + rot + 'deg) scale(' + (1 + 0.3 * h + ecr).toFixed(3) + ',' + (1 + 0.3 * h - ecr).toFixed(3) + ');transform-origin:50% 20%;opacity:' + clamp(u * 5, 0, 1).toFixed(2) + '">'
         + '<div style="position:absolute;left:6px;right:2px;top:' + (30 + 30 * h).toFixed(1) + 'px;bottom:' + (-6 - 26 * h).toFixed(1) + 'px;background:rgba(30,20,10,' + (0.34 - 0.16 * h).toFixed(2) + ');filter:blur(' + (7 + 14 * h).toFixed(1) + 'px);transform:skewX(-2deg)"></div>'
