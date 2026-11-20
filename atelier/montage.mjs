@@ -724,17 +724,18 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
         ${s.evenement ? `<div style="margin-top:10px;border-left:4px solid #ff9500;background:#fff4e5;border-radius:8px;padding:7px 10px;font-size:17px;color:#222">${s.evenement}</div>` : ''}</div>`
     }
     if (s.type === 'notes') return `<div style="${sys};width:360px;background:#fff;border-radius:22px;padding:14px 20px 16px">
-      <div style="font-size:16px;color:#e0a800;font-weight:600">‹ Notes</div>
+      <div style="font-size:16px;color:${accent};font-weight:600">‹ Notes</div>
       <div style="font-size:26px;font-weight:800;color:#111;margin:6px 0 8px">${s.titre}</div>
-      ${s.items.map((x, n) => `<div style="visibility:${n < (s._vus ?? s.items.length) ? 'visible' : 'hidden'};font-size:20px;color:#222;padding:5px 0;display:flex;gap:10px;align-items:center"><span style="width:24px;height:24px;border-radius:50%;background:#e0a800;color:#fff;font-size:15px;display:inline-flex;align-items:center;justify-content:center;flex:none">✓</span>${x}</div>`).join('')}</div>`
+      ${s.items.map((x, n) => `<div style="visibility:${n < (s._vus ?? s.items.length) ? 'visible' : 'hidden'};font-size:20px;color:#222;padding:5px 0;display:flex;gap:10px;align-items:center"><span style="width:24px;height:24px;border-radius:50%;background:${accent};color:#fff;font-size:15px;display:inline-flex;align-items:center;justify-content:center;flex:none">✓</span>${x}</div>`).join('')}</div>`
     if (s.type === 'notif') return `<div style="${sys};width:420px;background:rgba(245,245,245,.92);border-radius:22px;padding:12px 16px;display:flex;gap:12px;align-items:center">
       <div style="width:40px;height:40px;border-radius:10px;background:${s.couleur || '#ff9500'};display:flex;align-items:center;justify-content:center;font-size:24px;flex:none">${s.emoji || '⏰'}</div>
       <div style="min-width:0;flex:1"><div style="display:flex;justify-content:space-between;font-size:15px;color:#555"><b style="color:#111">${s.titre}</b><span>maintenant</span></div>
       <div style="font-size:19px;color:#222;line-height:1.25">${s.texte}</div></div></div>`
     // le sticker « sondage » d'Instagram (OUI / NON), pour le pari
-    if (s.type === 'sondage') return `<div style="${sys};width:380px;background:#fff;border-radius:22px;padding:18px 18px 16px;text-align:center">
-      <div style="font-size:26px;font-weight:800;color:#111;margin-bottom:12px">${s.question}</div>
-      ${(s.choix || ['OUI', 'NON']).map((c, n) => `<div style="margin-top:${n ? 8 : 0}px;border-radius:14px;background:#f1f1f1;padding:12px;font-size:24px;font-weight:800;background:${n ? '#f1f1f1' : 'linear-gradient(90deg,#ff7a59,#ff3d7f)'};color:${n ? '#111' : '#fff'}">${c}</div>`).join('')}</div>`
+    // (20/11, crash test : « petit, peu lisible ») plus grand, et le choix mis en avant à SA couleur
+    if (s.type === 'sondage') return `<div style="${sys};width:500px;background:#fff;border-radius:26px;padding:24px 24px 20px;text-align:center">
+      <div style="font-size:36px;font-weight:800;color:#111;margin-bottom:16px">${s.question}</div>
+      ${(s.choix || ['OUI', 'NON']).map((c, n) => `<div style="margin-top:${n ? 10 : 0}px;border-radius:16px;background:#f1f1f1;padding:16px;font-size:32px;font-weight:800;background:${n ? '#f1f1f1' : accent};color:${n ? '#111' : '#fff'}">${c}</div>`).join('')}</div>`
     return `<div style="font-size:110px">${s.emoji}</div>`
   }
   // Un « groupe » : des petits émojis qui popent un par un autour de la personne (jamais sur le visage),
@@ -746,7 +747,7 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
     return existsSync(f) ? `<img src="data:image/svg+xml;base64,${readFileSync(f).toString('base64')}" style="width:${taille}px;height:${taille}px;vertical-align:middle">` : e
   }
   // Avant de dessiner les cartes : chacune est descendue (ou montée) hors du visage, pour toute sa durée.
-  const tailleCarte = s => (HB ? [k => k, ([w, h]) => [w + 30, h + 50]][1] : x => x)(({ notif: [420, 90], bulle: [520, 110], agenda: [360, 340], calendrier: [250, 240], sondage: [380, 200], notes: [360, 80 + 36 * (s.items || []).length], checklist: [430, 80 + 42 * (s.items || []).length] })[s.type] || [130, 130])
+  const tailleCarte = s => (HB ? [k => k, ([w, h]) => [w + 30, h + 50]][1] : x => x)(({ notif: [420, 90], bulle: [520, 110], agenda: [360, 340], calendrier: [250, 240], sondage: [500, 270], notes: [360, 80 + 36 * (s.items || []).length], checklist: [430, 80 + 42 * (s.items || []).length] })[s.type] || [130, 130])
   const ZONE_X0 = ZONE.gauche, ZONE_X1 = ZONE.droite
   const dansZone = (x, w) => Math.max(ZONE_X0 + w / 2, Math.min(ZONE_X1 - w / 2, x))
   for (const s of P.stickers || []) {
@@ -920,7 +921,7 @@ html,body{margin:0;width:720px;height:1280px;background:transparent}
     const borne = (x, a, b) => Math.max(a, Math.min(b, x)), dx = x => 1 - Math.pow(1 - borne(x, 0, 1), 3)
     const rb = x => { x = borne(x, 0, 1); const c = 1.4; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2) }
     const decor = E.type === 'duo' && E.recette === 'charte' && (!E.couleur || E.couleur === 'auto') ? (C.motFort?.couleur || accent) : E.type === 'duo' && (!E.couleur || E.couleur === 'auto') ? couleurDecor(spawnSync('ffmpeg', ['-v', 'error', '-ss', String(E.t), '-i', join(dir, 'source.mp4'), '-frames:v', '1', '-vf', 'scale=36:64', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-']).stdout, null) : null
-    const Em = effetPonctuel(E, { clamp: borne, doux: dx, rebond: rb, esc: x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;'), dossier: dir, couleurs: { marqueur: E.couleur || accent, contour: '#2b2416', feutre: accent, decor }, polices: { fort: C.polices.fort.famille, texte: C.polices.texte.famille } })
+    const Em = effetPonctuel(E, { clamp: borne, doux: dx, rebond: rb, esc: x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;'), dossier: dir, couleurs: { marqueur: E.couleur || accent, contour: '#2b2416', feutre: accent, decor, contourFort: C.motFort?.contour, contourEp: C.motFort?.contourEpaisseur } /* (20/11) le mot géant garde le contour de sa charte : lisible sur une veste noire */, polices: { fort: C.polices.fort.famille, texte: C.polices.texte.famille } })
     if (!Em) continue
     const t0 = nt(E.t), fin = Math.min(TOT, t0 + Em.duree, carteApres ? carteApres[0] + 0.3 : 1e9), haut = E.type === 'choc' || E.type === 'commentaires'
     const y = Math.round(placer('effet', haut ? 260 : 780, Em.hauteur, t0, fin) - Em.hauteur / 2)

@@ -83,14 +83,14 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
   //                  la tête, entrées en flou vers net, étalonnage chaud, presque aucun son.
   const THEME = ({ pop: 'pop', editorial: 'editorial', doux: 'doux', confidence: 'doux', aurelie: 'aurelie', typo: 'typo', witchy: 'witchy', chic: 'chic', luxe: 'luxe', automne: 'automne', cosy: 'automne', studio: 'studio' })[P.style] || 'collage'
   // luxe (06/11, validé par Aurélie) : le chic en plus premium : serif italique fin, or pâle, verre dépoli, étalonnage chaud et grain
-  const LUXE = THEME === 'luxe', CHIC = THEME === 'chic' || LUXE, OR = '#E3C38A'
+  const LUXE = THEME === 'luxe', CHIC = THEME === 'chic' || LUXE, OR = coul.mot || C?.motFort?.couleur || '#E3C38A' /* (20/11) « ça s'adapte à leur DA obligatoirement » : l'or devient SA couleur de mot fort */
   // le verre dépoli : le navigateur ne voit pas la vidéo, donc ffmpeg floute la vidéo elle-même sous chaque carte (x, y, l, h en 720, a et b en secondes)
   const VERRES = []
-  const VERRE = 'background:linear-gradient(160deg,rgba(60,42,30,.30),rgba(30,20,14,.38));backdrop-filter:blur(26px) saturate(1.5) brightness(1.04);-webkit-backdrop-filter:blur(26px) saturate(1.5) brightness(1.04);box-shadow:inset 0 1px 0 rgba(255,255,255,.75),inset 0 0 0 1px rgba(255,255,255,.28),0 24px 50px rgba(30,15,5,.22)'
+  const VERRE = 'background:linear-gradient(160deg,rgba(40,28,20,.62),rgba(22,15,10,.70));/* (20/11) plus aucun flou : la carte reste teintée, sans verre dépoli */box-shadow:inset 0 1px 0 rgba(255,255,255,.75),inset 0 0 0 1px rgba(255,255,255,.28),0 24px 50px rgba(30,15,5,.22)'
   const PALETTE = { pop: { fond: '#7DB3E8', mot: '#6FA3DE', marine: '#2B3F6B', etoile: '#F2C94C', rose: '#F4A6C4' }, editorial: { rose: '#F2B8AE', bordeaux: '#6B1E24', peche: '#F6C7A8', nuit: '#2A0306' } }[THEME] || {}
   // typo : sa couleur signature + quatre couleurs vives qui tournent d'un mot fort à l'autre (surchargeables)
   if (THEME === 'typo') Object.assign(PALETTE, { mot: coul.mot || C?.motFort?.couleur || '#F4E04D', jaune: '#F4E04D', lilas: '#C9B8FF', cyan: '#8FE3EA', rose: '#FFB8D6' }, K.couleurs || {})
-  const PALETTE_LISTE = { accent: coul.mot || C?.motFort?.couleur || '#2E9E5B', etiquette: '#D62B2B', tampon: coul.mot || C?.motFort?.couleur || '#C62828', ...(K.couleursListe || {}) }
+  const PALETTE_LISTE = { accent: coul.mot || C?.motFort?.couleur || '#2E9E5B', etiquette: coul.mot || C?.motFort?.couleur || '#D62B2B', tampon: coul.mot || C?.motFort?.couleur || '#C62828', ...(K.couleursListe || {}) }
   if (THEME === 'witchy') { const sig = coul.mot || C?.motFort?.couleur || '#6B2F7A', v = parseInt(sig.replace('#', '').slice(0, 6), 16) || 0x6B2F7A, mix = (f, b) => '#' + [v >> 16, (v >> 8) & 255, v & 255].map(c => Math.round(c * f + b).toString(16).padStart(2, '0')).join('')
     Object.assign(PALETTE, { or: '#E9C77B', prune: mix(0.32, 4), nuit: mix(0.5, 8), creme: '#F6E7C8' }, K.couleurs || {}) } // witchy : la nuit prend SA couleur signature, assombrie ; tout se surcharge avec collage.couleurs
   if (CHIC) Object.assign(PALETTE, { sable: '#EFE6DA', cacao: '#3B2A22', accent: LUXE ? OR : coul.mot || C?.motFort?.couleur || '#B98B6E' }, K.couleurs || {}) // chic : SA couleur signature pour le mot fort
@@ -999,7 +999,7 @@ export async function monterCollage({ nom, dir, P, C, ouvrirNavigateur, lancer, 
       console.log('Gros plan à ' + tf(E.t).toFixed(1) + ' s : pas d’éventail (pas la place sous son visage)'); continue } /* (08/11) Aurélie : rien plutôt que l'éventail plus petit sur le côté */
     const decor = E.type === 'duo' && (!E.couleur || E.couleur === 'auto') ? couleurDecor(spawnSync('ffmpeg', ['-v', 'error', '-ss', tf(E.t).toFixed(2), '-i', join(st, 'base-av.mp4'), '-frames:v', '1', '-vf', 'scale=36:64', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-']).stdout, vis(tf(E.t))) : null
     if (decor) console.log('Couleur du décor pour « ' + E.grand + ' » : ' + decor)
-    const Em = effet(E, { clamp, doux, rebond, esc, dossier: dir, couleurs: { skin: LUXE ? 'luxe' : null, marqueur: E.couleur || '#FFE14D', contour: '#2b2416', feutre: coul.mot || C?.motFort?.couleur || '#E8613C', decor } })
+    const Em = effet(E, { clamp, doux, rebond, esc, dossier: dir, couleurs: { skin: LUXE ? 'luxe' : null, marqueur: E.couleur || coul.mot || C?.motFort?.couleur || '#FFE14D', contour: '#2b2416', feutre: coul.mot || C?.motFort?.couleur || '#E8613C', decor } })
     if (!Em) continue
     const t0 = tf(E.t), b = Math.min(TOT - 0.1, t0 + Em.duree), haut = ['choc', 'commentaires', 'chapitre', 'chat'].includes(E.type)
     const yHaut = hautTete(t0, b) - Em.hauteur - 24, y = (haut || FV) && yHaut >= 110 ? yHaut : clamp(basVisage(t0, b) + 50, 430, 1280 - 290 - Em.hauteur)

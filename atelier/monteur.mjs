@@ -69,7 +69,8 @@ export function planMontage(dir, P, C = null) {
   const retirer = P.retirer || [], garde = t => !retirer.some(([x, y]) => t >= x && t < y)
   const L = lignes.filter(l => garde(l.t))
   const ajouts = [], fait = (quoi, texte) => ajouts.push(`${quoi} : ${texte}`)
-  const r0 = [...retirer].sort((a, b) => a[0] - b[0])[0]
+  // (20/11, crash test) un silence coupé au tout début (retirer [0, 3.3]) n'est pas la fin du hook : on prend la première coupe APRÈS 1 s
+  const r0 = [...retirer].sort((a, b) => a[0] - b[0]).find(([a]) => a > 1)
   const hookFin = P.hookFin ?? (r0 && r0[0] < 25 ? r0[0] : Math.min(8, L.at(-1)?.t ?? 8))
   const final = t => t - retirer.filter(([x, y]) => y <= t).reduce((s, [x, y]) => s + (y - x), 0) - retirer.filter(([x, y]) => x < t && y > t).reduce((s, [x]) => s + (t - x), 0)
   const brut = l => l.txt.replace(/\*/g, ''), court = s => s.length > 48 ? s.slice(0, 46) + '…' : s
@@ -121,12 +122,16 @@ export function planMontage(dir, P, C = null) {
         // un nom porte mieux qu'un verbe conjugué (« bilan » plutôt que « deuxième », « société » plutôt que « regardent »)
         const verbe = x => /(ez|ent|ait|aient|ions|iez|ons|er|ir)$/.test(x) || /(ieme|iemes)$/.test(x)
         const note = w => { const x = nu(w); return !x || OUTILS.test(x) || /^\d/.test(x) ? 0 : PASTILLES.some(([re]) => re.test(x)) ? 2 + x.length / 20 : x.length >= 5 && !verbe(x) ? 1.5 + x.length / 20 : 0 }
-        const notes = mots.map(note), best = Math.max(0, ...notes)
-        if (best > 0) { const k = notes.indexOf(best); grand = mots[k].replace(/[,?!.]/g, ''); dessus = mots.slice(Math.max(0, k - 3), k).map(w => w.replace(/[,?!.]/g, '')).filter(Boolean)
+        // (20/11, crash test : « vidéos », « filles », « tiktok » ne portaient rien) le mot qu'elle a mis en *étoiles*
+        // dans ses sous-titres passe avant tout : c'est elle (ou son Claude, en relisant) qui a choisi ce qui compte
+        const etoile = (l.txt.match(/\*([^*]+)\*/) || [])[1], kE = etoile ? mots.findIndex(w => nu(w) === nu(etoile.split(/\s+/)[0])) : -1
+        const notes = mots.map((w, j) => j === kE ? 99 : note(w)), best = Math.max(0, ...notes)
+        // un mot « au hasard » (sans étoiles) seulement pour une élève déjantée : ailleurs, il ne porte rien (crash test du 20/11)
+        if (best > 0 && (kE >= 0 || creatif.energie === 'dejantee')) { const k = notes.indexOf(best); grand = k === kE ? etoile.replace(/[,?!.]/g, '') : mots[k].replace(/[,?!.]/g, ''); dessus = mots.slice(Math.max(0, k - 3), k).map(w => w.replace(/[,?!.]/g, '')).filter(Boolean)
           while (dessus.length && /^(et|de|du|des|le|la|les|un|une|a|au|en|que|qui|mon|ma|mes)$/.test(nu(dessus.at(-1)))) dessus.pop()
-          dessus = dessus.join(' '); poidsG = 5 }
+          dessus = dessus.join(' '); poidsG = k === kE ? 6 : 3 }
       }
-      if (grand) cand.push({ type: 'grandMot', t: l.t, duree: 1.6, poids: poidsG, grand: grand.toLowerCase(), dessus, cle: nu(grand) })
+      if (grand) cand.push({ type: 'grandMot', t: l.t, duree: 1.6, poids: poidsG, grand: grand.toLowerCase(), dessus, cle: nu(grand.split(/\s+/).at(-1)) }) // « ne jamais » puis « jamais » : jamais deux fois le même mot géant
     }
     // sa phrase de relance → au marqueur au-dessus de sa tête (3 à 8 de SES mots)
     if (effets && veut('relance') && RELANCE.test(n) && mots.length >= 3 && mots.length <= 8) cand.push({ type: 'relance', t: l.t, duree: 1.8, poids: 6, texte: b.replace(/[,.]$/, '') })
@@ -235,6 +240,12 @@ export function planMontage(dir, P, C = null) {
   if (listes && listes.length && creatif.listeFlou === true && vide('portrait')) P.portrait = listes.map(l => [l.t, l.t + 3])
   if (stickers.length) P.stickers = stickers.sort((a, b) => a.t - b.t)
   if (creatif.sons && !P.sons) P.sons = creatif.sons
+  // (20/11, crash test) les styles du moteur collage ne lisent que P.collage : le plan y part, sinon il serait perdu sans un mot
+  if (['collage', 'pop', 'editorial', 'doux', 'confidence', 'aurelie', 'typo', 'witchy', 'chic', 'luxe', 'automne', 'cosy', 'studio'].includes(P.style)) {
+    P.collage = P.collage || {}
+    for (const k of ['effets', 'listes']) if (P[k] && !(P.collage[k] || []).length) { P.collage[k] = P[k]; delete P[k] }
+    if ((P.stickers || []).length) fait('⚠️ Style ' + P.style, 'les cartes façon téléphone et le sondage n’existent pas dans ce style : propose-lui le style classique si elle y tient')
+  }
   // (18/11, crash test) pas de doublon : le chiffre derrière sa tête remplace le titre sur le torse, le sondage remplace la carte de fin
   if (P.titreDerriere && !P.titre) fait('Pas de titre', `le « ${P.titreDerriere.texte} » derrière sa tête suffit : ne rajoute ni titre ni compteur par-dessus`)
   if (stickers.some(s => s.type === 'sondage')) { if (P.carteFin) fait('⚠️ Doublon', 'elle a une carte de fin ET un sondage sur la même question : demande-lui lequel garder')

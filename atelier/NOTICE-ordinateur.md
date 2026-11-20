@@ -116,11 +116,13 @@ Dis-lui : « ta charte est gardée sur ton ordinateur, je n'aurai plus jamais à
 Puis montre-lui les sous-titres ligne par ligne, en texte simple (sans les temps), et
 demande-lui :
 - les mots mal compris à corriger ;
-- **le mot fort** de chaque phrase importante (tu le mets entre `*étoiles*`, un par ligne au plus) ;
+- **le mot fort** de chaque phrase importante (tu le mets entre `*étoiles*`, un par ligne au plus, 4 à 8 sur toute la vidéo) ;
+  ce sont aussi ces mots-là que le monteur met en GÉANT : choisis ceux qui portent l'idée (« silencieuses », « bloque »), jamais un mot banal ;
 - s'il y a un passage à enlever (une hésitation, une phrase en trop).
 
-Corrige `projets/<nom>/sous-titres.txt` avec ses réponses : une phrase par ligne (sépare deux phrases
-collées par la transcription), les chiffres en chiffres (« 100 000 € »). Ne monte rien avant sa validation.
+Corrige `projets/<nom>/sous-titres.txt` avec ses réponses : une ligne ne mélange jamais deux phrases (sépare deux phrases
+collées par la transcription ; en style classique, des morceaux de 3 à 6 mots sont parfaits pour le mot à mot ; dans les
+styles du moteur collage, regroupe-les en phrases entières, sinon elles s'affichent coupées), les chiffres en chiffres (« 100 000 € »). Ne monte rien avant sa validation.
 
 ⛔ **Les mots qui se prononcent pareil.** La transcription écrit un son, pas un sens : elle confond
 « pause » (le break) et « pose » (la position d'un modèle, d'une photo, de yoga), et de la même façon
@@ -133,7 +135,9 @@ voit en gros sur l'écran : c'est la première chose qu'on lui fera remarquer.
 Un mot douteux (une phrase qui ne veut rien dire, comme « les spectaces tristent autour ») : réécoute ce passage seul,
 `cd "ATELIER" && node montage.mjs reecouter <nom> <début> <fin>` (temps de la vidéo d'origine). Toujours douteux ?
 **Demande-lui ce qu'elle dit à ce moment-là, avec la phrase d'avant et d'après : elle le sait, toi non.** Ne retire jamais
-une phrase importante (sa prise de position, sa chute) parce qu'un mot est mal entendu.
+une phrase importante (sa prise de position, sa chute) parce qu'un mot est mal entendu. Elle ne s'en souvient
+plus ? Garde le son tel quel et mets en sous-titre seulement les mots sûrs, avec des points de suspension
+(« Et moi… et ben je les bloque. ») : on entend sa voix, personne ne lit un mot inventé.
 Si elle t'a dit de monter directement sans questions, corrige toi-même au contexte, choisis les
 mots forts, et dis-lui ensuite ce que tu as corrigé, pour qu'elle puisse rectifier.
 
@@ -241,10 +245,13 @@ pose-lui ces questions AVANT le premier `plan`, une par une, simplement :
 2. **Ce qu'elle aime** : donne-lui le lien du catalogue en vidéo (plus bas) et demande-lui les animations qui lui
    plaisent → `"aime": [...]` : elles seront posées d'office, sans passer par les options. « J'adore quand ça bouge,
    mets tout » → `"aime": ["tout"]`. Elle ne sait pas → laisse vide : elle choisira dans les options à chaque vidéo.
+   Ses mots → les noms : « les petits dessins, les objets, le fantôme » = `objets` ; « les listes » = `liste` ; « les gros mots » =
+   `grandsMots` ; « les émojis » = `pastilles` ; « les questions en sondage » = `sondage` ; « les zooms » = `zooms`.
 3. **Ce qu'elle ne veut jamais** → `"jamais": [...]`, avec ces noms : `hook`, `etoiles`, `grandsMots`, `liste`,
    `pastilles`, `objets`, `relance`, `rappel`, `zooms`, `grosPlan`, `sondage`. Ex. « pas d'émojis » → `"jamais": ["pastilles"]`.
 4. **Sa liste préférée** : des bandes d'étiqueteuse, des notes de téléphone, des post-it ? → `"liste": "etiqueteuse"` / `"notes"` / `"postit"`.
-5. **Ses sons** : le catalogue des sons (plus bas) ; si elle en choisit, mets-les dans `"sons"` comme décrit dans « Ses sons à elle ».
+5. **Ses sons** : le catalogue des sons (plus bas) ; si elle en choisit, mets-les dans `"sons"` du profil (`"creatif": { …, "sons": { "pack": "doux" } }`),
+   avec les mêmes réglages que dans « Ses sons à elle » : ils s'appliqueront à toutes ses vidéos.
 
 Écris la réponse dans SA charte (`chartes/<son-nom>.json`), une fois pour toutes :
 `"creatif": { "energie": "petillante", "aime": ["pastilles", "grandsMots"], "jamais": ["objets"], "liste": "etiqueteuse" }`
@@ -253,6 +260,8 @@ Pour une seule vidéo, la même clé `"creatif"` dans `projet.json` passe avant 
 
 ⛔ Il n'écrase JAMAIS ce qu'elle a déjà choisi : il remplit seulement ce qui est vide. Il écrit `plan.txt` en clair.
 Lance `plan` AVANT de régler toi-même titre, compteur ou carte de fin : il te dit lesquels ne pas rajouter (pas de doublon).
+`plan` ne pose pas `motAMot` ni `etincelles` : en style classique, ajoute-les toi-même dans `projet.json`. Dans les 10 styles du
+moteur collage, il range ses effets et ses listes dans `collage` tout seul (les cartes façon téléphone et le sondage n'y existent pas).
 **Montre-lui `plan.txt` AVANT de fabriquer** (en mots simples, sans les temps). ⛔ Pas d'`apercu` en style classique ou prof :
 il fabrique toute la vidéo (7 minutes) et saute les contrôles. L'aperçu n'existe que pour les styles du moteur collage. C'est une proposition, pas une
 cage : elle change tout avec ses mots (« enlève la liste », « mets une explosion quand je dis exploser »,
@@ -281,7 +290,7 @@ Ils sont volontairement très différents les uns des autres : aide-la à choisi
 | `"typo"` | Typo animée : chaque mot fort arrive avec sa police, sa couleur et son animation, qui tournent (tapé au clavier, lettres qui sautent, néon, arc de cercle, duo manuscrite + grand mot serré) ; sous-titres sobres en petit gras ; le hook saute lettre par lettre ; la fin tape son mot-clé | Énergie, astuces, vidéo phrase par phrase, contenu qui « percute » |
 | `"witchy"` | Sorcière moderne et chic : voile doux de nuit à SA couleur, poussière d'étoiles dorée et orbes de lumière derrière elle, étoile filante, hook en lettres de grimoire dorées avec les phases de la lune, phrases en serif crème dont le mot fort s'illumine en or avec une gerbe d'étoiles, page de grimoire en intermède (la nuit tombe, une constellation se dessine, ses mots s'écrivent en or), mot-clé dans un sceau de lune | Rituels, huiles, énergie, lune, bien-être holistique, spiritualité |
 | `"chic"` | Chic naturel : image naturelle, hook en capitales fines espacées avec un filet et un grand mot en italique raffinée, sous-titres phrase par phrase en sans-serif fin, le mot fort en italique à SA couleur souligné d'un trait, étiquettes produit reliées au produit par un trait fin, chiffres dans une pastille sable avec leurs bénéfices en petites capsules | Vidéo produit, beauté, soin, bien-être, lifestyle, vente en douceur |
-| `"luxe"` | Le plus haut de gamme : image réchauffée avec un léger grain et un vignettage doux, le hook en capitales fines espacées avec un grand mot en italique et un filet doré, ses phrases sur une seule ligne en serif italique blanc avec le mot fort en or pâle, des cartes en verre dépoli au bord lumineux, des coches et une barre de progression dorées, les produits reliés par un trait fin, et les sons de la famille luxe | Offre haut de gamme, produit premium, soin, image de marque élégante |
+| `"luxe"` | Le plus haut de gamme : image réchauffée avec un léger grain et un vignettage doux, le hook en capitales fines espacées avec un grand mot en italique et un filet à SA couleur, ses phrases sur une seule ligne en serif italique blanc avec le mot fort à SA couleur, des cartes sombres teintées au bord lumineux (sans flou), des coches et une barre de progression à SA couleur, les produits reliés par un trait fin, et les sons de la famille luxe | Offre haut de gamme, produit premium, soin, image de marque élégante |
 | `"automne"` | Cosy automne : hook sur sa poitrine (petite manuscrite, grand titre crème au contour brun, fin en manuscrite rouille, petites étoiles), des feuilles d'automne qui tombent derrière elle pendant le hook, ses mots qui arrivent UN PAR UN en écriture ronde crème au contour brun (le mot fort en rouille, plus gros, avec deux feuilles), image légèrement réchauffée ; les polices changent d'une vidéo à l'autre | Saison, cocooning, routine, bien-être, contenu doux et chaleureux |
 | `"studio"` | Très créatif : par moments elle est détourée sur un fond quadrillé tracé à la main à SA couleur, un soleil pâle derrière sa tête, ses mots posés en escalier en serif d'affiche et en manuscrite (ou, en version claire, sur un fond blanc à carreaux avec un soleil jaune et ses mots à SA couleur) ; le reste du temps sa vidéo normale avec des sous-titres fins | Storytelling, coulisses, présentation, contenu « waouh » ; mieux en plan assez large, sur un fond simple |
 
@@ -295,7 +304,7 @@ Pop, collage, éditorial, typo, witchy, chic, luxe, automne, studio et doux pass
 
 **Le réseau** (`"plateforme"`) : ⛔ AVANT chaque montage, propose-lui le choix sous forme de boutons (Instagram, TikTok, Facebook, les trois) : les zones de sécurité changent avec. Si elle a déjà choisi pour ce projet, ne redemande pas. `"instagram"` (par défaut), `"tiktok"`,
 `"facebook"` ou `"toutes"`. Chaque appli pose ses boutons par-dessus la vidéo : les onglets en haut, le nom et la
-légende en bas, la colonne des j'aime à droite, et les côtés que les téléphones allongés rognent. Dans les 9 styles
+légende en bas, la colonne des j'aime à droite, et les côtés que les téléphones allongés rognent. Dans les 10 styles
 du moteur collage, un texte OU UN EFFET (carte, téléphone, photos, liste) qui déborde dans ces zones est ramené dedans tout seul, un peu réduit s'il le faut ; s'il ne tient pas sans devenir riquiqui ou toucher son visage, il ne sort pas (choix d'Aurélie, le terminal l'écrit : « Zone … : pas de … ») ; dans classique et prof, la
 planche de contrôle les montre en rouge. Instagram a été mesuré sur un vrai reel ; TikTok et Facebook suivent les
 marges officielles des deux réseaux, prévues pour les pubs, donc plus larges en bas : si elle publie partout, `"toutes"`.
@@ -350,7 +359,7 @@ se colore, pour 3 mots-clés courts) et `"anneau"` (anneau de progression qui mo
 côté, pour un bilan, des étapes, une routine). La couleur des coches est celle de sa charte (`"couleurs": { "coche": "#…" }`
 pour la changer). Les autres types, plus « fait main », choisis selon le ton : `etiqueteuse`
 (bandes rouges imprimées une à une : affirmations courtes), `postit` (post-it de couleur collés un par un :
-idées, mots-clés), et, dans les 9 styles du moteur collage, `fiches` (des fiches qui sortent
+idées, mots-clés), et, dans les 10 styles du moteur collage, `fiches` (des fiches qui sortent
 d'une boîte en bois, `"titre"` = l'étiquette de la boîte : recette, routine). ⛔ Jamais `bingo` (refusé par Aurélie le 06/11), ni `ticket` ni `tampon` (retirés par Aurélie le 08/11). Varie les types d'une vidéo à
 l'autre. Une ou deux listes par vidéo au plus ; pendant une liste, les sous-titres et les mots géants
 se taisent. Regarde une image du résultat : la liste ne doit jamais toucher son visage.
@@ -393,7 +402,7 @@ les choisir à la main : `"studio": [[début, fin], …]` (temps de la vidéo d'
 (le fond prend sinon SA couleur signature, assombrie). **Version claire** : `"clair": true` dans `collage` : fond blanc cassé à carreaux, soleil jaune, ses mots à SA couleur, nets, sans ombre (une couleur trop pâle est foncée toute seule pour se lire). Propose-la quand sa charte est claire ou qu'elle aime le blanc. Il marche le mieux quand elle est filmée en plan assez large
 et immobile. Quand elle bouge trop sur une scène (cheveux qu'elle secoue, bras levés), l'outil RETIRE cette scène tout seul et garde sa vidéo normale (« ⚠️ SCÈNE STUDIO RETIRÉE ») : dis-le-lui simplement, et si toutes les scènes sont retirées, conseille-lui de se refilmer plus posée, en plan un peu plus large, pour avoir l'effet studio.
 
-**Le fond vert** (pour expliquer et COMPARER, dans les 9 styles du moteur collage) : elle est détourée en petit en
+**Le fond vert** (pour expliquer et COMPARER, dans les 10 styles du moteur collage) : elle est détourée en petit en
 bas de l'écran avec un contour blanc, et SES images défilent derrière elle au rythme de ce qu'elle dit.
 `"fondVert": { "images": [{ "t": 3.2, "src": "photo.jpg" }, { "t": 7, "src": ["avant.jpg", "apres.jpg"], "etiquettes": ["ce qu'on voit partout", "ce que je conseille"] }] }`
 dans `collage`. Avant sa première image, sa vidéo reste normale ; à la première image, elle se réduit en une demi-seconde et ses images arrivent derrière elle. Chaque image reste jusqu'à la suivante ; 1 image = plein écran (en entier, sur un fond fait d'elle-même
@@ -441,9 +450,9 @@ Pendant un effet, les mots géants se taisent. Regarde une image du résultat : 
 
 **Le catalogue en vidéo** : https://claude.ai/artifact/3WxS2pJSqiizXBQEf1ewiC : chaque effet et chaque variante en quelques secondes, avec un bouton « Copier ma phrase pour Claude ». Quand tu lui proposes un effet, donne-lui ce lien pour qu'elle le voie avant de choisir ; si elle te colle une phrase copiée depuis le catalogue, c'est l'effet qu'elle veut. Ce qui n'y est pas a été retiré par Aurélie : ne le propose pas.
 
-**Les nouveaux effets** (dans `collage`, les 9 styles du moteur collage) :
+**Les nouveaux effets** (dans `collage`, les 10 styles du moteur collage) :
 - **Le fil rouge** : quand elle annonce ses points (« numéro un… numéro deux… », « première étape… »), une carte
-  revient à chaque point : une carte en verre dépoli (le décor flouté derrière), barre en segments façon stories,
+  revient à chaque point : une carte sombre teintée (sans flou derrière), barre en segments façon stories,
   les étapes faites cochées à sa couleur et barrées, la nouvelle qui sort du flou (le bloc-notes papier a été retiré par Aurélie le 08/11 : il n'y a plus que celui-là) :
   `"filRouge": { "titre": "ma routine", "etapes": [{ "t": 12.4, "texte": "le sérum" }, { "t": 21, "texte": "le spray" }] }`
   (`t` = le moment où elle dit le numéro, 2 à 6 étapes de 1 à 4 mots, SES mots). Le plus fort pour la rétention :
@@ -453,7 +462,7 @@ Pendant un effet, les mots géants se taisent. Regarde une image du résultat : 
 - **La feuille lignée** : `{ "t": 40, "type": "feuille", "titre": "par exemple", "lignes": ["…", "…"] }`, quand elle
   donne des exemples l'un après l'autre ; ils s'écrivent à la main, ligne après ligne.
 - **Ses chiffres** : `{ "type": "compteurs", "t": 8, "items": ["697", "798", "841"], "icone": "vues" }` (`vues`,
-  `abonnes` ou `coeur`). DEUX looks, les deux validés par Aurélie : par défaut le widget en verre dépoli (le chiffre défile d'une
+  `abonnes` ou `coeur`). DEUX looks, les deux validés par Aurélie : par défaut le widget teinté (le chiffre défile d'une
   valeur à l'autre, petites barres, pastille de hausse en % calculée sur SES chiffres) ; `"look": "cartes"` = les petites étiquettes
   sombres qui s'empilent. ⛔ C'est ELLE qui choisit : décris-lui les deux et demande-lui laquelle (choix d'Aurélie). Et `{ "type": "graphique", "t": 15, "titre": "Mes abonnés", "points": [120, 180, 260, 410], "valeur": "410" }`.
   ⛔ Uniquement des chiffres qu'elle DIT dans sa vidéo ou qu'elle te donne : jamais inventés, jamais arrondis.
@@ -536,7 +545,7 @@ les polices du style sont fixes, c'est ce qui fait son allure. Montre-lui une im
 de grain, un peu de netteté) : elle améliore sans se voir. Si elle trouve sa vidéo sombre, granuleuse
 ou floue, ajoute ce qu'elle demande : `"image": ["lumineux"]`, `["grain"]`, `["net"]`, `["chaud"]` ou
 `["froid"]` ou `["contraste"]` (image délavée, trop blanche : elle reprend du relief), à combiner (`["lumineux", "grain"]`, `["net", "chaud", "contraste"]`). ⛔ Ne choisis pas à sa place : sors-lui une image AVANT / APRÈS de sa vidéo pour 2 ou 3 réglages (`ffmpeg -ss <t> -frames:v 1 -vf "<filtres>"` côte à côte) et laisse-la choisir. « lumineux » sur une vidéo déjà claire la délave. `"image": "aucun"` garde l'image telle quelle.
-Jamais de filtre qui abîme : pas de grain ajouté, pas de vignette, pas de noir et blanc.
+Jamais de filtre qui abîme : pas de grain ajouté, pas de vignette, pas de noir et blanc (seul le style luxe garde son léger grain et son vignettage doux, choisis par Aurélie).
 
 **L'ambiance**, seulement si elle la demande, par-dessus la correction : `"ambiance": "cocooning"`
 (lumière de lampe le soir, ambrée et feutrée) ou `"ambiance": "matin lumineux"` (clair, aéré, baigné

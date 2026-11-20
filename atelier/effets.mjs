@@ -119,7 +119,7 @@ export function effet(E, { clamp, doux, rebond, esc, couleurs, dossier = '', pol
     return { hauteur: Math.round(hauteur), anim: 1.6, duree: E.duree ?? 3.2,
       dessin: (dt, y) => { const p = clamp(rebond(dt / 0.35), 0, 1.08), yG = autour && dessus ? ecartH : 0
         let h = '<div style="position:absolute;left:0;right:0;top:' + y + 'px;text-align:center">'
-        h += '<div style="position:absolute;left:0;right:0;top:' + yG + 'px;font:' + R.g[1] + ' ' + zG + 'px/' + R.g[3] + ' ' + R.g[0] + ';color:' + col + ';letter-spacing:-.02em;transform:scale(' + p.toFixed(3) + ');filter:drop-shadow(0 6px 14px rgba(0,0,0,.25))">' + lignesG.map(esc).join('<br>') + '</div>'
+        h += '<div style="position:absolute;left:0;right:0;top:' + yG + 'px;font:' + R.g[1] + ' ' + zG + 'px/' + R.g[3] + ' ' + R.g[0] + ';color:' + col + ';' + (E.recette === 'charte' && couleurs.contourFort ? '-webkit-text-stroke:' + Math.round((couleurs.contourEp || 6) * zG / 120) + 'px ' + couleurs.contourFort + ';paint-order:stroke fill;' : '') + 'letter-spacing:-.02em;transform:scale(' + p.toFixed(3) + ');filter:drop-shadow(0 6px 14px rgba(0,0,0,.25))">' + lignesG.map(esc).join('<br>') + '</div>'
         const pos = (top, txt, d0, extra) => txt ? '<div style="position:absolute;left:0;right:0;top:' + Math.round(top) + 'px">' + ecr(txt, dt, d0, txt === dessous && R.pose !== 'traverse' ? Math.round(zF * 1.1) : zF, extra) + '</div>' : ''
         if (R.pose === 'dessus') h += pos(-zF * 0.45, dessus, 0.25) + pos(hG - zF * 0.55, dessous, 0.6)
         else if (R.pose === 'traverse') h += pos(hG / 2 - zF / 2, dessus || dessous, 0.3)

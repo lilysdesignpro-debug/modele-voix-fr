@@ -52,7 +52,7 @@ export function liste(L, { clamp, doux, rebond, esc, couleurs }) {
     // (07/11) version réaliste (ruban brillant, lettres en relief) REFUSÉE par Aurélie : « trop bizarre, on lit mal ». On garde celle-ci.
     etiqueteuse: (dt, y) => items.map((x, k) => { const p = clamp((dt - 0.2 - k * pas) / 0.25, 0, 1); if (!p) return ''
       const n2 = Math.ceil(x.length * clamp((dt - 0.2 - k * pas) / 0.35, 0, 1))
-      const fsz = Math.min(34, Math.floor(500 / (x.length * 0.66))) // une bande trop longue rapetisse au lieu de sortir de l'écran
+      const fsz = Math.min(34, Math.floor(440 / (x.length * 0.72))) // (20/11) tient avant la colonne des boutons Instagram (96 px à droite) ; une bande trop longue rapetisse au lieu de sortir de l'écran
       return '<div style="position:absolute;left:' + (100 + (k % 2) * 30 + (1 - doux(p)) * 260) + 'px;top:' + (y + k * 74) + 'px;transform:rotate(' + ((k % 3) - 1) * 1.6 + 'deg);background:' + couleurs.etiquette + ';padding:9px 18px;border-radius:4px;box-shadow:0 4px 0 rgba(0,0,0,.25),0 8px 16px rgba(0,0,0,.25);font:700 ' + fsz + 'px/1 Mono,monospace;letter-spacing:0.05em;color:#fff;text-shadow:0 -1px 0 rgba(0,0,0,.35),0 1px 0 rgba(255,255,255,.25);white-space:nowrap">' + esc(x.toUpperCase().slice(0, n2)) + '</div>' }).join(''),
     // les post-it se collent un par un, un peu de travers
     // (07/11) postit RÉALISTE : grain du papier, bande collante à plat en haut, bas qui se soulève (ombre plus large dessous),
