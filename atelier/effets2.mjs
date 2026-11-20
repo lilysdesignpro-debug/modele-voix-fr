@@ -115,7 +115,7 @@ export function effet2(E, { clamp, doux, rebond, esc, couleurs, dossier = '' }) 
         const vol = Math.sin(dt * 3.2) * 9, balance = Math.sin(dt * 2.4) * 6 * (cote === 'droite' ? -1 : 1)
         const op = (e * (1 - sortie)).toFixed(3), monte = (1 - e) * 40 - sortie * 30
         return '<img src="' + O.src + '" style="position:absolute;left:' + x + 'px;top:' + (y + 20 + vol + monte).toFixed(1) + 'px;width:' + W + 'px;opacity:' + op + ';transform-origin:50% 60%;transform:rotate(' + balance.toFixed(1) + 'deg) scale(' + (0.7 + 0.3 * e).toFixed(3) + ');filter:drop-shadow(0 10px 14px rgba(40,20,60,.25))">' },
-      sons: t0 => [{ t: t0, fam: 'mot', vol: 0.08 }] }
+      sons: t0 => E.muet ? [] : [{ t: t0, fam: 'mot', vol: 0.08 }] }
   }
   // (07/11) motTasse : un mot en géant dont le O est une VRAIE tasse vue de dessus (« POSSIBLE », « MOINS DE SCROLL »…).
   // { type: 'motTasse', t, texte: 'possible', nom: 'matcha-latte', transition: 'pose' | 'glisse' | 'tourne' | 'zoom', lettre: 3 }

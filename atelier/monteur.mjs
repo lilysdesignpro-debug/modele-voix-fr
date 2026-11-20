@@ -89,8 +89,11 @@ export function planMontage(dir, P, C = null) {
   // 2. Les candidats, ligne par ligne (après le hook) : tout ce qu'un monteur POURRAIT poser sur ce qu'elle dit
   const cand = []
   for (let i = 0; i < L.length; i++) {
-    const l = L[i]; if (l.t < hookFin) continue
+    const l = L[i]
     const b = brut(l), mots = b.split(/\s+/), n = sansAcc(b)
+    // (20/11) le petit fantôme a le droit d'apparaître pendant le hook (« abonnées fantômes » se dit souvent dès le début),
+    // sans son : rien d'autre ne se pose sur le hook
+    if (l.t < hookFin) { if (effets && veut('objets') && mots.some(w => /^(fantomes?|silencieuses?|silencieux)$/.test(nu(w)))) cand.push({ type: 'objet', t: l.t + 0.2, duree: 1.4, poids: 6, nom: 'fantome', cle: 'fantome', hook: true }); continue }
     // une énumération (3 à 4 morceaux courts) → une liste
     if (listes && veut('liste')) {
       const bloc = [L[i], L[i + 1], L[i + 2]].filter(Boolean).map(brut).join(' ')
@@ -167,7 +170,7 @@ export function planMontage(dir, P, C = null) {
     if (p.type === 'liste') mettre('listes', { t: p.t, type: creatif.liste || 'etiqueteuse', items: p.items }, 'Liste', `« ${p.items.join(' / ')} » qui s'écrit quand elle les dit`)
     if (p.type === 'grandMot') mettre('effets', { t: p.t, type: 'duo', recette: 'charte', grand: p.grand, ...(p.dessus ? { dessus: p.dessus } : {}), duree: 1.5 }, 'Grand mot', `${p.dessus ? p.dessus.toUpperCase() + ' / ' : ''}« ${p.grand} » à sa charte, avec un impact doux, quand elle dit « ${/^\d/.test(p.grand) ? p.grand : dit} »`)
     if (p.type === 'relance') mettre('effets', { t: p.t, type: 'choc', texte: p.texte }, 'Relance', `« ${p.texte} » écrit au marqueur au-dessus de sa tête`)
-    if (p.type === 'objet') mettre('effets', { t: p.t, type: p.nom === 'fantome' ? 'flotte' : 'objet', nom: p.nom }, 'Objet', `un vrai ${p.nom.replace(/-\d$/, '').replace(/-/g, ' ')} qui se pose à côté d'elle quand elle dit « ${dit} »`)
+    if (p.type === 'objet') mettre('effets', { t: p.t, type: p.nom === 'fantome' ? 'flotte' : 'objet', nom: p.nom, ...(p.nom === 'fantome' ? { duree: p.hook ? 1.4 : 2.4, ...(p.hook ? { muet: true } : {}) } : {}) }, p.nom === 'fantome' ? 'Petit fantôme' : 'Objet', p.nom === 'fantome' ? `un petit fantôme tout mignon qui flotte à côté d'elle quand elle dit « ${dit} »` : `un vrai ${p.nom.replace(/-\d$/, '').replace(/-/g, ' ')} qui se pose à côté d'elle quand elle dit « ${dit} »`)
     if (p.type === 'rappel') mettre('stickers', { t: p.t, type: 'notif', titre: 'Rappel', texte: p.texte, emoji: '⏰', x: 360, y: 0.7, duree: 2.6 }, 'Rappel', `notification « ${p.texte} »`)
     if (p.type === 'pastilles') { const xs = cote++ % 2 ? [560, 170] : [170, 560]
       mettre('stickers', { t: p.t, type: 'groupe', duree: 2.6, pas: 0.5, echelle: 1.7, items: p.items.map(([e, mot], k) => [e, xs[k], 0.3 + k * 0.06, k ? 5 : -6, mot]) },
@@ -244,7 +247,7 @@ export function planMontage(dir, P, C = null) {
     ...(P.options ? ['OPTIONS À LUI PROPOSER (rien n\'est posé tant qu\'elle ne dit pas oui) :', ...P.options.map(o => `  ${o.n}. ${o.texte}`),
       `Pour les ajouter : node montage.mjs ajouter <nom> 2 5 (ou « tout »). Ce qu'elle choisit souvent, mets-le dans « aime » de son profil : ce sera d'office la prochaine fois.`, ''] : []),
     `${nb} temps forts de base${P.options ? ` (+ ${P.options.length} en option)` : ''} en ${Math.round(dureeF)} s de vidéo.`,
-    'Les sons suivent tout seuls : tension très basse sous le hook, impact doux sur les grands mots, bloop sur les pastilles, scintillement sur les listes, whoosh aux vrais changements de plan.',
+    'Les sons suivent tout seuls, doux et jamais métalliques : tension très basse sous le hook, un petit son sur un mot géant sur deux (jamais le même deux fois de suite), bloop sur les pastilles, petits clics sur les listes, whoosh aux vrais changements de plan.',
     'Elle peut tout changer avec ses mots : « enlève les pastilles », « mets une explosion quand je dis… », « plus calme », « plus fou ».'].join('\n')
   writeFileSync(join(dir, 'plan.txt'), texte + '\n')
   return { P, texte, ajouts }

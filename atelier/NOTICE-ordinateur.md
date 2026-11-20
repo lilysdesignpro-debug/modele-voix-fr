@@ -213,6 +213,10 @@ deux fois la même animation de suite.
 ni carte givrée, ni vidéo réduite dans une carte de chapitre. Seulement si l'élève le demande elle-même, avec
 `"flou": true` dans `projet.json`.
 
+⛔ **Toutes les couleurs suivent SA charte** (20/11) : la phrase au marqueur, les bandes d'étiqueteuse, les mots géants
+prennent sa couleur de mot fort. Jamais le jaune ou le rouge d'un autre compte. Elle veut une autre couleur sur un
+effet précis : `"couleur": "#…"` sur cet effet.
+
 **2. LES OPTIONS, numérotées dans `plan.txt`** : tout ce qui peut venir s'ajouter sans rien casser, au bon moment.
 Rien n'est posé tant qu'elle ne dit pas oui. Tu lui lis la liste en mots simples (« 1. des petites pastilles 🎬 vidéos
 quand tu dis… »), elle choisit, et tu lances `node montage.mjs ajouter <nom> 2 5` (ou `tout`). Ce qu'elle choisit
